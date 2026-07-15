@@ -36,3 +36,7 @@ build/
 
 ### Node (frontend) ###
 node_modules/
+
+### Design assets (local reference only) ###
+Gemini_Generated_Image_*.png
+job-flow-frontend/design/
