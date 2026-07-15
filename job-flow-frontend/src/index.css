@@ -1,3 +1,37 @@
+:root {
+  /* Sidebar */
+  --sidebar-bg: #1a1d2e;
+  --sidebar-text: #8b8fa3;
+  --sidebar-text-active: #ffffff;
+  --sidebar-hover: #252840;
+  --sidebar-accent: #4f6ef7;
+  --sidebar-width: 200px;
+
+  /* Top bar */
+  --topbar-bg: #ffffff;
+  --topbar-height: 64px;
+
+  /* Content area */
+  --content-bg: #f4f5f7;
+
+  /* General */
+  --text-primary: #1a1d2e;
+  --text-secondary: #6b7080;
+  --text-muted: #9ca3af;
+  --white: #ffffff;
+  --border-color: #e5e7eb;
+  --card-bg: #ffffff;
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --card-radius: 12px;
+
+  /* Status colors */
+  --status-applied: #4f6ef7;
+  --status-phone-screen: #f59e0b;
+  --status-interview: #10b981;
+  --status-offer: #8b5cf6;
+  --status-rejected: #ef4444;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -7,4 +41,10 @@
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+  background: var(--content-bg);
+  color: var(--text-primary);
+}
+
+#root {
+  min-height: 100vh;
 }
