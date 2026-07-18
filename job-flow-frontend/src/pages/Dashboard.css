@@ -1,0 +1,118 @@
+/* ===== Dashboard Layout ===== */
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ===== Stat Cards Row ===== */
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+}
+
+.stat-card {
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.stat-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-card-icon svg {
+  width: 24px;
+  height: 24px;
+  color: white;
+}
+
+.stat-card-icon--total {
+  background: var(--sidebar-accent);
+}
+
+.stat-card-icon--review {
+  background: var(--status-phone-screen);
+}
+
+.stat-card-icon--interview {
+  background: var(--status-interview);
+}
+
+.stat-card-icon--offer {
+  background: var(--status-offer);
+}
+
+.stat-card-icon--rejected {
+  background: var(--status-rejected);
+}
+
+.stat-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.stat-card-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+
+.stat-card-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.stat-card-trend {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.stat-card-trend svg {
+  width: 32px;
+  height: 20px;
+}
+
+.stat-card-trend--up svg {
+  color: var(--status-interview);
+}
+
+.stat-card-trend--down svg {
+  color: var(--status-rejected);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 1200px) {
+  .stat-cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .stat-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-cards {
+    grid-template-columns: 1fr;
+  }
+}
