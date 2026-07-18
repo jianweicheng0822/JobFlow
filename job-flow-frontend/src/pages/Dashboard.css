@@ -98,9 +98,225 @@
   color: var(--status-rejected);
 }
 
+/* ===== Section Header ===== */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.section-link {
+  font-size: 13px;
+  color: var(--sidebar-accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.section-link:hover {
+  text-decoration: underline;
+}
+
+/* ===== Pipeline Board ===== */
+.pipeline-section {
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  padding: 20px;
+}
+
+.pipeline-board {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.pipeline-column {
+  min-width: 0;
+}
+
+.pipeline-column-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.pipeline-column-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--col-color, var(--sidebar-accent));
+  padding-bottom: 8px;
+  margin-bottom: -11px;
+}
+
+.pipeline-column-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  border-radius: 10px;
+  padding: 1px 8px;
+  min-width: 22px;
+  text-align: center;
+}
+
+.pipeline-column-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pipeline-card {
+  background: var(--content-bg);
+  border-radius: 8px;
+  padding: 14px;
+  border: 1px solid var(--border-color);
+  transition: box-shadow 0.15s ease;
+}
+
+.pipeline-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.pipeline-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.pipeline-card-company {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.pipeline-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.pipeline-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.pipeline-card-date {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.pipeline-card-tag {
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+/* ===== Bottom Row Layout ===== */
+.dashboard-bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* ===== Recently Updated Applications ===== */
+.recent-section {
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  padding: 20px;
+}
+
+.recent-table-wrapper {
+  overflow-x: auto;
+}
+
+.recent-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.recent-table thead th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.recent-table tbody td {
+  padding: 12px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.recent-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.recent-table tbody tr:hover {
+  background: var(--content-bg);
+}
+
+.recent-position {
+  font-weight: 600;
+}
+
+.recent-company {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recent-company-logo {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.recent-status-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  border-radius: 12px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 1200px) {
   .stat-cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .pipeline-board {
     grid-template-columns: repeat(3, 1fr);
   }
 }
@@ -109,10 +325,19 @@
   .stat-cards {
     grid-template-columns: repeat(2, 1fr);
   }
+  .pipeline-board {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .dashboard-bottom-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 480px) {
   .stat-cards {
+    grid-template-columns: 1fr;
+  }
+  .pipeline-board {
     grid-template-columns: 1fr;
   }
 }
