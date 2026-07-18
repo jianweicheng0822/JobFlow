@@ -229,11 +229,18 @@
   padding: 2px 6px;
 }
 
-/* ===== Bottom Row Layout ===== */
-.dashboard-bottom-row {
+/* ===== Main + Sidebar Layout ===== */
+.dashboard-main {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 260px;
   gap: 16px;
+}
+
+.dashboard-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
 }
 
 /* ===== Recently Updated Applications ===== */
@@ -311,6 +318,117 @@
   white-space: nowrap;
 }
 
+/* ===== Dashboard Sidebar ===== */
+.dashboard-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebar-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 14px;
+}
+
+/* Upcoming Interviews */
+.upcoming-section {
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  padding: 20px;
+}
+
+.upcoming-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.upcoming-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.upcoming-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.upcoming-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.upcoming-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.upcoming-company {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.upcoming-time {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Quick Stats */
+.quick-stats-section {
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  padding: 20px;
+}
+
+.quick-stats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quick-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.quick-stat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.quick-stat-label {
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.quick-stat-value {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 1200px) {
   .stat-cards {
@@ -328,7 +446,7 @@
   .pipeline-board {
     grid-template-columns: repeat(2, 1fr);
   }
-  .dashboard-bottom-row {
+  .dashboard-main {
     grid-template-columns: 1fr;
   }
 }

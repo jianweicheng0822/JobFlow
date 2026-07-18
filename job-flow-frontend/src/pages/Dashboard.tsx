@@ -123,6 +123,28 @@ const recentApplications: RecentApplication[] = [
   },
 ]
 
+interface UpcomingInterview {
+  id: number
+  name: string
+  company: string
+  time: string
+  avatarColor: string
+  initial: string
+}
+
+const upcomingInterviews: UpcomingInterview[] = [
+  { id: 1, name: 'Alex R.', company: 'TechCorp', time: '11 AM', avatarColor: '#4f6ef7', initial: 'A' },
+  { id: 2, name: 'Name...', company: 'Spotify', time: '11 AM', avatarColor: '#10b981', initial: 'N' },
+  { id: 3, name: 'Samu H.', company: 'Google', time: '11 AM', avatarColor: '#f59e0b', initial: 'S' },
+  { id: 4, name: 'Maria A.', company: 'Meta', time: '12 AM', avatarColor: '#8b5cf6', initial: 'M' },
+  { id: 5, name: 'Samu A.', company: 'Amazon', time: '1 PM', avatarColor: '#ef4444', initial: 'S' },
+]
+
+const quickStats = [
+  { label: 'Total Offers', value: 8, color: 'var(--status-offer)' },
+  { label: 'Total Rejections', value: 134, color: 'var(--status-rejected)' },
+]
+
 const statCards = [
   {
     label: 'Total Applications',
@@ -249,108 +271,150 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Application Pipeline */}
-      <div className="pipeline-section">
-        <div className="section-header">
-          <h2 className="section-title">Application Pipeline</h2>
-          <a href="#" className="section-link">View All ▾</a>
-        </div>
-        <div className="pipeline-board">
-          {pipelineColumns.map((col) => (
-            <div className="pipeline-column" key={col.stage}>
-              <div className="pipeline-column-header">
-                <span
-                  className="pipeline-column-title"
-                  style={{ '--col-color': col.color } as React.CSSProperties}
-                >
-                  {col.stage}
-                </span>
-                <span
-                  className="pipeline-column-badge"
-                  style={{ background: col.color }}
-                >
-                  {col.count}
-                </span>
-              </div>
-              <div className="pipeline-column-body">
-                {col.cards.map((card) => (
-                  <div className="pipeline-card" key={card.id}>
-                    <div className="pipeline-card-title">{card.title}</div>
-                    <div className="pipeline-card-company">{card.company}</div>
-                    <div className="pipeline-card-meta">
-                      <span>📍 {card.location}</span>
-                      <span>💰 {card.salary}</span>
-                    </div>
-                    <div className="pipeline-card-footer">
-                      <span className="pipeline-card-date">Date Applied: {card.date}</span>
-                      {card.tag && (
-                        <span
-                          className="pipeline-card-tag"
-                          style={{ background: col.color }}
-                        >
-                          {card.tag}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+      {/* Main content + right sidebar */}
+      <div className="dashboard-main">
+        <div className="dashboard-content">
+          {/* Application Pipeline */}
+          <div className="pipeline-section">
+            <div className="section-header">
+              <h2 className="section-title">Application Pipeline</h2>
+              <a href="#" className="section-link">View All ▾</a>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Bottom Row: Recent Applications + Activity Chart (Step 4) */}
-      <div className="dashboard-bottom-row">
-        {/* Recently Updated Applications */}
-        <div className="recent-section">
-          <div className="section-header">
-            <h2 className="section-title">Recently Updated Applications</h2>
-          </div>
-          <div className="recent-table-wrapper">
-            <table className="recent-table">
-              <thead>
-                <tr>
-                  <th>Position</th>
-                  <th>Company</th>
-                  <th>Location</th>
-                  <th>Last Action</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentApplications.map((app) => (
-                  <tr key={app.id}>
-                    <td className="recent-position">{app.position}</td>
-                    <td>
-                      <div className="recent-company">
-                        <span
-                          className="recent-company-logo"
-                          style={{ background: app.companyColor }}
-                        >
-                          {app.companyInitial}
-                        </span>
-                        {app.company}
+            <div className="pipeline-board">
+              {pipelineColumns.map((col) => (
+                <div className="pipeline-column" key={col.stage}>
+                  <div className="pipeline-column-header">
+                    <span
+                      className="pipeline-column-title"
+                      style={{ '--col-color': col.color } as React.CSSProperties}
+                    >
+                      {col.stage}
+                    </span>
+                    <span
+                      className="pipeline-column-badge"
+                      style={{ background: col.color }}
+                    >
+                      {col.count}
+                    </span>
+                  </div>
+                  <div className="pipeline-column-body">
+                    {col.cards.map((card) => (
+                      <div className="pipeline-card" key={card.id}>
+                        <div className="pipeline-card-title">{card.title}</div>
+                        <div className="pipeline-card-company">{card.company}</div>
+                        <div className="pipeline-card-meta">
+                          <span>📍 {card.location}</span>
+                          <span>💰 {card.salary}</span>
+                        </div>
+                        <div className="pipeline-card-footer">
+                          <span className="pipeline-card-date">Date Applied: {card.date}</span>
+                          {card.tag && (
+                            <span
+                              className="pipeline-card-tag"
+                              style={{ background: col.color }}
+                            >
+                              {card.tag}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </td>
-                    <td>{app.location}</td>
-                    <td>{app.lastAction}</td>
-                    <td>
-                      <span
-                        className="recent-status-badge"
-                        style={{ background: app.statusColor }}
-                      >
-                        {app.status}
-                      </span>
-                    </td>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Recently Updated Applications */}
+          <div className="recent-section">
+            <div className="section-header">
+              <h2 className="section-title">Recently Updated Applications</h2>
+            </div>
+            <div className="recent-table-wrapper">
+              <table className="recent-table">
+                <thead>
+                  <tr>
+                    <th>Position</th>
+                    <th>Company</th>
+                    <th>Location</th>
+                    <th>Last Action</th>
+                    <th>Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {recentApplications.map((app) => (
+                    <tr key={app.id}>
+                      <td className="recent-position">{app.position}</td>
+                      <td>
+                        <div className="recent-company">
+                          <span
+                            className="recent-company-logo"
+                            style={{ background: app.companyColor }}
+                          >
+                            {app.companyInitial}
+                          </span>
+                          {app.company}
+                        </div>
+                      </td>
+                      <td>{app.location}</td>
+                      <td>{app.lastAction}</td>
+                      <td>
+                        <span
+                          className="recent-status-badge"
+                          style={{ background: app.statusColor }}
+                        >
+                          {app.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
-        {/* Application Activity chart placeholder for Step 4 */}
+        {/* Right Sidebar */}
+        <div className="dashboard-sidebar">
+          {/* Upcoming Interviews */}
+          <div className="upcoming-section">
+            <h3 className="sidebar-section-title">Upcoming Interviews</h3>
+            <div className="upcoming-list">
+              {upcomingInterviews.map((interview) => (
+                <div className="upcoming-item" key={interview.id}>
+                  <span
+                    className="upcoming-avatar"
+                    style={{ background: interview.avatarColor }}
+                  >
+                    {interview.initial}
+                  </span>
+                  <div className="upcoming-info">
+                    <div className="upcoming-name">{interview.name}</div>
+                    <div className="upcoming-company">{interview.company}</div>
+                  </div>
+                  <div className="upcoming-time">{interview.time}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="quick-stats-section">
+            <h3 className="sidebar-section-title">Quick Stats</h3>
+            <div className="quick-stats-list">
+              {quickStats.map((stat) => (
+                <div className="quick-stat-item" key={stat.label}>
+                  <span
+                    className="quick-stat-dot"
+                    style={{ background: stat.color }}
+                  />
+                  <span className="quick-stat-label">{stat.label}</span>
+                  <span className="quick-stat-value">{stat.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
