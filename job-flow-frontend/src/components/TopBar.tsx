@@ -1,11 +1,18 @@
 import { Search } from 'lucide-react'
 import './TopBar.css'
 
+function getGreeting(): string {
+  const hour = new Date().getHours()
+  if (hour >= 5 && hour < 12) return 'Good morning'
+  if (hour >= 12 && hour < 18) return 'Good afternoon'
+  return 'Good evening'
+}
+
 export default function TopBar() {
   return (
     <header className="topbar">
       <div className="topbar-greeting">
-        <h1>Good morning, Alex!</h1>
+        <h1>{getGreeting()}, Alex!</h1>
         <p>Current job applications status</p>
       </div>
 
