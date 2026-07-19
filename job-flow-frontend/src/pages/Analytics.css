@@ -56,6 +56,25 @@
   color: #ef4444;
 }
 
+/* ===== Chart Cards ===== */
+.analytics-chart-card {
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  padding: 24px;
+}
+
+.analytics-chart-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+}
+
+.analytics-chart-wrapper {
+  width: 100%;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 1024px) {
   .analytics-stat-cards {

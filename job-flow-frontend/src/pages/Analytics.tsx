@@ -1,4 +1,20 @@
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import './Analytics.css'
+
+const monthlyData = [
+  { month: 'Jan', applications: 12 },
+  { month: 'Feb', applications: 19 },
+  { month: 'Mar', applications: 28 },
+  { month: 'Apr', applications: 22 },
+  { month: 'May', applications: 35 },
+  { month: 'Jun', applications: 40 },
+  { month: 'Jul', applications: 32 },
+  { month: 'Aug', applications: 45 },
+  { month: 'Sep', applications: 38 },
+  { month: 'Oct', applications: 30 },
+  { month: 'Nov', applications: 25 },
+  { month: 'Dec', applications: 18 },
+]
 
 const statSummary = [
   {
@@ -43,6 +59,35 @@ export default function Analytics() {
             </span>
           </div>
         ))}
+      </div>
+      {/* Application Trend Chart */}
+      <div className="analytics-chart-card">
+        <h2 className="analytics-chart-title">Application Trend</h2>
+        <div className="analytics-chart-wrapper">
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={monthlyData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+              <XAxis dataKey="month" tick={{ fontSize: 12, fill: 'var(--text-muted)' }} />
+              <YAxis tick={{ fontSize: 12, fill: 'var(--text-muted)' }} />
+              <Tooltip
+                contentStyle={{
+                  background: 'var(--card-bg)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                }}
+              />
+              <Line
+                type="monotone"
+                dataKey="applications"
+                stroke="#4f6ef7"
+                strokeWidth={2}
+                dot={{ r: 4, fill: '#4f6ef7' }}
+                activeDot={{ r: 6 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </div>
   )
