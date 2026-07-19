@@ -1,0 +1,103 @@
+/* ===== Jobs Page Layout ===== */
+.jobs-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ===== Jobs Stat Cards ===== */
+.jobs-stat-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.jobs-stat-card {
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.jobs-stat-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.jobs-stat-card-icon svg {
+  width: 24px;
+  height: 24px;
+  color: white;
+}
+
+.jobs-stat-card-icon--active {
+  background: #10b981;
+}
+
+.jobs-stat-card-icon--saved {
+  background: var(--sidebar-accent);
+}
+
+.jobs-stat-card-icon--closed {
+  background: #6b7280;
+}
+
+.jobs-stat-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.jobs-stat-card-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+
+.jobs-stat-card-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.jobs-stat-card-trend {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.jobs-stat-card-trend svg {
+  width: 32px;
+  height: 20px;
+}
+
+.jobs-stat-card-trend--up svg {
+  color: #10b981;
+}
+
+.jobs-stat-card-trend--down svg {
+  color: var(--status-rejected);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .jobs-stat-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .jobs-stat-cards {
+    grid-template-columns: 1fr;
+  }
+}
