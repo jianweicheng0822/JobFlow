@@ -11,10 +11,61 @@
   color: var(--text-primary);
 }
 
+/* ===== Sidebar + Content Layout ===== */
+.analytics-layout {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 24px;
+}
+
+/* ===== Left Side Nav ===== */
+.analytics-nav {
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-self: start;
+}
+
+.analytics-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  text-align: left;
+  width: 100%;
+}
+
+.analytics-nav-item:hover {
+  background: var(--content-bg);
+  color: var(--text-primary);
+}
+
+.analytics-nav-item--active {
+  background: var(--content-bg);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.analytics-content {
+  min-width: 0;
+}
+
 /* ===== Stat Summary Cards ===== */
 .analytics-stat-cards {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
 }
 
@@ -75,10 +126,50 @@
   width: 100%;
 }
 
+/* ===== Legend ===== */
+.analytics-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-top: 8px;
+}
+
+.analytics-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.analytics-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.analytics-legend-label {
+  color: var(--text-secondary);
+}
+
+.analytics-legend-value {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
 /* ===== Responsive ===== */
-@media (max-width: 1024px) {
-  .analytics-stat-cards {
-    grid-template-columns: repeat(2, 1fr);
+@media (max-width: 768px) {
+  .analytics-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .analytics-nav {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .analytics-nav-item {
+    white-space: nowrap;
   }
 }
 
