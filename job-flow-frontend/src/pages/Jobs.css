@@ -121,6 +121,110 @@
   text-decoration: underline;
 }
 
+/* ===== Filter Bar ===== */
+.jobs-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.jobs-filter-dropdowns {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.jobs-filter-select {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--content-bg);
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  min-width: 120px;
+}
+
+.jobs-filter-select:focus {
+  outline: none;
+  border-color: var(--sidebar-accent);
+}
+
+.jobs-filter-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.jobs-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.jobs-search-icon {
+  position: absolute;
+  left: 10px;
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.jobs-search-input {
+  padding: 8px 12px 8px 32px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--content-bg);
+  color: var(--text-primary);
+  font-size: 13px;
+  width: 180px;
+}
+
+.jobs-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.jobs-search-input:focus {
+  outline: none;
+  border-color: var(--sidebar-accent);
+}
+
+.jobs-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--sidebar-accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.jobs-filter-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.jobs-filter-btn:hover {
+  opacity: 0.9;
+}
+
+.jobs-table-empty {
+  text-align: center;
+  padding: 32px 12px !important;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
 .jobs-table-wrapper {
   overflow-x: auto;
 }
