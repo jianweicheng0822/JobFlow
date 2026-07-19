@@ -1,0 +1,226 @@
+/* ===== Companies Page Layout ===== */
+.companies-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.companies-page-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* ===== Search & Filter Bar ===== */
+.companies-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.companies-filter-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.companies-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.companies-search-icon {
+  position: absolute;
+  left: 10px;
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.companies-search-input {
+  padding: 8px 12px 8px 32px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font-size: 13px;
+  width: 220px;
+}
+
+.companies-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.companies-search-input:focus {
+  outline: none;
+  border-color: var(--sidebar-accent);
+}
+
+.companies-filter-select {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  min-width: 120px;
+}
+
+.companies-filter-select:focus {
+  outline: none;
+  border-color: var(--sidebar-accent);
+}
+
+.companies-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--sidebar-accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.companies-filter-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.companies-filter-btn:hover {
+  opacity: 0.9;
+}
+
+/* ===== Company Cards Grid ===== */
+.companies-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.companies-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 48px 16px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* ===== Company Card ===== */
+.company-card {
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: box-shadow 0.15s;
+}
+
+.company-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.company-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.company-card-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 20px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.company-card-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.company-card-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.company-card-industry {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.company-card-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.company-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+}
+
+.company-card-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.company-card-meta-item svg {
+  width: 14px;
+  height: 14px;
+}
+
+.company-card-jobs-badge {
+  margin-left: auto;
+  background: var(--sidebar-accent);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 1024px) {
+  .companies-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .companies-grid {
+    grid-template-columns: 1fr;
+  }
+}
