@@ -32,6 +32,27 @@
   --status-rejected: #ef4444;
 }
 
+/* ===== Dark Theme ===== */
+[data-theme='dark'] {
+  --sidebar-bg: #12141f;
+  --sidebar-text: #8b8fa3;
+  --sidebar-text-active: #ffffff;
+  --sidebar-hover: #1e2135;
+  --sidebar-accent: #4f6ef7;
+
+  --topbar-bg: #1a1d2e;
+
+  --content-bg: #10121a;
+
+  --text-primary: #e4e6eb;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7080;
+  --white: #ffffff;
+  --border-color: #2d3044;
+  --card-bg: #1a1d2e;
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
 * {
   margin: 0;
   padding: 0;

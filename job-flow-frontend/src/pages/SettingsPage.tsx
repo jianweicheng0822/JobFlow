@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react'
-import { Camera, User, Lock, Bell, Palette } from 'lucide-react'
+import { useRef, useState, useEffect } from 'react'
+import { Camera, User, Lock, Bell, Palette, Sun, Moon } from 'lucide-react'
 import './SettingsPage.css'
 
 const AVATAR_STORAGE_KEY = 'jobflow-avatar'
@@ -33,6 +33,15 @@ export default function SettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [interviewReminders, setInterviewReminders] = useState(true)
   const [weeklySummary, setWeeklySummary] = useState(false)
+
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('jobflow-theme') as 'light' | 'dark') || 'light'
+  })
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('jobflow-theme', theme)
+  }, [theme])
 
   const handleAvatarClick = () => {
     fileInputRef.current?.click()
@@ -244,7 +253,48 @@ export default function SettingsPage() {
       {/* Appearance Tab */}
       {activeTab === 'appearance' && (
         <div className="settings-section">
-          <p className="settings-placeholder">Theme settings coming soon.</p>
+          <div className="settings-form">
+            <div className="settings-field">
+              <label className="settings-label">Theme</label>
+              <span className="settings-toggle-desc">Choose your preferred appearance</span>
+            </div>
+            <div className="settings-theme-options">
+              <button
+                className={`settings-theme-card ${theme === 'light' ? 'settings-theme-card--active' : ''}`}
+                onClick={() => setTheme('light')}
+              >
+                <div className="settings-theme-preview settings-theme-preview--light">
+                  <div className="settings-theme-preview-sidebar" />
+                  <div className="settings-theme-preview-content">
+                    <div className="settings-theme-preview-bar" />
+                    <div className="settings-theme-preview-block" />
+                    <div className="settings-theme-preview-block" />
+                  </div>
+                </div>
+                <div className="settings-theme-label">
+                  <Sun size={16} />
+                  Light
+                </div>
+              </button>
+              <button
+                className={`settings-theme-card ${theme === 'dark' ? 'settings-theme-card--active' : ''}`}
+                onClick={() => setTheme('dark')}
+              >
+                <div className="settings-theme-preview settings-theme-preview--dark">
+                  <div className="settings-theme-preview-sidebar" />
+                  <div className="settings-theme-preview-content">
+                    <div className="settings-theme-preview-bar" />
+                    <div className="settings-theme-preview-block" />
+                    <div className="settings-theme-preview-block" />
+                  </div>
+                </div>
+                <div className="settings-theme-label">
+                  <Moon size={16} />
+                  Dark
+                </div>
+              </button>
+            </div>
+          </div>
         </div>
       )}
         </div>
