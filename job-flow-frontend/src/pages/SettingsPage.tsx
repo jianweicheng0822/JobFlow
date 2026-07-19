@@ -15,6 +15,10 @@ export default function SettingsPage() {
   const [jobTitle, setJobTitle] = useState('Recruiter')
   const [bio, setBio] = useState('')
 
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+
   const handleAvatarClick = () => {
     fileInputRef.current?.click()
   }
@@ -105,6 +109,47 @@ export default function SettingsPage() {
           <div className="settings-actions">
             <button className="settings-btn-secondary">Cancel</button>
             <button className="settings-btn-primary">Save Changes</button>
+          </div>
+        </div>
+      </div>
+      {/* Account Section */}
+      <div className="settings-section">
+        <h2 className="settings-section-title">Account</h2>
+        <div className="settings-form">
+          <div className="settings-field">
+            <label className="settings-label">Current Password</label>
+            <input
+              type="password"
+              className="settings-input"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Enter current password"
+            />
+          </div>
+          <div className="settings-field-row">
+            <div className="settings-field">
+              <label className="settings-label">New Password</label>
+              <input
+                type="password"
+                className="settings-input"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+              />
+            </div>
+            <div className="settings-field">
+              <label className="settings-label">Confirm Password</label>
+              <input
+                type="password"
+                className="settings-input"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+              />
+            </div>
+          </div>
+          <div className="settings-actions">
+            <button className="settings-btn-primary">Update Password</button>
           </div>
         </div>
       </div>
