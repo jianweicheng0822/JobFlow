@@ -14,7 +14,23 @@ interface JobPosition {
   stageColor: string
 }
 
+interface TopEmployer {
+  company: string
+  initial: string
+  color: string
+  jobsApplied: number
+}
+
 // ===== Mock Data =====
+const topEmployers: TopEmployer[] = [
+  { company: 'Spotify', initial: 'S', color: '#1DB954', jobsApplied: 5 },
+  { company: 'TechCorp', initial: 'T', color: '#10b981', jobsApplied: 4 },
+  { company: 'Acme Corp', initial: 'A', color: '#4f6ef7', jobsApplied: 3 },
+  { company: 'Google', initial: 'G', color: '#4285F4', jobsApplied: 2 },
+  { company: 'Amazon', initial: 'A', color: '#ff9900', jobsApplied: 2 },
+  { company: 'Meta', initial: 'M', color: '#0668E1', jobsApplied: 1 },
+]
+
 const jobPositions: JobPosition[] = [
   { id: 1, title: 'Senior Product Manager', company: 'Acme Corp', companyInitial: 'A', companyColor: '#4f6ef7', location: 'Stockholm', dateApplied: 'Aug 15, 2023', stage: 'Processing', stageColor: '#f59e0b' },
   { id: 2, title: 'Senior Product Manager', company: 'TechCorp', companyInitial: 'T', companyColor: '#10b981', location: 'Stockholm', dateApplied: 'Aug 15, 2023', stage: 'Processing', stageColor: '#f59e0b' },
@@ -152,118 +168,146 @@ export default function Jobs() {
         ))}
       </div>
 
-      {/* Job Positions Table */}
-      <div className="jobs-table-section">
-        <div className="jobs-section-header">
-          <h2 className="jobs-section-title">Job Positions</h2>
-          <a href="#" className="jobs-section-link">View All ▾</a>
-        </div>
-
-        {/* Filter Bar */}
-        <div className="jobs-filter-bar">
-          <div className="jobs-filter-dropdowns">
-            <select
-              className="jobs-filter-select"
-              value={companyFilter}
-              onChange={(e) => setCompanyFilter(e.target.value)}
-            >
-              <option value="">By Company</option>
-              {companies.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-            <select
-              className="jobs-filter-select"
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-            >
-              <option value="">Role</option>
-              {roles.map((r) => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </select>
-            <select
-              className="jobs-filter-select"
-              value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-            >
-              <option value="">Location</option>
-              {locations.map((l) => (
-                <option key={l} value={l}>{l}</option>
-              ))}
-            </select>
-          </div>
-          <div className="jobs-filter-right">
-            <div className="jobs-search-box">
-              <svg className="jobs-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              <input
-                type="text"
-                className="jobs-search-input"
-                placeholder="Search..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+      {/* Main content + right sidebar */}
+      <div className="jobs-main">
+        <div className="jobs-content">
+          {/* Job Positions Table */}
+          <div className="jobs-table-section">
+            <div className="jobs-section-header">
+              <h2 className="jobs-section-title">Job Positions</h2>
+              <a href="#" className="jobs-section-link">View All ▾</a>
             </div>
-            <button className="jobs-filter-btn" onClick={handleReset}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-              </svg>
-              Filter
-            </button>
+
+            {/* Filter Bar */}
+            <div className="jobs-filter-bar">
+              <div className="jobs-filter-dropdowns">
+                <select
+                  className="jobs-filter-select"
+                  value={companyFilter}
+                  onChange={(e) => setCompanyFilter(e.target.value)}
+                >
+                  <option value="">By Company</option>
+                  {companies.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <select
+                  className="jobs-filter-select"
+                  value={roleFilter}
+                  onChange={(e) => setRoleFilter(e.target.value)}
+                >
+                  <option value="">Role</option>
+                  {roles.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+                <select
+                  className="jobs-filter-select"
+                  value={locationFilter}
+                  onChange={(e) => setLocationFilter(e.target.value)}
+                >
+                  <option value="">Location</option>
+                  {locations.map((l) => (
+                    <option key={l} value={l}>{l}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="jobs-filter-right">
+                <div className="jobs-search-box">
+                  <svg className="jobs-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <input
+                    type="text"
+                    className="jobs-search-input"
+                    placeholder="Search..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+                <button className="jobs-filter-btn" onClick={handleReset}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                  </svg>
+                  Filter
+                </button>
+              </div>
+            </div>
+
+            <div className="jobs-table-wrapper">
+              <table className="jobs-table">
+                <thead>
+                  <tr>
+                    <th>Job Title</th>
+                    <th>Company Logo</th>
+                    <th>Location</th>
+                    <th>Date Applied ↕</th>
+                    <th>Stage</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredJobs.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="jobs-table-empty">No matching jobs found.</td>
+                    </tr>
+                  ) : (
+                    filteredJobs.map((job) => (
+                      <tr key={job.id}>
+                        <td>
+                          <div className="jobs-title-cell">
+                            <span className="jobs-title-name">{job.title}</span>
+                            <span className="jobs-title-company">{job.company}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span
+                            className="jobs-company-logo"
+                            style={{ background: job.companyColor }}
+                          >
+                            {job.companyInitial}
+                          </span>
+                        </td>
+                        <td>{job.location}</td>
+                        <td>{job.dateApplied}</td>
+                        <td>
+                          <span
+                            className="jobs-stage-badge"
+                            style={{ background: job.stageColor }}
+                          >
+                            {job.stage}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
-        <div className="jobs-table-wrapper">
-          <table className="jobs-table">
-            <thead>
-              <tr>
-                <th>Job Title</th>
-                <th>Company Logo</th>
-                <th>Location</th>
-                <th>Date Applied ↕</th>
-                <th>Stage</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredJobs.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="jobs-table-empty">No matching jobs found.</td>
-                </tr>
-              ) : (
-                filteredJobs.map((job) => (
-                  <tr key={job.id}>
-                    <td>
-                      <div className="jobs-title-cell">
-                        <span className="jobs-title-name">{job.title}</span>
-                        <span className="jobs-title-company">{job.company}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <span
-                        className="jobs-company-logo"
-                        style={{ background: job.companyColor }}
-                      >
-                        {job.companyInitial}
-                      </span>
-                    </td>
-                    <td>{job.location}</td>
-                    <td>{job.dateApplied}</td>
-                    <td>
-                      <span
-                        className="jobs-stage-badge"
-                        style={{ background: job.stageColor }}
-                      >
-                        {job.stage}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        {/* Right Sidebar */}
+        <div className="jobs-sidebar">
+          <div className="jobs-top-employers">
+            <h3 className="jobs-sidebar-title">Top Employers</h3>
+            <div className="jobs-employers-list">
+              {topEmployers.map((employer) => (
+                <div className="jobs-employer-item" key={employer.company}>
+                  <span
+                    className="jobs-employer-logo"
+                    style={{ background: employer.color }}
+                  >
+                    {employer.initial}
+                  </span>
+                  <div className="jobs-employer-info">
+                    <div className="jobs-employer-name">{employer.company}</div>
+                    <div className="jobs-employer-count">{employer.jobsApplied} jobs applied</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>

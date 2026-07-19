@@ -297,10 +297,92 @@
   white-space: nowrap;
 }
 
+/* ===== Main + Sidebar Layout ===== */
+.jobs-main {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 16px;
+}
+
+.jobs-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+/* ===== Jobs Sidebar ===== */
+.jobs-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.jobs-top-employers {
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  padding: 20px;
+}
+
+.jobs-sidebar-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 14px;
+}
+
+.jobs-employers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.jobs-employer-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.jobs-employer-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.jobs-employer-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.jobs-employer-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jobs-employer-count {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
   .jobs-stat-cards {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .jobs-main {
+    grid-template-columns: 1fr;
   }
 }
 
