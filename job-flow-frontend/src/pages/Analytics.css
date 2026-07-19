@@ -1,0 +1,70 @@
+/* ===== Analytics Page Layout ===== */
+.analytics-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.analytics-page-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* ===== Stat Summary Cards ===== */
+.analytics-stat-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.analytics-stat-card {
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.analytics-stat-label {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.analytics-stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.analytics-stat-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.analytics-stat-sub--up {
+  color: #10b981;
+}
+
+.analytics-stat-sub--down {
+  color: #ef4444;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 1024px) {
+  .analytics-stat-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .analytics-stat-cards {
+    grid-template-columns: 1fr;
+  }
+}
