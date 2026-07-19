@@ -1,5 +1,31 @@
 import './Jobs.css'
 
+// ===== Types =====
+interface JobPosition {
+  id: number
+  title: string
+  company: string
+  companyInitial: string
+  companyColor: string
+  location: string
+  dateApplied: string
+  stage: string
+  stageColor: string
+}
+
+// ===== Mock Data =====
+const jobPositions: JobPosition[] = [
+  { id: 1, title: 'Senior Product Manager', company: 'Acme Corp', companyInitial: 'A', companyColor: '#4f6ef7', location: 'Stockholm', dateApplied: 'Aug 15, 2023', stage: 'Processing', stageColor: '#f59e0b' },
+  { id: 2, title: 'Senior Product Manager', company: 'TechCorp', companyInitial: 'T', companyColor: '#10b981', location: 'Stockholm', dateApplied: 'Aug 15, 2023', stage: 'Processing', stageColor: '#f59e0b' },
+  { id: 3, title: 'Frontend Engineer', company: 'Spotify', companyInitial: 'S', companyColor: '#1DB954', location: 'Stockholm', dateApplied: 'Aug 15, 2023', stage: 'Applied', stageColor: '#10b981' },
+  { id: 4, title: 'UX Designer', company: 'Google', companyInitial: 'G', companyColor: '#4285F4', location: 'Mountain View', dateApplied: 'Aug 14, 2023', stage: 'Interview', stageColor: 'var(--status-interview)' },
+  { id: 5, title: 'Senior Product Manager', company: 'Acme Corp', companyInitial: 'A', companyColor: '#4f6ef7', location: 'Stockholm', dateApplied: 'Aug 13, 2023', stage: 'Applied', stageColor: '#10b981' },
+  { id: 6, title: 'Data Analyst', company: 'Meta', companyInitial: 'M', companyColor: '#0668E1', location: 'London', dateApplied: 'Aug 12, 2023', stage: 'Processing', stageColor: '#f59e0b' },
+  { id: 7, title: 'Backend Developer', company: 'TechCorp', companyInitial: 'T', companyColor: '#10b981', location: 'Stockholm', dateApplied: 'Aug 11, 2023', stage: 'Applied', stageColor: '#10b981' },
+  { id: 8, title: 'Product Designer', company: 'Amazon', companyInitial: 'A', companyColor: '#ff9900', location: 'Seattle', dateApplied: 'Aug 10, 2023', stage: 'Interview', stageColor: 'var(--status-interview)' },
+  { id: 9, title: 'Full Stack Engineer', company: 'Spotify', companyInitial: 'S', companyColor: '#1DB954', location: 'Stockholm', dateApplied: 'Aug 9, 2023', stage: 'Applied', stageColor: '#10b981' },
+]
+
 const jobsStatCards = [
   {
     label: 'Active Applications',
@@ -95,6 +121,57 @@ export default function Jobs() {
             <JobsTrendLine direction={card.trend} />
           </div>
         ))}
+      </div>
+
+      {/* Job Positions Table */}
+      <div className="jobs-table-section">
+        <div className="jobs-section-header">
+          <h2 className="jobs-section-title">Job Positions</h2>
+          <a href="#" className="jobs-section-link">View All ▾</a>
+        </div>
+        <div className="jobs-table-wrapper">
+          <table className="jobs-table">
+            <thead>
+              <tr>
+                <th>Job Title</th>
+                <th>Company Logo</th>
+                <th>Location</th>
+                <th>Date Applied ↕</th>
+                <th>Stage</th>
+              </tr>
+            </thead>
+            <tbody>
+              {jobPositions.map((job) => (
+                <tr key={job.id}>
+                  <td>
+                    <div className="jobs-title-cell">
+                      <span className="jobs-title-name">{job.title}</span>
+                      <span className="jobs-title-company">{job.company}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span
+                      className="jobs-company-logo"
+                      style={{ background: job.companyColor }}
+                    >
+                      {job.companyInitial}
+                    </span>
+                  </td>
+                  <td>{job.location}</td>
+                  <td>{job.dateApplied}</td>
+                  <td>
+                    <span
+                      className="jobs-stage-badge"
+                      style={{ background: job.stageColor }}
+                    >
+                      {job.stage}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )
