@@ -21,6 +21,11 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        // Skip if data already exists
+        if (companyRepository.count() > 0) {
+            return;
+        }
+
         // Create companies
         Company techCorp = companyRepository.save(Company.builder()
             .name("TechCorp Inc.")
