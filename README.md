@@ -1,12 +1,5 @@
 # JobFlow
 
-A full-stack job application tracking system built with React and Spring Boot. Designed to help job seekers organize, monitor, and analyze their application pipeline in one place.
-
-<!-- TODO: Add screenshot -->
-<!-- ![JobFlow Dashboard](screenshot.png) -->
-
-## Tech Stack
-
 ![Java 21](https://img.shields.io/badge/Java_21-ED8B00?logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?logo=springboot&logoColor=white)
 ![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=white)
@@ -15,6 +8,11 @@ A full-stack job application tracking system built with React and Spring Boot. D
 ![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
 ![Axios](https://img.shields.io/badge/Axios-5A29E4?logo=axios&logoColor=white)
 ![Hibernate](https://img.shields.io/badge/Hibernate-59666C?logo=hibernate&logoColor=white)
+
+Full-stack job application tracking system with AI-powered analytics dashboard. Track applications, manage your pipeline with a Kanban board, monitor upcoming interviews, and visualize trends — all in a clean, dark-mode-supported UI with real-time data from a Spring Boot REST API.
+
+<!-- TODO: Add screenshot -->
+<!-- ![JobFlow Dashboard](screenshot.png) -->
 
 ## Features
 
