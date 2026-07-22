@@ -5,6 +5,20 @@
   gap: 24px;
 }
 
+.companies-loading,
+.companies-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.companies-error {
+  color: var(--status-rejected);
+}
+
 .companies-page-title {
   font-size: 22px;
   font-weight: 700;
@@ -165,20 +179,16 @@
   text-overflow: ellipsis;
 }
 
-.company-card-industry {
+.company-card-website {
   font-size: 12px;
   color: var(--text-muted);
   margin-top: 2px;
+  text-decoration: none;
 }
 
-.company-card-desc {
-  font-size: 13px;
-  color: var(--text-secondary);
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.company-card-website:hover {
+  text-decoration: underline;
+  color: var(--primary);
 }
 
 .company-card-meta {

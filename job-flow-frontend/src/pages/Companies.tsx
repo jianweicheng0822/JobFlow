@@ -1,104 +1,97 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import './Companies.css'
+import { getCompanies } from '../api/companies'
+import { getApplications } from '../api/applications'
+import type { CompanyDTO, JobApplicationDTO } from '../api/types'
 
-// ===== Types =====
-interface Company {
+// ===== Helpers =====
+const COMPANY_COLORS: Record<string, string> = {
+  'TechCorp Inc.': '#10b981',
+  'Spotify': '#1DB954',
+  'Google': '#4285F4',
+  'Meta': '#0668E1',
+  'Amazon': '#ff9900',
+}
+
+function getCompanyColor(name: string): string {
+  return COMPANY_COLORS[name] || '#6b7280'
+}
+
+interface CompanyView {
   id: number
   name: string
   initial: string
   color: string
-  industry: string
   location: string
-  description: string
+  website: string
   jobsApplied: number
 }
 
-// ===== Mock Data =====
-const companies: Company[] = [
-  {
-    id: 1,
-    name: 'Spotify',
-    initial: 'S',
-    color: '#1DB954',
-    industry: 'Music & Entertainment',
-    location: 'Stockholm, Sweden',
-    description: 'Spotify is a digital music, podcast, and video service that gives you access to millions of songs and other content from creators all over the world.',
-    jobsApplied: 5,
-  },
-  {
-    id: 2,
-    name: 'Google',
-    initial: 'G',
-    color: '#4285F4',
-    industry: 'Technology',
-    location: 'Mountain View, USA',
-    description: 'Google is a multinational technology company specializing in search engine technology, online advertising, cloud computing, and AI-driven products.',
-    jobsApplied: 3,
-  },
-  {
-    id: 3,
-    name: 'TechCorp',
-    initial: 'T',
-    color: '#10b981',
-    industry: 'Software',
-    location: 'Stockholm, Sweden',
-    description: 'TechCorp is an innovative software company focused on building enterprise solutions for modern businesses, spanning cloud infrastructure and SaaS platforms.',
-    jobsApplied: 4,
-  },
-  {
-    id: 4,
-    name: 'Meta',
-    initial: 'M',
-    color: '#0668E1',
-    industry: 'Social Media',
-    location: 'London, UK',
-    description: 'Meta builds technologies that help people connect, find communities, and grow businesses. Known for Facebook, Instagram, WhatsApp, and its metaverse vision.',
-    jobsApplied: 1,
-  },
-  {
-    id: 5,
-    name: 'Amazon',
-    initial: 'A',
-    color: '#ff9900',
-    industry: 'E-Commerce & Cloud',
-    location: 'Seattle, USA',
-    description: 'Amazon is a global leader in e-commerce, cloud computing (AWS), digital streaming, and artificial intelligence, serving millions of customers worldwide.',
-    jobsApplied: 2,
-  },
-  {
-    id: 6,
-    name: 'Acme Corp',
-    initial: 'A',
-    color: '#4f6ef7',
-    industry: 'Consulting',
-    location: 'Stockholm, Sweden',
-    description: 'Acme Corp is a management consulting firm that partners with organizations to drive strategic growth, operational efficiency, and digital transformation.',
-    jobsApplied: 3,
-  },
-]
+function buildCompanyViews(companies: CompanyDTO[], applications: JobApplicationDTO[]): CompanyView[] {
+  const counts: Record<number, number> = {}
+  applications.forEach((app) => {
+    counts[app.company.id] = (counts[app.company.id] || 0) + 1
+  })
+
+  return companies.map((c) => ({
+    id: c.id,
+    name: c.name,
+    initial: c.name.charAt(0),
+    color: getCompanyColor(c.name),
+    location: c.location || '',
+    website: c.website || '',
+    jobsApplied: counts[c.id] || 0,
+  }))
+}
 
 export default function Companies() {
+  const [companyViews, setCompanyViews] = useState<CompanyView[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
   const [search, setSearch] = useState('')
-  const [industryFilter, setIndustryFilter] = useState('')
   const [locationFilter, setLocationFilter] = useState('')
 
-  const industries = useMemo(() => [...new Set(companies.map((c) => c.industry))], [])
-  const locations = useMemo(() => [...new Set(companies.map((c) => c.location))], [])
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [companiesRes, appsRes] = await Promise.all([
+          getCompanies(),
+          getApplications(),
+        ])
+        setCompanyViews(buildCompanyViews(companiesRes.data, appsRes.data))
+      } catch (err) {
+        console.error('Failed to load companies:', err)
+        setError('Failed to load data. Make sure the backend is running.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
+
+  const locations = useMemo(() => [...new Set(companyViews.map((c) => c.location).filter(Boolean))], [companyViews])
 
   const filtered = useMemo(() => {
-    return companies.filter((c) => {
+    return companyViews.filter((c) => {
       const q = search.toLowerCase()
-      const matchesSearch = !q || c.name.toLowerCase().includes(q) || c.industry.toLowerCase().includes(q)
-      const matchesIndustry = !industryFilter || c.industry === industryFilter
+      const matchesSearch = !q || c.name.toLowerCase().includes(q) || c.location.toLowerCase().includes(q)
       const matchesLocation = !locationFilter || c.location === locationFilter
-      return matchesSearch && matchesIndustry && matchesLocation
+      return matchesSearch && matchesLocation
     })
-  }, [search, industryFilter, locationFilter])
+  }, [companyViews, search, locationFilter])
 
   const handleReset = () => {
     setSearch('')
-    setIndustryFilter('')
     setLocationFilter('')
+  }
+
+  if (loading) {
+    return <div className="companies-page"><div className="companies-loading">Loading...</div></div>
+  }
+
+  if (error) {
+    return <div className="companies-page"><div className="companies-error">{error}</div></div>
   }
 
   return (
@@ -121,16 +114,6 @@ export default function Companies() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <select
-            className="companies-filter-select"
-            value={industryFilter}
-            onChange={(e) => setIndustryFilter(e.target.value)}
-          >
-            <option value="">Industry</option>
-            {industries.map((i) => (
-              <option key={i} value={i}>{i}</option>
-            ))}
-          </select>
           <select
             className="companies-filter-select"
             value={locationFilter}
@@ -166,10 +149,13 @@ export default function Companies() {
                 </div>
                 <div className="company-card-title">
                   <div className="company-card-name">{company.name}</div>
-                  <div className="company-card-industry">{company.industry}</div>
+                  {company.website && (
+                    <a className="company-card-website" href={company.website} target="_blank" rel="noopener noreferrer">
+                      {company.website.replace(/^https?:\/\//, '')}
+                    </a>
+                  )}
                 </div>
               </div>
-              <p className="company-card-desc">{company.description}</p>
               <div className="company-card-meta">
                 <span className="company-card-meta-item">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
