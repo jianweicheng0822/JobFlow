@@ -1,17 +1,34 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import './Jobs.css'
+import { getApplications } from '../api/applications'
+import type { JobApplicationDTO, ApplicationStatus } from '../api/types'
 
-// ===== Types =====
-interface JobPosition {
-  id: number
-  title: string
-  company: string
-  companyInitial: string
-  companyColor: string
-  location: string
-  dateApplied: string
-  stage: string
-  stageColor: string
+// ===== Helpers =====
+const STATUS_CONFIG: Record<ApplicationStatus, { label: string; color: string }> = {
+  APPLIED: { label: 'Applied', color: 'var(--status-applied)' },
+  IN_REVIEW: { label: 'In Review', color: '#f59e0b' },
+  PHONE_SCREEN: { label: 'Phone Screen', color: 'var(--status-phone-screen)' },
+  INTERVIEW: { label: 'Interview', color: 'var(--status-interview)' },
+  OFFER: { label: 'Offer', color: 'var(--status-offer)' },
+  REJECTED: { label: 'Rejected', color: 'var(--status-rejected)' },
+}
+
+const COMPANY_COLORS: Record<string, string> = {
+  'TechCorp Inc.': '#10b981',
+  'Spotify': '#1DB954',
+  'Google': '#4285F4',
+  'Meta': '#0668E1',
+  'Amazon': '#ff9900',
+}
+
+function getCompanyColor(name: string): string {
+  return COMPANY_COLORS[name] || '#6b7280'
+}
+
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 interface TopEmployer {
@@ -21,48 +38,21 @@ interface TopEmployer {
   jobsApplied: number
 }
 
-// ===== Mock Data =====
-const topEmployers: TopEmployer[] = [
-  { company: 'Spotify', initial: 'S', color: '#1DB954', jobsApplied: 5 },
-  { company: 'TechCorp', initial: 'T', color: '#10b981', jobsApplied: 4 },
-  { company: 'Acme Corp', initial: 'A', color: '#4f6ef7', jobsApplied: 3 },
-  { company: 'Google', initial: 'G', color: '#4285F4', jobsApplied: 2 },
-  { company: 'Amazon', initial: 'A', color: '#ff9900', jobsApplied: 2 },
-  { company: 'Meta', initial: 'M', color: '#0668E1', jobsApplied: 1 },
-]
-
-const jobPositions: JobPosition[] = [
-  { id: 1, title: 'Senior Product Manager', company: 'Acme Corp', companyInitial: 'A', companyColor: '#4f6ef7', location: 'Stockholm', dateApplied: 'Aug 15, 2023', stage: 'Processing', stageColor: '#f59e0b' },
-  { id: 2, title: 'Senior Product Manager', company: 'TechCorp', companyInitial: 'T', companyColor: '#10b981', location: 'Stockholm', dateApplied: 'Aug 15, 2023', stage: 'Processing', stageColor: '#f59e0b' },
-  { id: 3, title: 'Frontend Engineer', company: 'Spotify', companyInitial: 'S', companyColor: '#1DB954', location: 'Stockholm', dateApplied: 'Aug 15, 2023', stage: 'Applied', stageColor: '#10b981' },
-  { id: 4, title: 'UX Designer', company: 'Google', companyInitial: 'G', companyColor: '#4285F4', location: 'Mountain View', dateApplied: 'Aug 14, 2023', stage: 'Interview', stageColor: 'var(--status-interview)' },
-  { id: 5, title: 'Senior Product Manager', company: 'Acme Corp', companyInitial: 'A', companyColor: '#4f6ef7', location: 'Stockholm', dateApplied: 'Aug 13, 2023', stage: 'Applied', stageColor: '#10b981' },
-  { id: 6, title: 'Data Analyst', company: 'Meta', companyInitial: 'M', companyColor: '#0668E1', location: 'London', dateApplied: 'Aug 12, 2023', stage: 'Processing', stageColor: '#f59e0b' },
-  { id: 7, title: 'Backend Developer', company: 'TechCorp', companyInitial: 'T', companyColor: '#10b981', location: 'Stockholm', dateApplied: 'Aug 11, 2023', stage: 'Applied', stageColor: '#10b981' },
-  { id: 8, title: 'Product Designer', company: 'Amazon', companyInitial: 'A', companyColor: '#ff9900', location: 'Seattle', dateApplied: 'Aug 10, 2023', stage: 'Interview', stageColor: 'var(--status-interview)' },
-  { id: 9, title: 'Full Stack Engineer', company: 'Spotify', companyInitial: 'S', companyColor: '#1DB954', location: 'Stockholm', dateApplied: 'Aug 9, 2023', stage: 'Applied', stageColor: '#10b981' },
-]
-
-const jobsStatCards = [
-  {
-    label: 'Active Applications',
-    value: 186,
-    icon: 'active' as const,
-    trend: 'up' as const,
-  },
-  {
-    label: 'Saved Jobs',
-    value: 32,
-    icon: 'saved' as const,
-    trend: 'up' as const,
-  },
-  {
-    label: 'Closed',
-    value: 47,
-    icon: 'closed' as const,
-    trend: 'down' as const,
-  },
-]
+function buildTopEmployers(apps: JobApplicationDTO[]): TopEmployer[] {
+  const counts: Record<string, number> = {}
+  apps.forEach((app) => {
+    const name = app.company.name
+    counts[name] = (counts[name] || 0) + 1
+  })
+  return Object.entries(counts)
+    .map(([name, count]) => ({
+      company: name,
+      initial: name.charAt(0),
+      color: getCompanyColor(name),
+      jobsApplied: count,
+    }))
+    .sort((a, b) => b.jobsApplied - a.jobsApplied)
+}
 
 function JobsStatIcon({ type }: { type: string }) {
   switch (type) {
@@ -122,32 +112,69 @@ function JobsTrendLine({ direction }: { direction: 'up' | 'down' }) {
 }
 
 export default function Jobs() {
+  const [applications, setApplications] = useState<JobApplicationDTO[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
   const [search, setSearch] = useState('')
   const [companyFilter, setCompanyFilter] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [locationFilter, setLocationFilter] = useState('')
 
-  // Build unique filter options from mock data
-  const companies = useMemo(() => [...new Set(jobPositions.map((j) => j.company))], [])
-  const roles = useMemo(() => [...new Set(jobPositions.map((j) => j.title))], [])
-  const locations = useMemo(() => [...new Set(jobPositions.map((j) => j.location))], [])
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const res = await getApplications()
+        setApplications(res.data)
+      } catch (err) {
+        console.error('Failed to load jobs:', err)
+        setError('Failed to load data. Make sure the backend is running.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
+
+  const companies = useMemo(() => [...new Set(applications.map((a) => a.company.name))], [applications])
+  const roles = useMemo(() => [...new Set(applications.map((a) => a.positionTitle))], [applications])
+  const locations = useMemo(() => [...new Set(applications.map((a) => a.location).filter(Boolean) as string[])], [applications])
 
   const filteredJobs = useMemo(() => {
-    return jobPositions.filter((job) => {
+    return applications.filter((app) => {
       const q = search.toLowerCase()
-      const matchesSearch = !q || job.title.toLowerCase().includes(q) || job.company.toLowerCase().includes(q)
-      const matchesCompany = !companyFilter || job.company === companyFilter
-      const matchesRole = !roleFilter || job.title === roleFilter
-      const matchesLocation = !locationFilter || job.location === locationFilter
+      const matchesSearch = !q || app.positionTitle.toLowerCase().includes(q) || app.company.name.toLowerCase().includes(q)
+      const matchesCompany = !companyFilter || app.company.name === companyFilter
+      const matchesRole = !roleFilter || app.positionTitle === roleFilter
+      const matchesLocation = !locationFilter || app.location === locationFilter
       return matchesSearch && matchesCompany && matchesRole && matchesLocation
     })
-  }, [search, companyFilter, roleFilter, locationFilter])
+  }, [applications, search, companyFilter, roleFilter, locationFilter])
+
+  const topEmployers = useMemo(() => buildTopEmployers(applications), [applications])
+
+  const activeCount = applications.filter((a) => !['OFFER', 'REJECTED'].includes(a.status)).length
+  const closedCount = applications.filter((a) => ['OFFER', 'REJECTED'].includes(a.status)).length
+
+  const jobsStatCards = [
+    { label: 'Active Applications', value: activeCount, icon: 'active' as const, trend: 'up' as const },
+    { label: 'Saved Jobs', value: 0, icon: 'saved' as const, trend: 'up' as const },
+    { label: 'Closed', value: closedCount, icon: 'closed' as const, trend: 'down' as const },
+  ]
 
   const handleReset = () => {
     setSearch('')
     setCompanyFilter('')
     setRoleFilter('')
     setLocationFilter('')
+  }
+
+  if (loading) {
+    return <div className="jobs-page"><div className="jobs-loading">Loading...</div></div>
+  }
+
+  if (error) {
+    return <div className="jobs-page"><div className="jobs-error">{error}</div></div>
   }
 
   return (
@@ -252,34 +279,38 @@ export default function Jobs() {
                       <td colSpan={5} className="jobs-table-empty">No matching jobs found.</td>
                     </tr>
                   ) : (
-                    filteredJobs.map((job) => (
-                      <tr key={job.id}>
-                        <td>
-                          <div className="jobs-title-cell">
-                            <span className="jobs-title-name">{job.title}</span>
-                            <span className="jobs-title-company">{job.company}</span>
-                          </div>
-                        </td>
-                        <td>
-                          <span
-                            className="jobs-company-logo"
-                            style={{ background: job.companyColor }}
-                          >
-                            {job.companyInitial}
-                          </span>
-                        </td>
-                        <td>{job.location}</td>
-                        <td>{job.dateApplied}</td>
-                        <td>
-                          <span
-                            className="jobs-stage-badge"
-                            style={{ background: job.stageColor }}
-                          >
-                            {job.stage}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
+                    filteredJobs.map((app) => {
+                      const statusCfg = STATUS_CONFIG[app.status]
+                      const companyColor = getCompanyColor(app.company.name)
+                      return (
+                        <tr key={app.id}>
+                          <td>
+                            <div className="jobs-title-cell">
+                              <span className="jobs-title-name">{app.positionTitle}</span>
+                              <span className="jobs-title-company">{app.company.name}</span>
+                            </div>
+                          </td>
+                          <td>
+                            <span
+                              className="jobs-company-logo"
+                              style={{ background: companyColor }}
+                            >
+                              {app.company.name.charAt(0)}
+                            </span>
+                          </td>
+                          <td>{app.location || ''}</td>
+                          <td>{formatDate(app.appliedDate)}</td>
+                          <td>
+                            <span
+                              className="jobs-stage-badge"
+                              style={{ background: statusCfg.color }}
+                            >
+                              {statusCfg.label}
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })
                   )}
                 </tbody>
               </table>
