@@ -1,5 +1,12 @@
 import client from './client';
-import type { JobApplicationDTO, DashboardStatsDTO, ApplicationActivityDTO, ApplicationStatus } from './types';
+import type {
+  JobApplicationDTO,
+  DashboardStatsDTO,
+  ApplicationActivityDTO,
+  ApplicationStatus,
+  CreateJobApplicationRequest,
+  UpdateJobApplicationRequest,
+} from './types';
 
 export function getApplications(status?: ApplicationStatus) {
   const params = status ? { status } : {};
@@ -20,4 +27,16 @@ export function getRecentApplications() {
 
 export function getActivity() {
   return client.get<ApplicationActivityDTO[]>('/applications/activity');
+}
+
+export function createApplication(data: CreateJobApplicationRequest) {
+  return client.post<JobApplicationDTO>('/applications', data);
+}
+
+export function updateApplication(id: number, data: UpdateJobApplicationRequest) {
+  return client.put<JobApplicationDTO>(`/applications/${id}`, data);
+}
+
+export function deleteApplication(id: number) {
+  return client.delete(`/applications/${id}`);
 }

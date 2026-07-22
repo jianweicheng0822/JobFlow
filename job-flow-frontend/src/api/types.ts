@@ -54,3 +54,26 @@ export interface ApplicationActivityDTO {
   month: string;
   count: number;
 }
+
+// Request types for CRUD operations
+export interface CreateJobApplicationRequest {
+  positionTitle: string;
+  companyId: number;
+  location?: string;
+  salary?: string;
+  status?: ApplicationStatus;
+  appliedDate?: string; // ISO date string (YYYY-MM-DD)
+  lastAction?: string;
+  notes?: string;
+}
+
+export interface UpdateJobApplicationRequest {
+  positionTitle?: string;
+  companyId?: number;
+  location?: string;
+  salary?: string;
+  status?: ApplicationStatus;
+  appliedDate?: string;
+  lastAction?: string;
+  notes?: string;
+}
