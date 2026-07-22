@@ -5,6 +5,20 @@
   gap: 24px;
 }
 
+.analytics-loading,
+.analytics-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.analytics-error {
+  color: var(--status-rejected);
+}
+
 .analytics-page-title {
   font-size: 22px;
   font-weight: 700;
