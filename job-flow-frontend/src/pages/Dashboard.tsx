@@ -1,4 +1,8 @@
+import { useState, useEffect } from 'react'
 import './Dashboard.css'
+import { getStats, getApplications, getRecentApplications } from '../api/applications'
+import { getUpcomingInterviews } from '../api/interviews'
+import type { DashboardStatsDTO, JobApplicationDTO, InterviewDTO, ApplicationStatus } from '../api/types'
 
 // ===== Types =====
 interface PipelineCard {
@@ -18,165 +22,63 @@ interface PipelineColumn {
   cards: PipelineCard[]
 }
 
-// ===== Mock Data =====
-const pipelineColumns: PipelineColumn[] = [
-  {
-    stage: 'Applied',
-    count: 11,
-    color: 'var(--status-applied)',
-    cards: [
-      { id: 1, title: 'Senior UX Designer', company: 'TechCorp Inc.', location: 'Seattle, WA', salary: '$145,000', date: 'Aug 16, 2023', tag: 'Applied' },
-      { id: 2, title: 'Senior UX Designer', company: 'Company Inc.', location: 'Seattle, WA', salary: '$130,000', date: 'Aug 14, 2023' },
-    ],
-  },
-  {
-    stage: 'Phone Screen',
-    count: 7,
-    color: 'var(--status-phone-screen)',
-    cards: [
-      { id: 3, title: 'Job Title', company: 'Company Name', location: 'Seattle, WA', salary: '$145,000', date: 'Aug 16, 2023' },
-      { id: 4, title: 'Senior Frontend Engineer', company: 'Company Name', location: 'Seattle, WA', salary: '$155,000', date: 'Aug 12, 2023' },
-    ],
-  },
-  {
-    stage: 'Interview',
-    count: 5,
-    color: 'var(--status-interview)',
-    cards: [
-      { id: 5, title: 'Senior Frontend Engineer', company: 'TechCorp Inc.', location: 'Seattle, WA', salary: '$150,000', date: 'Aug 11, 2023', tag: 'Interview' },
-    ],
-  },
-  {
-    stage: 'Offer',
-    count: 3,
-    color: 'var(--status-offer)',
-    cards: [
-      { id: 6, title: 'Job Title', company: 'Company Name', location: 'Seattle, WA', salary: '$140,000', date: 'Aug 10, 2023' },
-    ],
-  },
-  {
-    stage: 'Rejection',
-    count: 8,
-    color: 'var(--status-rejected)',
-    cards: [
-      { id: 7, title: 'Job Title', company: 'Company Name', location: 'Seattle, WA', salary: '$135,000', date: 'Aug 9, 2023' },
-    ],
-  },
-]
-
-interface RecentApplication {
-  id: number
-  position: string
-  company: string
-  companyInitial: string
-  companyColor: string
-  location: string
-  lastAction: string
-  status: string
-  statusColor: string
+// ===== Helpers =====
+const STATUS_CONFIG: Record<ApplicationStatus, { label: string; color: string }> = {
+  APPLIED: { label: 'Applied', color: 'var(--status-applied)' },
+  IN_REVIEW: { label: 'In Review', color: 'var(--status-applied)' },
+  PHONE_SCREEN: { label: 'Phone Screen', color: 'var(--status-phone-screen)' },
+  INTERVIEW: { label: 'Interview', color: 'var(--status-interview)' },
+  OFFER: { label: 'Offer', color: 'var(--status-offer)' },
+  REJECTED: { label: 'Rejection', color: 'var(--status-rejected)' },
 }
 
-const recentApplications: RecentApplication[] = [
-  {
-    id: 1,
-    position: 'Senior UX Designer',
-    company: 'Spotify',
-    companyInitial: 'S',
-    companyColor: '#1DB954',
-    location: 'Stockholm',
-    lastAction: 'Interview Scheduled',
-    status: 'Interview',
-    statusColor: 'var(--status-interview)',
-  },
-  {
-    id: 2,
-    position: 'Senior UX Designer',
-    company: 'Spotify',
-    companyInitial: 'S',
-    companyColor: '#1DB954',
-    location: 'Stockholm',
-    lastAction: 'Interview Scheduled',
-    status: 'Applied',
-    statusColor: 'var(--status-applied)',
-  },
-  {
-    id: 3,
-    position: 'Senior UX Designer',
-    company: 'Spotify',
-    companyInitial: 'S',
-    companyColor: '#1DB954',
-    location: 'Stockholm',
-    lastAction: 'Interview Scheduled',
-    status: 'Rejected',
-    statusColor: 'var(--status-rejected)',
-  },
-  {
-    id: 4,
-    position: 'Frontend Engineer',
-    company: 'Google',
-    companyInitial: 'G',
-    companyColor: '#4285F4',
-    location: 'Mountain View',
-    lastAction: 'Phone Screen',
-    status: 'Phone Screen',
-    statusColor: 'var(--status-phone-screen)',
-  },
-]
-
-interface UpcomingInterview {
-  id: number
-  name: string
-  company: string
-  time: string
-  avatarColor: string
-  initial: string
+const COMPANY_COLORS: Record<string, string> = {
+  'TechCorp Inc.': '#4f6ef7',
+  'Spotify': '#1DB954',
+  'Google': '#4285F4',
+  'Meta': '#0668E1',
+  'Amazon': '#FF9900',
 }
 
-const upcomingInterviews: UpcomingInterview[] = [
-  { id: 1, name: 'Alex R.', company: 'TechCorp', time: '11 AM', avatarColor: '#4f6ef7', initial: 'A' },
-  { id: 2, name: 'Name...', company: 'Spotify', time: '11 AM', avatarColor: '#10b981', initial: 'N' },
-  { id: 3, name: 'Samu H.', company: 'Google', time: '11 AM', avatarColor: '#f59e0b', initial: 'S' },
-  { id: 4, name: 'Maria A.', company: 'Meta', time: '12 AM', avatarColor: '#8b5cf6', initial: 'M' },
-  { id: 5, name: 'Samu A.', company: 'Amazon', time: '1 PM', avatarColor: '#ef4444', initial: 'S' },
-]
+function getCompanyColor(name: string): string {
+  return COMPANY_COLORS[name] || '#6b7280'
+}
 
-const quickStats = [
-  { label: 'Total Offers', value: 8, color: 'var(--status-offer)' },
-  { label: 'Total Rejections', value: 134, color: 'var(--status-rejected)' },
-]
+const AVATAR_COLORS = ['#4f6ef7', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#ec4899']
 
-const statCards = [
-  {
-    label: 'Total Applications',
-    value: 245,
-    icon: 'total' as const,
-    trend: 'up' as const,
-  },
-  {
-    label: 'In Review',
-    value: 88,
-    icon: 'review' as const,
-    trend: 'up' as const,
-  },
-  {
-    label: 'Interviews',
-    value: 19,
-    icon: 'interview' as const,
-    trend: 'up' as const,
-  },
-  {
-    label: 'Offers',
-    value: 4,
-    icon: 'offer' as const,
-    trend: 'down' as const,
-  },
-  {
-    label: 'Rejections',
-    value: 134,
-    icon: 'rejected' as const,
-    trend: 'up' as const,
-  },
-]
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function formatInterviewTime(dateStr: string): string {
+  const d = new Date(dateStr)
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+}
+
+function buildPipelineColumns(applications: JobApplicationDTO[]): PipelineColumn[] {
+  const stages: ApplicationStatus[] = ['APPLIED', 'PHONE_SCREEN', 'INTERVIEW', 'OFFER', 'REJECTED']
+
+  return stages.map((status) => {
+    const matching = applications.filter((app) => app.status === status)
+    const config = STATUS_CONFIG[status]
+
+    return {
+      stage: config.label,
+      count: matching.length,
+      color: config.color,
+      cards: matching.map((app) => ({
+        id: app.id,
+        title: app.positionTitle,
+        company: app.company.name,
+        location: app.location || '',
+        salary: app.salary || '',
+        date: formatDate(app.appliedDate),
+      })),
+    }
+  })
+}
 
 // Simple inline SVG icons for each stat card
 function StatIcon({ type }: { type: string }) {
@@ -253,6 +155,57 @@ function TrendLine({ direction }: { direction: 'up' | 'down' }) {
 }
 
 export default function Dashboard() {
+  const [stats, setStats] = useState<DashboardStatsDTO | null>(null)
+  const [pipelineColumns, setPipelineColumns] = useState<PipelineColumn[]>([])
+  const [recentApps, setRecentApps] = useState<JobApplicationDTO[]>([])
+  const [interviews, setInterviews] = useState<InterviewDTO[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [statsRes, appsRes, recentRes, interviewsRes] = await Promise.all([
+          getStats(),
+          getApplications(),
+          getRecentApplications(),
+          getUpcomingInterviews(),
+        ])
+        setStats(statsRes.data)
+        setPipelineColumns(buildPipelineColumns(appsRes.data))
+        setRecentApps(recentRes.data)
+        setInterviews(interviewsRes.data)
+      } catch (err) {
+        console.error('Failed to load dashboard data:', err)
+        setError('Failed to load data. Make sure the backend is running.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
+
+  if (loading) {
+    return <div className="dashboard"><div className="dashboard-loading">Loading...</div></div>
+  }
+
+  if (error) {
+    return <div className="dashboard"><div className="dashboard-error">{error}</div></div>
+  }
+
+  const statCards = [
+    { label: 'Total Applications', value: stats?.totalApplications ?? 0, icon: 'total' as const, trend: 'up' as const },
+    { label: 'In Review', value: stats?.inReview ?? 0, icon: 'review' as const, trend: 'up' as const },
+    { label: 'Interviews', value: stats?.interviews ?? 0, icon: 'interview' as const, trend: 'up' as const },
+    { label: 'Offers', value: stats?.offers ?? 0, icon: 'offer' as const, trend: 'down' as const },
+    { label: 'Rejections', value: stats?.rejections ?? 0, icon: 'rejected' as const, trend: 'up' as const },
+  ]
+
+  const quickStats = [
+    { label: 'Total Offers', value: stats?.offers ?? 0, color: 'var(--status-offer)' },
+    { label: 'Total Rejections', value: stats?.rejections ?? 0, color: 'var(--status-rejected)' },
+  ]
+
   return (
     <div className="dashboard">
       {/* Stat Cards */}
@@ -304,18 +257,10 @@ export default function Dashboard() {
                         <div className="pipeline-card-company">{card.company}</div>
                         <div className="pipeline-card-meta">
                           <span>📍 {card.location}</span>
-                          <span>💰 {card.salary}</span>
+                          {card.salary && <span>💰 {card.salary}</span>}
                         </div>
                         <div className="pipeline-card-footer">
                           <span className="pipeline-card-date">Date Applied: {card.date}</span>
-                          {card.tag && (
-                            <span
-                              className="pipeline-card-tag"
-                              style={{ background: col.color }}
-                            >
-                              {card.tag}
-                            </span>
-                          )}
                         </div>
                       </div>
                     ))}
@@ -342,32 +287,36 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {recentApplications.map((app) => (
-                    <tr key={app.id}>
-                      <td className="recent-position">{app.position}</td>
-                      <td>
-                        <div className="recent-company">
+                  {recentApps.map((app) => {
+                    const statusCfg = STATUS_CONFIG[app.status]
+                    const companyColor = getCompanyColor(app.company.name)
+                    return (
+                      <tr key={app.id}>
+                        <td className="recent-position">{app.positionTitle}</td>
+                        <td>
+                          <div className="recent-company">
+                            <span
+                              className="recent-company-logo"
+                              style={{ background: companyColor }}
+                            >
+                              {app.company.name.charAt(0)}
+                            </span>
+                            {app.company.name}
+                          </div>
+                        </td>
+                        <td>{app.location || ''}</td>
+                        <td>{app.lastAction || ''}</td>
+                        <td>
                           <span
-                            className="recent-company-logo"
-                            style={{ background: app.companyColor }}
+                            className="recent-status-badge"
+                            style={{ background: statusCfg.color }}
                           >
-                            {app.companyInitial}
+                            {statusCfg.label}
                           </span>
-                          {app.company}
-                        </div>
-                      </td>
-                      <td>{app.location}</td>
-                      <td>{app.lastAction}</td>
-                      <td>
-                        <span
-                          className="recent-status-badge"
-                          style={{ background: app.statusColor }}
-                        >
-                          {app.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -380,21 +329,24 @@ export default function Dashboard() {
           <div className="upcoming-section">
             <h3 className="sidebar-section-title">Upcoming Interviews</h3>
             <div className="upcoming-list">
-              {upcomingInterviews.map((interview) => (
+              {interviews.map((interview, idx) => (
                 <div className="upcoming-item" key={interview.id}>
                   <span
                     className="upcoming-avatar"
-                    style={{ background: interview.avatarColor }}
+                    style={{ background: AVATAR_COLORS[idx % AVATAR_COLORS.length] }}
                   >
-                    {interview.initial}
+                    {interview.positionTitle.charAt(0)}
                   </span>
                   <div className="upcoming-info">
-                    <div className="upcoming-name">{interview.name}</div>
-                    <div className="upcoming-company">{interview.company}</div>
+                    <div className="upcoming-name">{interview.positionTitle}</div>
+                    <div className="upcoming-company">{interview.companyName}</div>
                   </div>
-                  <div className="upcoming-time">{interview.time}</div>
+                  <div className="upcoming-time">{formatInterviewTime(interview.interviewDate)}</div>
                 </div>
               ))}
+              {interviews.length === 0 && (
+                <div className="upcoming-empty">No upcoming interviews</div>
+              )}
             </div>
           </div>
 

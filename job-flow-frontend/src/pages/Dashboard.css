@@ -5,6 +5,26 @@
   gap: 24px;
 }
 
+.dashboard-loading,
+.dashboard-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.dashboard-error {
+  color: var(--status-rejected);
+}
+
+.upcoming-empty {
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding: 12px 0;
+}
+
 /* ===== Stat Cards Row ===== */
 .stat-cards {
   display: grid;
