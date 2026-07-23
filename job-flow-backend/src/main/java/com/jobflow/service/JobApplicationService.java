@@ -4,8 +4,10 @@ import com.jobflow.dto.*;
 import com.jobflow.model.ApplicationStatus;
 import com.jobflow.model.Company;
 import com.jobflow.model.JobApplication;
+import com.jobflow.model.User;
 import com.jobflow.repository.CompanyRepository;
 import com.jobflow.repository.JobApplicationRepository;
+import com.jobflow.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,31 +21,36 @@ public class JobApplicationService {
 
     private final JobApplicationRepository jobApplicationRepository;
     private final CompanyRepository companyRepository;
+    private final UserRepository userRepository;
     private final CompanyService companyService;
 
-    public List<JobApplicationDTO> findAll() {
-        return jobApplicationRepository.findAll().stream()
+    public List<JobApplicationDTO> findAll(Long userId) {
+        return jobApplicationRepository.findByUserIdOrderByUpdatedAtDesc(userId).stream()
             .map(this::toDTO)
             .toList();
     }
 
-    public List<JobApplicationDTO> findByStatus(ApplicationStatus status) {
-        return jobApplicationRepository.findByStatusOrderByUpdatedAtDesc(status).stream()
+    public List<JobApplicationDTO> findByStatus(Long userId, ApplicationStatus status) {
+        return jobApplicationRepository.findByUserIdAndStatusOrderByUpdatedAtDesc(userId, status).stream()
             .map(this::toDTO)
             .toList();
     }
 
-    public JobApplicationDTO findById(Long id) {
-        JobApplication app = jobApplicationRepository.findById(id)
+    public JobApplicationDTO findById(Long userId, Long id) {
+        JobApplication app = jobApplicationRepository.findByIdAndUserId(id, userId)
             .orElseThrow(() -> new RuntimeException("Job application not found: " + id));
         return toDTO(app);
     }
 
-    public JobApplicationDTO create(CreateJobApplicationRequest request) {
+    public JobApplicationDTO create(Long userId, CreateJobApplicationRequest request) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
         Company company = companyRepository.findById(request.getCompanyId())
             .orElseThrow(() -> new RuntimeException("Company not found: " + request.getCompanyId()));
 
         JobApplication app = JobApplication.builder()
+            .user(user)
             .positionTitle(request.getPositionTitle())
             .company(company)
             .location(request.getLocation())
@@ -56,8 +63,8 @@ public class JobApplicationService {
         return toDTO(jobApplicationRepository.save(app));
     }
 
-    public JobApplicationDTO update(Long id, UpdateJobApplicationRequest request) {
-        JobApplication app = jobApplicationRepository.findById(id)
+    public JobApplicationDTO update(Long userId, Long id, UpdateJobApplicationRequest request) {
+        JobApplication app = jobApplicationRepository.findByIdAndUserId(id, userId)
             .orElseThrow(() -> new RuntimeException("Job application not found: " + id));
 
         if (request.getCompanyId() != null) {
@@ -76,42 +83,43 @@ public class JobApplicationService {
         return toDTO(jobApplicationRepository.save(app));
     }
 
-    public JobApplicationDTO updateStatus(Long id, ApplicationStatus status) {
-        JobApplication app = jobApplicationRepository.findById(id)
+    public JobApplicationDTO updateStatus(Long userId, Long id, ApplicationStatus status) {
+        JobApplication app = jobApplicationRepository.findByIdAndUserId(id, userId)
             .orElseThrow(() -> new RuntimeException("Job application not found: " + id));
         app.setStatus(status);
         return toDTO(jobApplicationRepository.save(app));
     }
 
-    public void delete(Long id) {
-        jobApplicationRepository.deleteById(id);
+    public void delete(Long userId, Long id) {
+        JobApplication app = jobApplicationRepository.findByIdAndUserId(id, userId)
+            .orElseThrow(() -> new RuntimeException("Job application not found: " + id));
+        jobApplicationRepository.delete(app);
     }
 
-    public List<JobApplicationDTO> findRecent() {
-        return jobApplicationRepository.findTop10ByOrderByUpdatedAtDesc().stream()
+    public List<JobApplicationDTO> findRecent(Long userId) {
+        return jobApplicationRepository.findTop10ByUserIdOrderByUpdatedAtDesc(userId).stream()
             .map(this::toDTO)
             .toList();
     }
 
-    public DashboardStatsDTO getStats() {
+    public DashboardStatsDTO getStats(Long userId) {
         return DashboardStatsDTO.builder()
-            .totalApplications(jobApplicationRepository.count())
-            .inReview(jobApplicationRepository.countByStatus(ApplicationStatus.IN_REVIEW))
-            .interviews(jobApplicationRepository.countByStatus(ApplicationStatus.INTERVIEW))
-            .offers(jobApplicationRepository.countByStatus(ApplicationStatus.OFFER))
-            .rejections(jobApplicationRepository.countByStatus(ApplicationStatus.REJECTED))
+            .totalApplications(jobApplicationRepository.countByUserId(userId))
+            .inReview(jobApplicationRepository.countByUserIdAndStatus(userId, ApplicationStatus.IN_REVIEW))
+            .interviews(jobApplicationRepository.countByUserIdAndStatus(userId, ApplicationStatus.INTERVIEW))
+            .offers(jobApplicationRepository.countByUserIdAndStatus(userId, ApplicationStatus.OFFER))
+            .rejections(jobApplicationRepository.countByUserIdAndStatus(userId, ApplicationStatus.REJECTED))
             .build();
     }
 
-    public List<ApplicationActivityDTO> getActivity() {
+    public List<ApplicationActivityDTO> getActivity(Long userId) {
         List<ApplicationActivityDTO> activity = new ArrayList<>();
         LocalDate now = LocalDate.now();
 
-        // Last 12 months of application activity
         for (int i = 11; i >= 0; i--) {
             LocalDate start = now.minusMonths(i).withDayOfMonth(1);
             LocalDate end = start.plusMonths(1).minusDays(1);
-            long count = jobApplicationRepository.countByAppliedDateBetween(start, end);
+            long count = jobApplicationRepository.countByUserIdAndAppliedDateBetween(userId, start, end);
             String month = start.getMonth().name().substring(0, 3);
             activity.add(new ApplicationActivityDTO(month, count));
         }

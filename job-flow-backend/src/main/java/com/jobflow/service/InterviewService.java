@@ -19,27 +19,28 @@ public class InterviewService {
     private final InterviewRepository interviewRepository;
     private final JobApplicationRepository jobApplicationRepository;
 
-    public List<InterviewDTO> findAll() {
-        return interviewRepository.findAll().stream()
+    public List<InterviewDTO> findAll(Long userId) {
+        return interviewRepository.findByJobApplicationUserId(userId).stream()
             .map(this::toDTO)
             .toList();
     }
 
-    public InterviewDTO findById(Long id) {
-        Interview interview = interviewRepository.findById(id)
+    public InterviewDTO findById(Long userId, Long id) {
+        Interview interview = interviewRepository.findByIdAndJobApplicationUserId(id, userId)
             .orElseThrow(() -> new RuntimeException("Interview not found: " + id));
         return toDTO(interview);
     }
 
-    public List<InterviewDTO> findUpcoming() {
-        return interviewRepository.findByInterviewDateAfterOrderByInterviewDateAsc(LocalDateTime.now())
+    public List<InterviewDTO> findUpcoming(Long userId) {
+        return interviewRepository
+            .findByJobApplicationUserIdAndInterviewDateAfterOrderByInterviewDateAsc(userId, LocalDateTime.now())
             .stream()
             .map(this::toDTO)
             .toList();
     }
 
-    public InterviewDTO create(CreateInterviewRequest request) {
-        JobApplication app = jobApplicationRepository.findById(request.getJobApplicationId())
+    public InterviewDTO create(Long userId, CreateInterviewRequest request) {
+        JobApplication app = jobApplicationRepository.findByIdAndUserId(request.getJobApplicationId(), userId)
             .orElseThrow(() -> new RuntimeException("Job application not found: " + request.getJobApplicationId()));
 
         Interview interview = Interview.builder()
@@ -51,12 +52,12 @@ public class InterviewService {
         return toDTO(interviewRepository.save(interview));
     }
 
-    public InterviewDTO update(Long id, CreateInterviewRequest request) {
-        Interview interview = interviewRepository.findById(id)
+    public InterviewDTO update(Long userId, Long id, CreateInterviewRequest request) {
+        Interview interview = interviewRepository.findByIdAndJobApplicationUserId(id, userId)
             .orElseThrow(() -> new RuntimeException("Interview not found: " + id));
 
         if (request.getJobApplicationId() != null) {
-            JobApplication app = jobApplicationRepository.findById(request.getJobApplicationId())
+            JobApplication app = jobApplicationRepository.findByIdAndUserId(request.getJobApplicationId(), userId)
                 .orElseThrow(() -> new RuntimeException("Job application not found: " + request.getJobApplicationId()));
             interview.setJobApplication(app);
         }
@@ -67,8 +68,10 @@ public class InterviewService {
         return toDTO(interviewRepository.save(interview));
     }
 
-    public void delete(Long id) {
-        interviewRepository.deleteById(id);
+    public void delete(Long userId, Long id) {
+        Interview interview = interviewRepository.findByIdAndJobApplicationUserId(id, userId)
+            .orElseThrow(() -> new RuntimeException("Interview not found: " + id));
+        interviewRepository.delete(interview);
     }
 
     private InterviewDTO toDTO(Interview interview) {

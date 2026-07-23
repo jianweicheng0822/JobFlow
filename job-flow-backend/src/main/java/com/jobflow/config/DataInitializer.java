@@ -4,8 +4,10 @@ import com.jobflow.model.*;
 import com.jobflow.repository.CompanyRepository;
 import com.jobflow.repository.InterviewRepository;
 import com.jobflow.repository.JobApplicationRepository;
+import com.jobflow.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -18,13 +20,22 @@ public class DataInitializer implements CommandLineRunner {
     private final CompanyRepository companyRepository;
     private final JobApplicationRepository jobApplicationRepository;
     private final InterviewRepository interviewRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {
-        // Skip if data already exists
         if (companyRepository.count() > 0) {
             return;
         }
+
+        // Create a demo user for seed data
+        User demoUser = userRepository.save(User.builder()
+            .name("Demo User")
+            .email("demo@jobflow.com")
+            .password(passwordEncoder.encode("demo123"))
+            .provider(AuthProvider.LOCAL)
+            .build());
 
         // Create companies
         Company techCorp = companyRepository.save(Company.builder()
@@ -57,8 +68,9 @@ public class DataInitializer implements CommandLineRunner {
             .website("https://amazon.com")
             .build());
 
-        // Create job applications with various statuses
+        // Create job applications linked to demo user
         JobApplication app1 = jobApplicationRepository.save(JobApplication.builder()
+            .user(demoUser)
             .positionTitle("Senior UX Designer")
             .company(techCorp)
             .location("Seattle, WA")
@@ -69,6 +81,7 @@ public class DataInitializer implements CommandLineRunner {
             .build());
 
         JobApplication app2 = jobApplicationRepository.save(JobApplication.builder()
+            .user(demoUser)
             .positionTitle("Senior UX Designer")
             .company(spotify)
             .location("Stockholm")
@@ -79,6 +92,7 @@ public class DataInitializer implements CommandLineRunner {
             .build());
 
         JobApplication app3 = jobApplicationRepository.save(JobApplication.builder()
+            .user(demoUser)
             .positionTitle("Senior Frontend Engineer")
             .company(techCorp)
             .location("Seattle, WA")
@@ -89,6 +103,7 @@ public class DataInitializer implements CommandLineRunner {
             .build());
 
         JobApplication app4 = jobApplicationRepository.save(JobApplication.builder()
+            .user(demoUser)
             .positionTitle("Product Designer")
             .company(google)
             .location("Mountain View, CA")
@@ -98,7 +113,8 @@ public class DataInitializer implements CommandLineRunner {
             .lastAction("Offer Received")
             .build());
 
-        JobApplication app5 = jobApplicationRepository.save(JobApplication.builder()
+        jobApplicationRepository.save(JobApplication.builder()
+            .user(demoUser)
             .positionTitle("UX Researcher")
             .company(meta)
             .location("Menlo Park, CA")
@@ -109,6 +125,7 @@ public class DataInitializer implements CommandLineRunner {
             .build());
 
         JobApplication app6 = jobApplicationRepository.save(JobApplication.builder()
+            .user(demoUser)
             .positionTitle("Frontend Developer")
             .company(amazon)
             .location("Seattle, WA")
@@ -119,6 +136,7 @@ public class DataInitializer implements CommandLineRunner {
             .build());
 
         jobApplicationRepository.save(JobApplication.builder()
+            .user(demoUser)
             .positionTitle("Senior Frontend Engineer")
             .company(spotify)
             .location("Stockholm")
@@ -129,6 +147,7 @@ public class DataInitializer implements CommandLineRunner {
             .build());
 
         jobApplicationRepository.save(JobApplication.builder()
+            .user(demoUser)
             .positionTitle("UI Engineer")
             .company(google)
             .location("Mountain View, CA")
@@ -139,6 +158,7 @@ public class DataInitializer implements CommandLineRunner {
             .build());
 
         jobApplicationRepository.save(JobApplication.builder()
+            .user(demoUser)
             .positionTitle("Design Systems Lead")
             .company(meta)
             .location("Menlo Park, CA")
@@ -149,6 +169,7 @@ public class DataInitializer implements CommandLineRunner {
             .build());
 
         jobApplicationRepository.save(JobApplication.builder()
+            .user(demoUser)
             .positionTitle("Full Stack Developer")
             .company(amazon)
             .location("Seattle, WA")
