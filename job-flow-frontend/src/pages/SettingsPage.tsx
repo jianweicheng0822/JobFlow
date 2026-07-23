@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react'
 import { Camera, User, Lock, Bell, Palette, Sun, Moon } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 import './SettingsPage.css'
 
 const AVATAR_STORAGE_KEY = 'jobflow-avatar'
@@ -14,6 +15,7 @@ const tabs: { key: SettingsTab; label: string; icon: typeof User }[] = [
 ]
 
 export default function SettingsPage() {
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile')
 
   const [avatar, setAvatar] = useState<string | null>(() => {
@@ -21,9 +23,9 @@ export default function SettingsPage() {
   })
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [fullName, setFullName] = useState('Alex R.')
-  const [email, setEmail] = useState('alex.r@example.com')
-  const [jobTitle, setJobTitle] = useState('Recruiter')
+  const [fullName, setFullName] = useState(user?.name || '')
+  const [email, setEmail] = useState(user?.email || '')
+  const [jobTitle, setJobTitle] = useState('')
   const [bio, setBio] = useState('')
 
   const [currentPassword, setCurrentPassword] = useState('')
@@ -88,10 +90,10 @@ export default function SettingsPage() {
         <div className="settings-section">
           <div className="settings-profile-header">
             <div className="settings-avatar" onClick={handleAvatarClick}>
-              {avatar ? (
-                <img src={avatar} alt="Avatar" />
+              {user?.avatarUrl || avatar ? (
+                <img src={user?.avatarUrl || avatar!} alt="Avatar" />
               ) : (
-                'AR'
+                (user?.name || 'U').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
               )}
               <div className="settings-avatar-overlay">
                 <Camera size={20} />

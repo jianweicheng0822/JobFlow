@@ -118,3 +118,21 @@
   font-size: 11px;
   color: var(--text-muted);
 }
+
+.topbar-logout {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.topbar-logout:hover {
+  color: var(--status-rejected);
+  border-color: var(--status-rejected);
+}
