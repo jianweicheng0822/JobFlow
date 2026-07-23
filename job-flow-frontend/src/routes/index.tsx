@@ -9,6 +9,7 @@ import Analytics from '../pages/Analytics'
 import SettingsPage from '../pages/SettingsPage'
 import LoginPage from '../pages/LoginPage'
 import RegisterPage from '../pages/RegisterPage'
+import OAuthCallback from '../pages/OAuthCallback'
 
 // Root wrapper that provides AuthContext to the entire router tree
 function RootLayout() {
@@ -26,6 +27,7 @@ export const router = createBrowserRouter([
       // Public routes
       { path: '/login', element: <LoginPage /> },
       { path: '/register', element: <RegisterPage /> },
+      { path: '/oauth/callback', element: <OAuthCallback /> },
 
       // Protected routes
       {

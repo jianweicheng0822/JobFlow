@@ -20,6 +20,32 @@ spring:
         format_sql: true
     database-platform: org.hibernate.dialect.MySQLDialect
 
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:placeholder}
+            client-secret: ${GOOGLE_CLIENT_SECRET:placeholder}
+            scope: email, profile
+          github:
+            client-id: ${GITHUB_CLIENT_ID:placeholder}
+            client-secret: ${GITHUB_CLIENT_SECRET:placeholder}
+            scope: user:email, read:user
+          linkedin:
+            client-id: ${LINKEDIN_CLIENT_ID:placeholder}
+            client-secret: ${LINKEDIN_CLIENT_SECRET:placeholder}
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope: openid, profile, email
+            client-name: LinkedIn
+        provider:
+          linkedin:
+            authorization-uri: https://www.linkedin.com/oauth/v2/authorization
+            token-uri: https://www.linkedin.com/oauth/v2/accessToken
+            user-info-uri: https://api.linkedin.com/v2/userinfo
+            user-name-attribute: sub
+
 app:
   jwt:
     secret: ${JWT_SECRET:myDefaultSuperSecretKeyThatIsAtLeast256BitsLongForHS256Algorithm}
