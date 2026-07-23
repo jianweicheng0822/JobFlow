@@ -390,6 +390,45 @@
   color: var(--text-muted);
 }
 
+/* ===== Row Action Buttons ===== */
+.jobs-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.jobs-action-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.jobs-action-btn--edit {
+  color: var(--sidebar-accent);
+}
+
+.jobs-action-btn--edit:hover {
+  background: var(--sidebar-accent);
+  color: white;
+  border-color: var(--sidebar-accent);
+}
+
+.jobs-action-btn--delete {
+  color: var(--status-rejected);
+}
+
+.jobs-action-btn--delete:hover {
+  background: var(--status-rejected);
+  color: white;
+  border-color: var(--status-rejected);
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
   .jobs-stat-cards {

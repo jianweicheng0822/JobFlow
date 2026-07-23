@@ -1,0 +1,115 @@
+.app-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.app-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.app-form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.app-form-label .required {
+  color: var(--status-rejected);
+  margin-left: 2px;
+}
+
+.app-form-input,
+.app-form-select,
+.app-form-textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--content-bg);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.15s ease;
+}
+
+.app-form-input:focus,
+.app-form-select:focus,
+.app-form-textarea:focus {
+  outline: none;
+  border-color: var(--sidebar-accent);
+}
+
+.app-form-input::placeholder,
+.app-form-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.app-form-select {
+  cursor: pointer;
+}
+
+.app-form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.app-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.app-form-error {
+  font-size: 12px;
+  color: var(--status-rejected);
+  margin-top: -4px;
+}
+
+.app-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.app-form-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.app-form-btn:hover {
+  opacity: 0.9;
+}
+
+.app-form-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.app-form-btn--cancel {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.app-form-btn--cancel:hover {
+  background: var(--content-bg);
+}
+
+.app-form-btn--submit {
+  background: var(--sidebar-accent);
+  border: none;
+  color: white;
+}
+
+@media (max-width: 480px) {
+  .app-form-row {
+    grid-template-columns: 1fr;
+  }
+}

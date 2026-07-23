@@ -1,7 +1,10 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
+import { Plus, Pencil, Trash2 } from 'lucide-react'
 import './Jobs.css'
-import { getApplications } from '../api/applications'
+import { getApplications, deleteApplication } from '../api/applications'
 import type { JobApplicationDTO, ApplicationStatus } from '../api/types'
+import Modal from '../components/Modal'
+import ApplicationForm from '../components/ApplicationForm'
 
 // ===== Helpers =====
 const STATUS_CONFIG: Record<ApplicationStatus, { label: string; color: string }> = {
@@ -121,20 +124,57 @@ export default function Jobs() {
   const [roleFilter, setRoleFilter] = useState('')
   const [locationFilter, setLocationFilter] = useState('')
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const res = await getApplications()
-        setApplications(res.data)
-      } catch (err) {
-        console.error('Failed to load jobs:', err)
-        setError('Failed to load data. Make sure the backend is running.')
-      } finally {
-        setLoading(false)
-      }
+  // CRUD modal state
+  const [showModal, setShowModal] = useState(false)
+  const [editingApp, setEditingApp] = useState<JobApplicationDTO | undefined>(undefined)
+  const [deleteTarget, setDeleteTarget] = useState<JobApplicationDTO | null>(null)
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true)
+      const res = await getApplications()
+      setApplications(res.data)
+      setError(null)
+    } catch (err) {
+      console.error('Failed to load jobs:', err)
+      setError('Failed to load data. Make sure the backend is running.')
+    } finally {
+      setLoading(false)
     }
-    fetchData()
   }, [])
+
+  useEffect(() => { fetchData() }, [fetchData])
+
+  function openCreate() {
+    setEditingApp(undefined)
+    setShowModal(true)
+  }
+
+  function openEdit(app: JobApplicationDTO) {
+    setEditingApp(app)
+    setShowModal(true)
+  }
+
+  function closeModal() {
+    setShowModal(false)
+    setEditingApp(undefined)
+  }
+
+  function handleFormSuccess() {
+    closeModal()
+    fetchData()
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    try {
+      await deleteApplication(deleteTarget.id)
+      setDeleteTarget(null)
+      fetchData()
+    } catch (err) {
+      console.error('Failed to delete application:', err)
+    }
+  }
 
   const companies = useMemo(() => [...new Set(applications.map((a) => a.company.name))], [applications])
   const roles = useMemo(() => [...new Set(applications.map((a) => a.positionTitle))], [applications])
@@ -202,7 +242,10 @@ export default function Jobs() {
           <div className="jobs-table-section">
             <div className="jobs-section-header">
               <h2 className="jobs-section-title">Job Positions</h2>
-              <a href="#" className="jobs-section-link">View All ▾</a>
+              <button className="jobs-filter-btn" onClick={openCreate}>
+                <Plus size={14} />
+                New Application
+              </button>
             </div>
 
             {/* Filter Bar */}
@@ -271,12 +314,13 @@ export default function Jobs() {
                     <th>Location</th>
                     <th>Date Applied ↕</th>
                     <th>Stage</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredJobs.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="jobs-table-empty">No matching jobs found.</td>
+                      <td colSpan={6} className="jobs-table-empty">No matching jobs found.</td>
                     </tr>
                   ) : (
                     filteredJobs.map((app) => {
@@ -307,6 +351,16 @@ export default function Jobs() {
                             >
                               {statusCfg.label}
                             </span>
+                          </td>
+                          <td>
+                            <div className="jobs-actions">
+                              <button className="jobs-action-btn jobs-action-btn--edit" title="Edit" onClick={() => openEdit(app)}>
+                                <Pencil size={14} />
+                              </button>
+                              <button className="jobs-action-btn jobs-action-btn--delete" title="Delete" onClick={() => setDeleteTarget(app)}>
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       )
@@ -341,6 +395,34 @@ export default function Jobs() {
           </div>
         </div>
       </div>
+
+      {/* Create / Edit Modal */}
+      {showModal && (
+        <Modal title={editingApp ? 'Edit Application' : 'New Application'} onClose={closeModal}>
+          <ApplicationForm
+            application={editingApp}
+            onSuccess={handleFormSuccess}
+            onCancel={closeModal}
+          />
+        </Modal>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteTarget && (
+        <Modal title="Delete Application" onClose={() => setDeleteTarget(null)}>
+          <p style={{ marginBottom: 20, color: 'var(--text-secondary)', fontSize: 14 }}>
+            Are you sure you want to delete <strong>{deleteTarget.positionTitle}</strong> at <strong>{deleteTarget.company.name}</strong>? This action cannot be undone.
+          </p>
+          <div className="app-form-actions">
+            <button className="app-form-btn app-form-btn--cancel" onClick={() => setDeleteTarget(null)}>
+              Cancel
+            </button>
+            <button className="app-form-btn app-form-btn--submit" style={{ background: 'var(--status-rejected)' }} onClick={handleDelete}>
+              Delete
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }
