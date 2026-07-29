@@ -46,8 +46,7 @@ public class JobApplicationService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Company company = companyRepository.findById(request.getCompanyId())
-            .orElseThrow(() -> new RuntimeException("Company not found: " + request.getCompanyId()));
+        Company company = resolveCompany(request);
 
         JobApplication app = JobApplication.builder()
             .user(user)
@@ -61,6 +60,24 @@ public class JobApplicationService {
             .notes(request.getNotes())
             .build();
         return toDTO(jobApplicationRepository.save(app));
+    }
+
+    // Look up company by ID, or find/create by name
+    private Company resolveCompany(CreateJobApplicationRequest request) {
+        if (request.getCompanyId() != null) {
+            return companyRepository.findById(request.getCompanyId())
+                .orElseThrow(() -> new RuntimeException("Company not found: " + request.getCompanyId()));
+        }
+
+        String name = request.getCompanyName();
+        if (name == null || name.isBlank()) {
+            throw new RuntimeException("Either companyId or companyName is required");
+        }
+
+        return companyRepository.findByNameIgnoreCase(name.trim())
+            .orElseGet(() -> companyRepository.save(
+                Company.builder().name(name.trim()).build()
+            ));
     }
 
     public JobApplicationDTO update(Long userId, Long id, UpdateJobApplicationRequest request) {

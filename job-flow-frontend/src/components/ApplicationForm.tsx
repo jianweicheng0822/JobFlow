@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { FormEvent } from 'react';
 import { getCompanies } from '../api/companies';
 import { createApplication, updateApplication } from '../api/applications';
@@ -35,7 +35,10 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
 
   // Form fields
   const [positionTitle, setPositionTitle] = useState(application?.positionTitle ?? '');
-  const [companyId, setCompanyId] = useState<string>(application?.company?.id?.toString() ?? '');
+  const [companyInput, setCompanyInput] = useState(application?.company?.name ?? '');
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(application?.company?.id ?? null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [location, setLocation] = useState(application?.location ?? '');
   const [salary, setSalary] = useState(application?.salary ?? '');
   const [status, setStatus] = useState<ApplicationStatus>(application?.status ?? 'APPLIED');
@@ -46,10 +49,25 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
     getCompanies().then((res) => setCompanies(res.data));
   }, []);
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredCompanies = companies.filter((c) =>
+    c.name.toLowerCase().includes(companyInput.toLowerCase())
+  );
+
   function validate(): boolean {
     const newErrors: Record<string, string> = {};
     if (!positionTitle.trim()) newErrors.positionTitle = 'Position title is required';
-    if (!companyId) newErrors.companyId = 'Company is required';
+    if (!companyInput.trim()) newErrors.company = 'Company is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }
@@ -60,15 +78,21 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
 
     setLoading(true);
     try {
-      const data = {
+      const data: Record<string, unknown> = {
         positionTitle: positionTitle.trim(),
-        companyId: Number(companyId),
         location: location.trim() || undefined,
         salary: salary.trim() || undefined,
         status,
         appliedDate: appliedDate || undefined,
         notes: notes.trim() || undefined,
       };
+
+      // Use companyId if an existing company was selected, otherwise use companyName
+      if (selectedCompanyId) {
+        data.companyId = selectedCompanyId;
+      } else {
+        data.companyName = companyInput.trim();
+      }
 
       if (isEdit) {
         await updateApplication(application!.id, data as UpdateJobApplicationRequest);
@@ -100,21 +124,47 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
         {errors.positionTitle && <span className="app-form-error">{errors.positionTitle}</span>}
       </div>
 
-      <div className="app-form-field">
+      <div className="app-form-field" ref={dropdownRef}>
         <label className="app-form-label">
           Company <span className="required">*</span>
         </label>
-        <select
-          className="app-form-select"
-          value={companyId}
-          onChange={(e) => setCompanyId(e.target.value)}
-        >
-          <option value="">Select a company</option>
-          {companies.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-        {errors.companyId && <span className="app-form-error">{errors.companyId}</span>}
+        <input
+          className="app-form-input"
+          type="text"
+          value={companyInput}
+          onChange={(e) => {
+            setCompanyInput(e.target.value);
+            setSelectedCompanyId(null);
+            setShowDropdown(true);
+          }}
+          onFocus={() => setShowDropdown(true)}
+          placeholder="Type to search or enter a new company"
+          autoComplete="off"
+        />
+        {showDropdown && companyInput.trim() && (
+          <div className="company-dropdown">
+            {filteredCompanies.map((c) => (
+              <div
+                key={c.id}
+                className="company-dropdown-item"
+                onMouseDown={() => {
+                  setCompanyInput(c.name);
+                  setSelectedCompanyId(c.id);
+                  setShowDropdown(false);
+                }}
+              >
+                {c.name}
+                {c.location && <span className="company-dropdown-loc">{c.location}</span>}
+              </div>
+            ))}
+            {filteredCompanies.length === 0 && (
+              <div className="company-dropdown-new">
+                + Add "{companyInput.trim()}" as new company
+              </div>
+            )}
+          </div>
+        )}
+        {errors.company && <span className="app-form-error">{errors.company}</span>}
       </div>
 
       <div className="app-form-row">

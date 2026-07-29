@@ -8,7 +8,8 @@ import java.time.LocalDate;
 @Data
 public class CreateJobApplicationRequest {
     private String positionTitle;
-    private Long companyId;
+    private Long companyId;       // use existing company
+    private String companyName;   // or create/find by name
     private String location;
     private String salary;
     private ApplicationStatus status;

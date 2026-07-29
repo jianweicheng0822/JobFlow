@@ -58,7 +58,8 @@ export interface ApplicationActivityDTO {
 // Request types for CRUD operations
 export interface CreateJobApplicationRequest {
   positionTitle: string;
-  companyId: number;
+  companyId?: number;
+  companyName?: string;
   location?: string;
   salary?: string;
   status?: ApplicationStatus;
