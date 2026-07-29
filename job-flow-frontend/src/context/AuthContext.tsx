@@ -15,6 +15,7 @@ interface AuthContextType {
   login: (data: LoginRequest) => Promise<void>
   register: (data: RegisterRequest) => Promise<void>
   logout: () => void
+  tryDemo: () => void
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -54,8 +55,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }, [])
 
+  const tryDemo = useCallback(() => {
+    localStorage.setItem('jobflow-token', 'demo-token')
+    setUser({ name: 'Demo User', email: 'demo@jobflow.com', avatarUrl: null })
+  }, [])
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, tryDemo }}>
       {children}
     </AuthContext.Provider>
   )

@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { isDemoMode, resolveMock } from './mockData'
 
 const client = axios.create({
   baseURL: 'http://localhost:8080/api',
@@ -12,6 +13,22 @@ client.interceptors.request.use((config) => {
   const token = localStorage.getItem('jobflow-token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+// Intercept requests in demo mode and return mock data
+client.interceptors.request.use((config) => {
+  if (!isDemoMode()) return config
+
+  const url = config.url || ''
+  const method = (config.method || 'get').toLowerCase()
+  const data = resolveMock(url, method)
+
+  if (data !== undefined) {
+    // Cancel the real request and return mock data via adapter
+    config.adapter = () =>
+      Promise.resolve({ data, status: 200, statusText: 'OK', headers: {}, config })
   }
   return config
 })

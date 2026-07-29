@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import './LoginPage.css'
 
 export default function LoginPage() {
-  const { login } = useAuth()
+  const { login, tryDemo } = useAuth()
   const navigate = useNavigate()
 
   const [email, setEmail] = useState('')
@@ -89,6 +89,13 @@ export default function LoginPage() {
         <p className="auth-footer">
           Don't have an account? <Link to="/register">Sign up</Link>
         </p>
+
+        <button
+          className="auth-demo-btn"
+          onClick={() => { tryDemo(); navigate('/', { replace: true }) }}
+        >
+          Try Demo
+        </button>
       </div>
     </div>
   )

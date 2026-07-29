@@ -184,3 +184,22 @@
 .auth-footer a:hover {
   text-decoration: underline;
 }
+
+.auth-demo-btn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.auth-demo-btn:hover {
+  background: var(--content-bg);
+  color: var(--text-primary);
+}
