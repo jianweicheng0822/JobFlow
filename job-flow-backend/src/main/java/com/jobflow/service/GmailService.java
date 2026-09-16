@@ -18,6 +18,7 @@ import com.jobflow.repository.CompanyRepository;
 import com.jobflow.repository.EmailImportLogRepository;
 import com.jobflow.repository.JobApplicationRepository;
 import com.jobflow.repository.UserRepository;
+import com.jobflow.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -48,19 +49,54 @@ public class GmailService {
     private String googleClientSecret;
 
     private static final String GMAIL_SEARCH_QUERY =
-            "subject:(\"thank you for applying\" OR \"application received\" OR " +
-            "\"we received your application\" OR \"successfully applied\") newer_than:90d";
+            "subject:(\"thank you for applying\" OR \"thanks for applying\" OR " +
+            "\"application received\" OR \"application confirmation\" OR " +
+            "\"application submitted\" OR \"successfully applied\" OR " +
+            "\"we received your application\" OR \"we have received your application\" OR " +
+            "\"your application to\" OR \"your application for\" OR " +
+            "\"your application has been\" OR \"you applied to\" OR " +
+            "\"application for the position\") newer_than:90d";
 
-    // Common patterns for extracting position from subject lines
-    private static final List<Pattern> POSITION_PATTERNS = List.of(
-            Pattern.compile("(?:for|to)\\s+(?:the\\s+)?(.+?)\\s+(?:position|role|job|opening)", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("(?:application|applied)\\s+(?:for|to)\\s+(?:the\\s+)?(.+?)(?:\\s+at\\s+|\\s*[-–]\\s*|$)", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("(?:position|role):\\s*(.+?)(?:\\s+at\\s+|\\s*[-–]\\s*|$)", Pattern.CASE_INSENSITIVE)
+    // LinkedIn-specific patterns: "You applied to [Position] at [Company]"
+    private static final List<Pattern> LINKEDIN_PATTERNS = List.of(
+            Pattern.compile("(?:you\\s+applied\\s+to|applied\\s+to)\\s+(.+?)\\s+at\\s+(.+?)$", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("(?:your\\s+application\\s+(?:to|for|was\\s+sent\\s+to))\\s+(.+?)\\s+at\\s+(.+?)$", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("(?:you\\s+applied\\s+to|applied\\s+to)\\s+(.+?)\\s+at\\s+(.+?)(?:\\s*[-–|])", Pattern.CASE_INSENSITIVE)
     );
+
+    // Patterns that extract BOTH position and company from subject: [position] at [company]
+    private static final List<Pattern> SUBJECT_POSITION_AND_COMPANY_PATTERNS = List.of(
+            // "Thank you for applying to Software Engineer at Google"
+            Pattern.compile("(?:applying|applied)\\s+(?:to|for)\\s+(?:the\\s+)?(.+?)\\s+at\\s+(.+?)$", Pattern.CASE_INSENSITIVE),
+            // "Your application for Software Engineer at Google has been received"
+            Pattern.compile("application\\s+(?:for|to)\\s+(?:the\\s+)?(.+?)\\s+at\\s+(.+?)(?:\\s+has\\b|\\s*[-–]|$)", Pattern.CASE_INSENSITIVE),
+            // "Application confirmation: Software Engineer at Google"
+            Pattern.compile("(?:confirmation|received|submitted)\\s*[:–-]\\s*(.+?)\\s+at\\s+(.+?)$", Pattern.CASE_INSENSITIVE)
+    );
+
+    // Patterns that extract position only from subject
+    private static final List<Pattern> POSITION_PATTERNS = List.of(
+            // "for the Software Engineer position/role/job"
+            Pattern.compile("(?:for|to)\\s+(?:the\\s+)?(.+?)\\s+(?:position|role|job|opening)", Pattern.CASE_INSENSITIVE),
+            // "application for Software Engineer at ..." or "applied to Software Engineer"
+            Pattern.compile("(?:application|applied)\\s+(?:for|to)\\s+(?:the\\s+)?(.+?)(?:\\s+at\\s+|\\s*[-–]\\s*|$)", Pattern.CASE_INSENSITIVE),
+            // "position: Software Engineer" or "role: Software Engineer"
+            Pattern.compile("(?:position|role):\\s*(.+?)(?:\\s+at\\s+|\\s*[-–]\\s*|$)", Pattern.CASE_INSENSITIVE),
+            // "Thank you for applying - Software Engineer"
+            Pattern.compile("(?:applying|applied|received|confirmation)\\s*[-–:]+\\s*(.+?)(?:\\s+at\\s+|$)", Pattern.CASE_INSENSITIVE),
+            // "Software Engineer - Application Received"
+            Pattern.compile("^(.+?)\\s*[-–]+\\s*(?:application|your application)", Pattern.CASE_INSENSITIVE),
+            // "Application received for Software Engineer"
+            Pattern.compile("(?:received|confirmation|submitted)\\s+(?:for|regarding)\\s+(?:the\\s+)?(.+?)$", Pattern.CASE_INSENSITIVE)
+    );
+
+    // Pattern to extract company from subject when "at [Company]" appears
+    private static final Pattern SUBJECT_COMPANY_PATTERN =
+            Pattern.compile("\\bat\\s+(.+?)(?:\\s*[-–|!.]|\\s+has\\b|$)", Pattern.CASE_INSENSITIVE);
 
     public List<GmailImportPreviewDTO> scanEmails(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
         if (!user.isGmailConnected() || user.getGoogleAccessToken() == null) {
             throw new RuntimeException("Gmail is not connected. Please log in with Google first.");
@@ -117,7 +153,7 @@ public class GmailService {
     @Transactional
     public GmailImportResultDTO importApplications(Long userId, GmailImportConfirmRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
         int imported = 0;
         int skipped = 0;
@@ -211,11 +247,31 @@ public class GmailService {
 
         String subject = headers.getOrDefault("subject", "");
         String from = headers.getOrDefault("from", "");
-        String dateStr = headers.getOrDefault("date", "");
+        LocalDate appliedDate = parseDateFromHeader(null, message.getInternalDate());
 
-        String companyName = parseCompanyFromSender(from);
-        String positionTitle = parsePositionFromSubject(subject);
-        LocalDate appliedDate = parseDateFromHeader(dateStr, message.getInternalDate());
+        String companyName;
+        String positionTitle;
+
+        if (isLinkedInEmail(from)) {
+            // LinkedIn emails have a predictable subject format
+            String[] parsed = parseLinkedInSubject(subject);
+            positionTitle = parsed[0];
+            companyName = parsed[1];
+        } else {
+            // Try to extract both position and company from subject first
+            String[] both = parsePositionAndCompanyFromSubject(subject);
+            if (both != null) {
+                positionTitle = both[0];
+                companyName = both[1];
+            } else {
+                positionTitle = parsePositionFromSubject(subject);
+                // Try to get company from subject "at [Company]", fall back to From header
+                companyName = parseCompanyFromSubject(subject);
+                if (companyName == null) {
+                    companyName = parseCompanyFromSender(from);
+                }
+            }
+        }
 
         return GmailImportPreviewDTO.builder()
                 .gmailMessageId(messageId)
@@ -225,6 +281,49 @@ public class GmailService {
                 .positionTitle(positionTitle)
                 .appliedDate(appliedDate)
                 .build();
+    }
+
+    private boolean isLinkedInEmail(String from) {
+        if (from == null) return false;
+        return from.toLowerCase().contains("@linkedin.com");
+    }
+
+    /**
+     * Parses LinkedIn subject lines like "You applied to Software Engineer at Google".
+     * Returns [positionTitle, companyName].
+     */
+    private String[] parseLinkedInSubject(String subject) {
+        if (subject == null || subject.isBlank()) {
+            return new String[]{"Unknown Position", "LinkedIn"};
+        }
+
+        // Strip leading name prefix like "John, you applied to..."
+        String cleaned = subject.replaceFirst("^[^,]+,\\s*", "");
+
+        for (Pattern pattern : LINKEDIN_PATTERNS) {
+            Matcher matcher = pattern.matcher(cleaned);
+            if (matcher.find()) {
+                String position = matcher.group(1).trim();
+                String company = matcher.group(2).trim();
+                if (!position.isEmpty() && !company.isEmpty()) {
+                    return new String[]{position, company};
+                }
+            }
+        }
+
+        // Fallback: try original subject in case the name strip was wrong
+        for (Pattern pattern : LINKEDIN_PATTERNS) {
+            Matcher matcher = pattern.matcher(subject);
+            if (matcher.find()) {
+                String position = matcher.group(1).trim();
+                String company = matcher.group(2).trim();
+                if (!position.isEmpty() && !company.isEmpty()) {
+                    return new String[]{position, company};
+                }
+            }
+        }
+
+        return new String[]{"Unknown Position", "LinkedIn"};
     }
 
     /**
@@ -265,6 +364,27 @@ public class GmailService {
     }
 
     /**
+     * Tries to extract both position and company from subject in one pass.
+     * e.g. "Thank you for applying to Software Engineer at Google"
+     * Returns [position, company] or null if no match.
+     */
+    private String[] parsePositionAndCompanyFromSubject(String subject) {
+        if (subject == null || subject.isBlank()) return null;
+
+        for (Pattern pattern : SUBJECT_POSITION_AND_COMPANY_PATTERNS) {
+            Matcher matcher = pattern.matcher(subject);
+            if (matcher.find()) {
+                String position = matcher.group(1).trim();
+                String company = matcher.group(2).trim();
+                if (!position.isEmpty() && !company.isEmpty()) {
+                    return new String[]{position, company};
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * Tries to extract a position/role title from the email subject line.
      */
     private String parsePositionFromSubject(String subject) {
@@ -281,6 +401,23 @@ public class GmailService {
         }
 
         return "Unknown Position";
+    }
+
+    /**
+     * Tries to extract company name from "at [Company]" in the subject line.
+     * Returns null if not found (caller should fall back to From header).
+     */
+    private String parseCompanyFromSubject(String subject) {
+        if (subject == null || subject.isBlank()) return null;
+
+        Matcher matcher = SUBJECT_COMPANY_PATTERN.matcher(subject);
+        if (matcher.find()) {
+            String company = matcher.group(1).trim();
+            if (!company.isEmpty() && company.length() < 80) {
+                return company;
+            }
+        }
+        return null;
     }
 
     /**

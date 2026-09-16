@@ -3,6 +3,11 @@ package com.jobflow.repository;
 import com.jobflow.model.ApplicationStatus;
 import com.jobflow.model.JobApplication;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -12,11 +17,22 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
 
     List<JobApplication> findByUserIdOrderByUpdatedAtDesc(Long userId);
 
+    Page<JobApplication> findByUserId(Long userId, Pageable pageable);
+
+    Page<JobApplication> findByUserIdAndStatus(Long userId, ApplicationStatus status, Pageable pageable);
+
     List<JobApplication> findByUserIdAndStatusOrderByUpdatedAtDesc(Long userId, ApplicationStatus status);
 
     List<JobApplication> findTop10ByUserIdOrderByUpdatedAtDesc(Long userId);
 
     Optional<JobApplication> findByIdAndUserId(Long id, Long userId);
+
+    @Query("SELECT ja.id FROM JobApplication ja WHERE ja.company.id = :companyId")
+    List<Long> findIdsByCompanyId(Long companyId);
+
+    @Modifying
+    @Query("DELETE FROM JobApplication ja WHERE ja.company.id = :companyId")
+    void deleteByCompanyId(Long companyId);
 
     long countByUserId(Long userId);
 

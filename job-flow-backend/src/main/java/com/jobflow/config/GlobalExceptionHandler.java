@@ -1,5 +1,7 @@
 package com.jobflow.config;
 
+import com.jobflow.exception.NotFoundException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -11,6 +13,16 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNotFound(NotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+            "timestamp", LocalDateTime.now().toString(),
+            "status", 404,
+            "error", "Not Found",
+            "message", ex.getMessage()
+        ));
+    }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleBadRequest(IllegalArgumentException ex) {
@@ -36,13 +48,13 @@ public class GlobalExceptionHandler {
         ));
     }
 
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<Map<String, Object>> handleNotFound(RuntimeException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrity(DataIntegrityViolationException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
             "timestamp", LocalDateTime.now().toString(),
-            "status", 404,
-            "error", "Not Found",
-            "message", ex.getMessage()
+            "status", 409,
+            "error", "Conflict",
+            "message", "Operation failed due to a data constraint. The record may have dependent data."
         ));
     }
 

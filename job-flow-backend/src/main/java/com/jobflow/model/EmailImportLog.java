@@ -10,7 +10,10 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "email_import_logs",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "gmail_message_id"}))
+       uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "gmail_message_id"}),
+       indexes = {
+           @Index(name = "idx_eil_app", columnList = "job_application_id")
+       })
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react'
 import { Camera, User, Lock, Bell, Palette, Sun, Moon, Link } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
+import { getErrorMessage } from '../api/client'
 import * as authApi from '../api/auth'
 import * as gmailApi from '../api/gmail'
 import GmailImportModal from '../components/GmailImportModal'
@@ -163,9 +164,8 @@ export default function SettingsPage() {
         gmailConnected: res.data.gmailConnected,
       })
       showToast('Profile updated', 'success')
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to update profile.'
-      showToast(msg, 'error')
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Failed to update profile'), 'error')
     } finally {
       setProfileLoading(false)
     }
@@ -211,10 +211,8 @@ export default function SettingsPage() {
       setConfirmPassword('')
       showToast('Password updated', 'success')
       if (user) updateUser({ ...user, hasPassword: true, gmailConnected: user.gmailConnected })
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } }
-      const msg = error.response?.data?.message || 'Failed to change password.'
-      showToast(msg, 'error')
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Failed to change password'), 'error')
     } finally {
       setPasswordLoading(false)
     }

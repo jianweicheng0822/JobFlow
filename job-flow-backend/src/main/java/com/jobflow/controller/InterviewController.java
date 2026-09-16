@@ -5,6 +5,7 @@ import com.jobflow.dto.InterviewDTO;
 import com.jobflow.model.User;
 import com.jobflow.repository.UserRepository;
 import com.jobflow.service.InterviewService;
+import com.jobflow.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -58,7 +59,7 @@ public class InterviewController {
     private Long getUserId(Authentication authentication) {
         String email = authentication.getName();
         User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
         return user.getId();
     }
 }

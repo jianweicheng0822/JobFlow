@@ -10,6 +10,7 @@ import type {
   UpdateJobApplicationRequest,
 } from '../api/types';
 import { useToast } from '../context/ToastContext';
+import { getErrorMessage } from '../api/client';
 import './ApplicationForm.css';
 
 const STATUS_OPTIONS: { value: ApplicationStatus; label: string }[] = [
@@ -105,8 +106,9 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
       }
       onSuccess();
     } catch (err) {
-      console.error('Failed to save application:', err);
-      setErrors({ form: 'Failed to save. Please try again.' });
+      const msg = getErrorMessage(err, 'Failed to save application');
+      setErrors({ form: msg });
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }

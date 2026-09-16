@@ -6,6 +6,7 @@ import type { JobApplicationDTO, ApplicationStatus } from '../api/types'
 import Modal from '../components/Modal'
 import ApplicationForm from '../components/ApplicationForm'
 import { useToast } from '../context/ToastContext'
+import { getErrorMessage } from '../api/client'
 
 // ===== Helpers =====
 const STATUS_CONFIG: Record<ApplicationStatus, { label: string; color: string }> = {
@@ -124,11 +125,14 @@ export default function Jobs() {
   const [companyFilter, setCompanyFilter] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [locationFilter, setLocationFilter] = useState('')
+  const [currentPage, setCurrentPage] = useState(0)
+  const pageSize = 20
 
   // CRUD modal state
   const [showModal, setShowModal] = useState(false)
   const [editingApp, setEditingApp] = useState<JobApplicationDTO | undefined>(undefined)
   const [deleteTarget, setDeleteTarget] = useState<JobApplicationDTO | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
   const { showToast } = useToast()
 
   const fetchData = useCallback(async () => {
@@ -169,14 +173,16 @@ export default function Jobs() {
 
   async function handleDelete() {
     if (!deleteTarget) return
+    setDeleteLoading(true)
     try {
       await deleteApplication(deleteTarget.id)
-      setDeleteTarget(null)
-      fetchData()
       showToast('Application deleted', 'success')
+      fetchData()
     } catch (err) {
-      console.error('Failed to delete application:', err)
-      showToast('Failed to delete application', 'error')
+      showToast(getErrorMessage(err, 'Failed to delete application'), 'error')
+    } finally {
+      setDeleteTarget(null)
+      setDeleteLoading(false)
     }
   }
 
@@ -194,6 +200,14 @@ export default function Jobs() {
       return matchesSearch && matchesCompany && matchesRole && matchesLocation
     })
   }, [applications, search, companyFilter, roleFilter, locationFilter])
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(0)
+  }, [search, companyFilter, roleFilter, locationFilter])
+
+  const totalPages = Math.max(1, Math.ceil(filteredJobs.length / pageSize))
+  const pagedJobs = filteredJobs.slice(currentPage * pageSize, (currentPage + 1) * pageSize)
 
   const topEmployers = useMemo(() => buildTopEmployers(applications), [applications])
 
@@ -322,12 +336,12 @@ export default function Jobs() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredJobs.length === 0 ? (
+                  {pagedJobs.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="jobs-table-empty">No matching jobs found.</td>
                     </tr>
                   ) : (
-                    filteredJobs.map((app) => {
+                    pagedJobs.map((app) => {
                       const statusCfg = STATUS_CONFIG[app.status]
                       const companyColor = getCompanyColor(app.company.name)
                       return (
@@ -373,6 +387,56 @@ export default function Jobs() {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination */}
+            {filteredJobs.length > pageSize && (
+              <div className="jobs-pagination">
+                <span className="jobs-pagination-info">
+                  Showing {currentPage * pageSize + 1}–{Math.min((currentPage + 1) * pageSize, filteredJobs.length)} of {filteredJobs.length}
+                </span>
+                <div className="jobs-pagination-controls">
+                  <button
+                    className="jobs-pagination-btn"
+                    disabled={currentPage === 0}
+                    onClick={() => setCurrentPage((p) => p - 1)}
+                  >
+                    ‹ Prev
+                  </button>
+                  {(() => {
+                    const pages: (number | string)[] = []
+                    if (totalPages <= 7) {
+                      for (let i = 0; i < totalPages; i++) pages.push(i)
+                    } else {
+                      pages.push(0)
+                      if (currentPage > 2) pages.push('…start')
+                      for (let i = Math.max(1, currentPage - 1); i <= Math.min(totalPages - 2, currentPage + 1); i++) pages.push(i)
+                      if (currentPage < totalPages - 3) pages.push('…end')
+                      pages.push(totalPages - 1)
+                    }
+                    return pages.map((p) =>
+                      typeof p === 'string' ? (
+                        <span key={p} className="jobs-pagination-ellipsis">…</span>
+                      ) : (
+                        <button
+                          key={p}
+                          className={`jobs-pagination-btn ${p === currentPage ? 'jobs-pagination-btn--active' : ''}`}
+                          onClick={() => setCurrentPage(p)}
+                        >
+                          {p + 1}
+                        </button>
+                      )
+                    )
+                  })()}
+                  <button
+                    className="jobs-pagination-btn"
+                    disabled={currentPage >= totalPages - 1}
+                    onClick={() => setCurrentPage((p) => p + 1)}
+                  >
+                    Next ›
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -421,8 +485,8 @@ export default function Jobs() {
             <button className="app-form-btn app-form-btn--cancel" onClick={() => setDeleteTarget(null)}>
               Cancel
             </button>
-            <button className="app-form-btn app-form-btn--submit" style={{ background: 'var(--status-rejected)' }} onClick={handleDelete}>
-              Delete
+            <button className="app-form-btn app-form-btn--submit" style={{ background: 'var(--status-rejected)' }} onClick={handleDelete} disabled={deleteLoading}>
+              {deleteLoading ? 'Deleting...' : 'Delete'}
             </button>
           </div>
         </Modal>

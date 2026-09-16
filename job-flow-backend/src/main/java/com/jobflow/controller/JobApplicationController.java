@@ -5,6 +5,7 @@ import com.jobflow.model.ApplicationStatus;
 import com.jobflow.model.User;
 import com.jobflow.repository.UserRepository;
 import com.jobflow.service.JobApplicationService;
+import com.jobflow.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -28,6 +29,15 @@ public class JobApplicationController {
             return jobApplicationService.findByStatus(userId, status);
         }
         return jobApplicationService.findAll(userId);
+    }
+
+    @GetMapping("/page")
+    public PageResponse<JobApplicationDTO> getAllPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) ApplicationStatus status,
+            Authentication authentication) {
+        return jobApplicationService.findAllPaged(getUserId(authentication), page, size, status);
     }
 
     @GetMapping("/{id}")
@@ -80,7 +90,7 @@ public class JobApplicationController {
     private Long getUserId(Authentication authentication) {
         String email = authentication.getName();
         User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
         return user.getId();
     }
 }

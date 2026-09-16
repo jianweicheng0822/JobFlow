@@ -55,6 +55,14 @@ export interface ApplicationActivityDTO {
   count: number;
 }
 
+export interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
 // Request types for CRUD operations
 export interface CreateJobApplicationRequest {
   positionTitle: string;

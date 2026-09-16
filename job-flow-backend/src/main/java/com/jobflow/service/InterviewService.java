@@ -6,6 +6,7 @@ import com.jobflow.model.Interview;
 import com.jobflow.model.JobApplication;
 import com.jobflow.repository.InterviewRepository;
 import com.jobflow.repository.JobApplicationRepository;
+import com.jobflow.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -27,7 +28,7 @@ public class InterviewService {
 
     public InterviewDTO findById(Long userId, Long id) {
         Interview interview = interviewRepository.findByIdAndJobApplicationUserId(id, userId)
-            .orElseThrow(() -> new RuntimeException("Interview not found: " + id));
+            .orElseThrow(() -> new NotFoundException("Interview not found: " + id));
         return toDTO(interview);
     }
 
@@ -41,7 +42,7 @@ public class InterviewService {
 
     public InterviewDTO create(Long userId, CreateInterviewRequest request) {
         JobApplication app = jobApplicationRepository.findByIdAndUserId(request.getJobApplicationId(), userId)
-            .orElseThrow(() -> new RuntimeException("Job application not found: " + request.getJobApplicationId()));
+            .orElseThrow(() -> new NotFoundException("Job application not found: " + request.getJobApplicationId()));
 
         Interview interview = Interview.builder()
             .jobApplication(app)
@@ -54,11 +55,11 @@ public class InterviewService {
 
     public InterviewDTO update(Long userId, Long id, CreateInterviewRequest request) {
         Interview interview = interviewRepository.findByIdAndJobApplicationUserId(id, userId)
-            .orElseThrow(() -> new RuntimeException("Interview not found: " + id));
+            .orElseThrow(() -> new NotFoundException("Interview not found: " + id));
 
         if (request.getJobApplicationId() != null) {
             JobApplication app = jobApplicationRepository.findByIdAndUserId(request.getJobApplicationId(), userId)
-                .orElseThrow(() -> new RuntimeException("Job application not found: " + request.getJobApplicationId()));
+                .orElseThrow(() -> new NotFoundException("Job application not found: " + request.getJobApplicationId()));
             interview.setJobApplication(app);
         }
         if (request.getInterviewDate() != null) interview.setInterviewDate(request.getInterviewDate());
@@ -70,7 +71,7 @@ public class InterviewService {
 
     public void delete(Long userId, Long id) {
         Interview interview = interviewRepository.findByIdAndJobApplicationUserId(id, userId)
-            .orElseThrow(() -> new RuntimeException("Interview not found: " + id));
+            .orElseThrow(() -> new NotFoundException("Interview not found: " + id));
         interviewRepository.delete(interview);
     }
 

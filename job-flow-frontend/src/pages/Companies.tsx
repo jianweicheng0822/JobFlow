@@ -7,6 +7,7 @@ import type { CompanyDTO, JobApplicationDTO } from '../api/types'
 import Modal from '../components/Modal'
 import CompanyForm from '../components/CompanyForm'
 import { useToast } from '../context/ToastContext'
+import { getErrorMessage } from '../api/client'
 
 // ===== Helpers =====
 const COMPANY_COLORS: Record<string, string> = {
@@ -64,6 +65,7 @@ export default function Companies() {
   const [showModal, setShowModal] = useState(false)
   const [editingCompany, setEditingCompany] = useState<CompanyDTO | undefined>(undefined)
   const [deleteTarget, setDeleteTarget] = useState<CompanyView | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
   const { showToast } = useToast()
 
   const fetchData = useCallback(async () => {
@@ -110,14 +112,16 @@ export default function Companies() {
 
   async function handleDelete() {
     if (!deleteTarget) return
+    setDeleteLoading(true)
     try {
       await deleteCompany(deleteTarget.id)
-      setDeleteTarget(null)
-      fetchData()
       showToast('Company deleted', 'success')
+      fetchData()
     } catch (err) {
-      console.error('Failed to delete company:', err)
-      showToast('Failed to delete company', 'error')
+      showToast(getErrorMessage(err, 'Failed to delete company'), 'error')
+    } finally {
+      setDeleteTarget(null)
+      setDeleteLoading(false)
     }
   }
 
@@ -253,14 +257,19 @@ export default function Companies() {
       {deleteTarget && (
         <Modal title="Delete Company" onClose={() => setDeleteTarget(null)}>
           <p style={{ marginBottom: 20, color: 'var(--text-secondary)', fontSize: 14 }}>
-            Are you sure you want to delete <strong>{deleteTarget.name}</strong>? This action cannot be undone.
+            Are you sure you want to delete <strong>{deleteTarget.name}</strong>?
+            {deleteTarget.jobsApplied > 0 && (
+              <span style={{ display: 'block', marginTop: 8, color: 'var(--status-rejected)' }}>
+                This will also delete {deleteTarget.jobsApplied} associated application{deleteTarget.jobsApplied > 1 ? 's' : ''} and their interviews.
+              </span>
+            )}
           </p>
           <div className="app-form-actions">
             <button className="app-form-btn app-form-btn--cancel" onClick={() => setDeleteTarget(null)}>
               Cancel
             </button>
-            <button className="app-form-btn app-form-btn--submit" style={{ background: 'var(--status-rejected)' }} onClick={handleDelete}>
-              Delete
+            <button className="app-form-btn app-form-btn--submit" style={{ background: 'var(--status-rejected)' }} onClick={handleDelete} disabled={deleteLoading}>
+              {deleteLoading ? 'Deleting...' : 'Delete'}
             </button>
           </div>
         </Modal>

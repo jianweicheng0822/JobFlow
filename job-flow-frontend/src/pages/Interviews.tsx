@@ -6,6 +6,7 @@ import type { InterviewDTO, InterviewType } from '../api/types'
 import Modal from '../components/Modal'
 import InterviewForm from '../components/InterviewForm'
 import { useToast } from '../context/ToastContext'
+import { getErrorMessage } from '../api/client'
 
 // ===== Helpers =====
 const TYPE_CONFIG: Record<InterviewType, { label: string; color: string; icon: typeof Phone }> = {
@@ -70,6 +71,7 @@ export default function Interviews() {
   const [showModal, setShowModal] = useState(false)
   const [editingInterview, setEditingInterview] = useState<InterviewDTO | undefined>(undefined)
   const [deleteTarget, setDeleteTarget] = useState<InterviewDTO | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
   const { showToast } = useToast()
 
   const fetchData = useCallback(async () => {
@@ -110,14 +112,16 @@ export default function Interviews() {
 
   async function handleDelete() {
     if (!deleteTarget) return
+    setDeleteLoading(true)
     try {
       await deleteInterview(deleteTarget.id)
-      setDeleteTarget(null)
-      fetchData()
       showToast('Interview deleted', 'success')
+      fetchData()
     } catch (err) {
-      console.error('Failed to delete interview:', err)
-      showToast('Failed to delete interview', 'error')
+      showToast(getErrorMessage(err, 'Failed to delete interview'), 'error')
+    } finally {
+      setDeleteTarget(null)
+      setDeleteLoading(false)
     }
   }
 
@@ -323,8 +327,8 @@ export default function Interviews() {
             <button className="app-form-btn app-form-btn--cancel" onClick={() => setDeleteTarget(null)}>
               Cancel
             </button>
-            <button className="app-form-btn app-form-btn--submit" style={{ background: 'var(--status-rejected)' }} onClick={handleDelete}>
-              Delete
+            <button className="app-form-btn app-form-btn--submit" style={{ background: 'var(--status-rejected)' }} onClick={handleDelete} disabled={deleteLoading}>
+              {deleteLoading ? 'Deleting...' : 'Delete'}
             </button>
           </div>
         </Modal>

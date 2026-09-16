@@ -48,4 +48,17 @@ client.interceptors.response.use(
   }
 )
 
+/**
+ * Extracts a human-readable error message from an axios error.
+ */
+export function getErrorMessage(err: unknown, fallback: string): string {
+  if (axios.isAxiosError(err)) {
+    return err.response?.data?.message || fallback
+  }
+  if (err instanceof Error) {
+    return err.message
+  }
+  return fallback
+}
+
 export default client

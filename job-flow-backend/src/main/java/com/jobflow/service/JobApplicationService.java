@@ -6,10 +6,18 @@ import com.jobflow.model.Company;
 import com.jobflow.model.JobApplication;
 import com.jobflow.model.User;
 import com.jobflow.repository.CompanyRepository;
+import com.jobflow.repository.EmailImportLogRepository;
+import com.jobflow.repository.InterviewRepository;
 import com.jobflow.repository.JobApplicationRepository;
 import com.jobflow.repository.UserRepository;
+import com.jobflow.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -23,11 +31,28 @@ public class JobApplicationService {
     private final CompanyRepository companyRepository;
     private final UserRepository userRepository;
     private final CompanyService companyService;
+    private final EmailImportLogRepository emailImportLogRepository;
+    private final InterviewRepository interviewRepository;
 
     public List<JobApplicationDTO> findAll(Long userId) {
         return jobApplicationRepository.findByUserIdOrderByUpdatedAtDesc(userId).stream()
             .map(this::toDTO)
             .toList();
+    }
+
+    public PageResponse<JobApplicationDTO> findAllPaged(Long userId, int page, int size, ApplicationStatus status) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "updatedAt"));
+        Page<JobApplication> result = (status != null)
+            ? jobApplicationRepository.findByUserIdAndStatus(userId, status, pageable)
+            : jobApplicationRepository.findByUserId(userId, pageable);
+
+        return PageResponse.<JobApplicationDTO>builder()
+            .content(result.getContent().stream().map(this::toDTO).toList())
+            .page(result.getNumber())
+            .size(result.getSize())
+            .totalElements(result.getTotalElements())
+            .totalPages(result.getTotalPages())
+            .build();
     }
 
     public List<JobApplicationDTO> findByStatus(Long userId, ApplicationStatus status) {
@@ -38,13 +63,13 @@ public class JobApplicationService {
 
     public JobApplicationDTO findById(Long userId, Long id) {
         JobApplication app = jobApplicationRepository.findByIdAndUserId(id, userId)
-            .orElseThrow(() -> new RuntimeException("Job application not found: " + id));
+            .orElseThrow(() -> new NotFoundException("Job application not found: " + id));
         return toDTO(app);
     }
 
     public JobApplicationDTO create(Long userId, CreateJobApplicationRequest request) {
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
 
         Company company = resolveCompany(request);
 
@@ -66,7 +91,7 @@ public class JobApplicationService {
     private Company resolveCompany(CreateJobApplicationRequest request) {
         if (request.getCompanyId() != null) {
             return companyRepository.findById(request.getCompanyId())
-                .orElseThrow(() -> new RuntimeException("Company not found: " + request.getCompanyId()));
+                .orElseThrow(() -> new NotFoundException("Company not found: " + request.getCompanyId()));
         }
 
         String name = request.getCompanyName();
@@ -82,11 +107,11 @@ public class JobApplicationService {
 
     public JobApplicationDTO update(Long userId, Long id, UpdateJobApplicationRequest request) {
         JobApplication app = jobApplicationRepository.findByIdAndUserId(id, userId)
-            .orElseThrow(() -> new RuntimeException("Job application not found: " + id));
+            .orElseThrow(() -> new NotFoundException("Job application not found: " + id));
 
         if (request.getCompanyId() != null) {
             Company company = companyRepository.findById(request.getCompanyId())
-                .orElseThrow(() -> new RuntimeException("Company not found: " + request.getCompanyId()));
+                .orElseThrow(() -> new NotFoundException("Company not found: " + request.getCompanyId()));
             app.setCompany(company);
         }
         if (request.getPositionTitle() != null) app.setPositionTitle(request.getPositionTitle());
@@ -102,14 +127,17 @@ public class JobApplicationService {
 
     public JobApplicationDTO updateStatus(Long userId, Long id, ApplicationStatus status) {
         JobApplication app = jobApplicationRepository.findByIdAndUserId(id, userId)
-            .orElseThrow(() -> new RuntimeException("Job application not found: " + id));
+            .orElseThrow(() -> new NotFoundException("Job application not found: " + id));
         app.setStatus(status);
         return toDTO(jobApplicationRepository.save(app));
     }
 
+    @Transactional
     public void delete(Long userId, Long id) {
         JobApplication app = jobApplicationRepository.findByIdAndUserId(id, userId)
-            .orElseThrow(() -> new RuntimeException("Job application not found: " + id));
+            .orElseThrow(() -> new NotFoundException("Job application not found: " + id));
+        interviewRepository.deleteByJobApplicationId(id);
+        emailImportLogRepository.deleteByJobApplicationId(id);
         jobApplicationRepository.delete(app);
     }
 

@@ -1,6 +1,7 @@
 import client from './client';
 import type {
   JobApplicationDTO,
+  PageResponse,
   DashboardStatsDTO,
   ApplicationActivityDTO,
   ApplicationStatus,
@@ -11,6 +12,12 @@ import type {
 export function getApplications(status?: ApplicationStatus) {
   const params = status ? { status } : {};
   return client.get<JobApplicationDTO[]>('/applications', { params });
+}
+
+export function getApplicationsPaged(page = 0, size = 20, status?: ApplicationStatus) {
+  const params: Record<string, string | number> = { page, size };
+  if (status) params.status = status;
+  return client.get<PageResponse<JobApplicationDTO>>('/applications/page', { params });
 }
 
 export function getApplicationById(id: number) {

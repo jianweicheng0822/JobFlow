@@ -7,6 +7,7 @@ import com.jobflow.model.User;
 import com.jobflow.repository.UserRepository;
 import com.jobflow.security.JwtService;
 import com.jobflow.service.GmailService;
+import com.jobflow.exception.NotFoundException;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -146,7 +147,7 @@ public class GmailController {
     private User getUser(Authentication authentication) {
         String email = authentication.getName();
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
     private static String encode(String value) {
