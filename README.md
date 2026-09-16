@@ -11,22 +11,24 @@ A full-stack job application tracker with JWT + OAuth2 authentication, Kanban pi
 
 ## Screenshots
 
-![Dashboard](docs/dashboard.png)
+<a href="docs/dashboard.png"><img src="docs/dashboard.png" alt="Dashboard"></a>
 
 <table>
   <tr>
-    <td><strong>Login</strong><br><img src="docs/login.png" alt="Login" width="400"></td>
-    <td><strong>Jobs</strong><br><img src="docs/jobs.png" alt="Jobs" width="400"></td>
+    <td align="center"><strong>Login</strong><br><a href="docs/login.png"><img src="docs/login.png" alt="Login" width="400"></a></td>
+    <td align="center"><strong>Jobs</strong><br><a href="docs/jobs.png"><img src="docs/jobs.png" alt="Jobs" width="400"></a></td>
   </tr>
   <tr>
-    <td><strong>Interviews</strong><br><img src="docs/interviews.png" alt="Interviews" width="400"></td>
-    <td><strong>Companies</strong><br><img src="docs/companies.png" alt="Companies" width="400"></td>
+    <td align="center"><strong>Interviews</strong><br><a href="docs/interviews.png"><img src="docs/interviews.png" alt="Interviews" width="400"></a></td>
+    <td align="center"><strong>Companies</strong><br><a href="docs/companies.png"><img src="docs/companies.png" alt="Companies" width="400"></a></td>
   </tr>
   <tr>
-    <td><strong>Analytics</strong><br><img src="docs/analytics.png" alt="Analytics" width="400"></td>
-    <td><strong>Settings</strong><br><img src="docs/settings.png" alt="Settings" width="400"></td>
+    <td align="center"><strong>Analytics</strong><br><a href="docs/analytics.png"><img src="docs/analytics.png" alt="Analytics" width="400"></a></td>
+    <td align="center"><strong>Settings</strong><br><a href="docs/settings.png"><img src="docs/settings.png" alt="Settings" width="400"></a></td>
   </tr>
 </table>
+
+> *Click any screenshot to view full resolution.*
 
 ## Tech Stack
 
