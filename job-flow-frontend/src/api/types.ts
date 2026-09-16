@@ -78,3 +78,10 @@ export interface UpdateJobApplicationRequest {
   lastAction?: string;
   notes?: string;
 }
+
+export interface CreateInterviewRequest {
+  jobApplicationId: number;
+  interviewDate: string; // ISO datetime string
+  interviewType: InterviewType;
+  notes?: string;
+}

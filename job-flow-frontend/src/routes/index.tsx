@@ -5,6 +5,7 @@ import ProtectedRoute from '../components/ProtectedRoute'
 import Dashboard from '../pages/Dashboard'
 import Jobs from '../pages/Jobs'
 import Companies from '../pages/Companies'
+import Interviews from '../pages/Interviews'
 import Analytics from '../pages/Analytics'
 import SettingsPage from '../pages/SettingsPage'
 import LoginPage from '../pages/LoginPage'
@@ -38,6 +39,7 @@ export const router = createBrowserRouter([
             children: [
               { path: '/', element: <Dashboard /> },
               { path: '/jobs', element: <Jobs /> },
+              { path: '/interviews', element: <Interviews /> },
               { path: '/companies', element: <Companies /> },
               { path: '/analytics', element: <Analytics /> },
               { path: '/settings', element: <SettingsPage /> },

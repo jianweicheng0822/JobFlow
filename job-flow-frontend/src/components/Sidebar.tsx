@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard,
   Briefcase,
+  CalendarCheck,
   Building2,
   BarChart3,
   Settings,
@@ -12,6 +13,7 @@ import './Sidebar.css'
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/jobs', label: 'Jobs', icon: Briefcase },
+  { to: '/interviews', label: 'Interviews', icon: CalendarCheck },
   { to: '/companies', label: 'Companies', icon: Building2 },
   { to: '/analytics', label: 'Analytics', icon: BarChart3 },
   { to: '/settings', label: 'Settings', icon: Settings },
