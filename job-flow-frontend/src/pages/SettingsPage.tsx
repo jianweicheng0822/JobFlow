@@ -1,16 +1,19 @@
 import { useRef, useState, useEffect } from 'react'
-import { Camera, User, Lock, Bell, Palette, Sun, Moon } from 'lucide-react'
+import { Camera, User, Lock, Bell, Palette, Sun, Moon, Link } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import * as authApi from '../api/auth'
+import * as gmailApi from '../api/gmail'
+import GmailImportModal from '../components/GmailImportModal'
 import './SettingsPage.css'
 
 const AVATAR_STORAGE_KEY = 'jobflow-avatar'
 
-type SettingsTab = 'profile' | 'account' | 'notifications' | 'appearance'
+type SettingsTab = 'profile' | 'account' | 'notifications' | 'appearance' | 'integrations'
 
 const tabs: { key: SettingsTab; label: string; icon: typeof User }[] = [
   { key: 'profile', label: 'Profile', icon: User },
   { key: 'account', label: 'Account', icon: Lock },
+  { key: 'integrations', label: 'Integrations', icon: Link },
   { key: 'notifications', label: 'Notifications', icon: Bell },
   { key: 'appearance', label: 'Appearance', icon: Palette },
 ]
@@ -44,6 +47,13 @@ export default function SettingsPage() {
   const [interviewReminders, setInterviewReminders] = useState(true)
   const [weeklySummary, setWeeklySummary] = useState(false)
 
+  // Integrations
+  const [gmailStatus, setGmailStatus] = useState<{ gmailConnected: boolean; provider: string } | null>(null)
+  const [gmailLoading, setGmailLoading] = useState(false)
+  const [showGmailModal, setShowGmailModal] = useState(false)
+  const [gmailPreviews, setGmailPreviews] = useState<gmailApi.GmailImportPreview[]>([])
+  const [scanError, setScanError] = useState<string | null>(null)
+
   // Theme
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('jobflow-theme') as 'light' | 'dark') || 'light'
@@ -63,6 +73,30 @@ export default function SettingsPage() {
       setBio(user.bio || '')
     }
   }, [user])
+
+  // Fetch Gmail connection status when integrations tab is active
+  useEffect(() => {
+    if (activeTab === 'integrations') {
+      gmailApi.getGmailStatus()
+        .then((res) => setGmailStatus(res.data))
+        .catch(() => setGmailStatus(null))
+    }
+  }, [activeTab])
+
+  async function handleScanGmail() {
+    setGmailLoading(true)
+    setScanError(null)
+    try {
+      const res = await gmailApi.scanGmail()
+      setGmailPreviews(res.data)
+      setShowGmailModal(true)
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } }
+      setScanError(error.response?.data?.message || 'Failed to scan Gmail. Please try again.')
+    } finally {
+      setGmailLoading(false)
+    }
+  }
 
   const handleAvatarClick = () => {
     fileInputRef.current?.click()
@@ -97,6 +131,7 @@ export default function SettingsPage() {
         jobTitle: res.data.jobTitle,
         bio: res.data.bio,
         hasPassword: res.data.hasPassword,
+        gmailConnected: res.data.gmailConnected,
       })
       setProfileMsg({ type: 'success', text: 'Profile updated successfully.' })
     } catch (err: unknown) {
@@ -147,7 +182,7 @@ export default function SettingsPage() {
       setNewPassword('')
       setConfirmPassword('')
       setPasswordMsg({ type: 'success', text: 'Password updated successfully.' })
-      if (user) updateUser({ ...user, hasPassword: true })
+      if (user) updateUser({ ...user, hasPassword: true, gmailConnected: user.gmailConnected })
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } }
       const msg = error.response?.data?.message || 'Failed to change password.'
@@ -367,6 +402,64 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Integrations Tab */}
+      {activeTab === 'integrations' && (
+        <div className="settings-section">
+          <h3 className="settings-section-title">Gmail Integration</h3>
+          <div className="settings-integration-card">
+            <div className="settings-integration-info">
+              <div className="settings-integration-icon">
+                <svg viewBox="0 0 24 24" width="28" height="28">
+                  <path fill="#EA4335" d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/>
+                </svg>
+              </div>
+              <div>
+                <span className="settings-integration-name">Gmail</span>
+                <span className="settings-toggle-desc">
+                  {gmailStatus?.gmailConnected
+                    ? 'Connected — scan your inbox for job application emails'
+                    : 'Sign in with Google to enable Gmail scanning'}
+                </span>
+              </div>
+            </div>
+            <div className="settings-integration-actions">
+              {gmailStatus?.gmailConnected ? (
+                <>
+                  <span className="settings-integration-badge settings-integration-badge--connected">Connected</span>
+                  <button
+                    className="settings-btn-primary"
+                    onClick={handleScanGmail}
+                    disabled={gmailLoading}
+                  >
+                    {gmailLoading ? 'Scanning...' : 'Scan Gmail'}
+                  </button>
+                </>
+              ) : (
+                <a
+                  href="http://localhost:8080/oauth2/authorization/google"
+                  className="settings-btn-primary"
+                  style={{ textDecoration: 'none', display: 'inline-block' }}
+                >
+                  Connect Google Account
+                </a>
+              )}
+            </div>
+          </div>
+          {scanError && (
+            <div className="settings-msg settings-msg--error" style={{ marginTop: 12 }}>
+              {scanError}
+            </div>
+          )}
+        </div>
+      )}
+
+      {showGmailModal && (
+        <GmailImportModal
+          previews={gmailPreviews}
+          onClose={() => setShowGmailModal(false)}
+        />
       )}
 
       {/* Appearance Tab */}

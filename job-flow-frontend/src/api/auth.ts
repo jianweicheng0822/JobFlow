@@ -8,6 +8,7 @@ export interface AuthResponse {
   jobTitle: string | null
   bio: string | null
   hasPassword: boolean
+  gmailConnected: boolean
 }
 
 export interface LoginRequest {

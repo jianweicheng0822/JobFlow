@@ -41,6 +41,16 @@ public class User {
 
     private String providerId;
 
+    @Column(columnDefinition = "TEXT")
+    private String googleAccessToken;
+
+    @Column(columnDefinition = "TEXT")
+    private String googleRefreshToken;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean gmailConnected = false;
+
     @Column(updatable = false)
     private LocalDateTime createdAt;
 

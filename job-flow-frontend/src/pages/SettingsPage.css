@@ -452,6 +452,59 @@
   color: var(--text-primary);
 }
 
+/* ===== Integrations ===== */
+.settings-integration-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+}
+
+.settings-integration-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.settings-integration-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--content-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.settings-integration-name {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.settings-integration-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.settings-integration-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.settings-integration-badge--connected {
+  background: #d1fae5;
+  color: #065f46;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
   .settings-layout {

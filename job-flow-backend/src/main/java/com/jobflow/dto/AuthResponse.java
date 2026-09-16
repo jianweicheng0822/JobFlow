@@ -15,4 +15,5 @@ public class AuthResponse {
     private String jobTitle;
     private String bio;
     private boolean hasPassword;
+    private boolean gmailConnected;
 }

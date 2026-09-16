@@ -7,6 +7,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -19,6 +22,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final OAuth2AuthorizedClientService authorizedClientService;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
@@ -47,8 +51,24 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         // Update avatar if it changed
         if (avatarUrl != null && !avatarUrl.equals(user.getAvatarUrl())) {
             user.setAvatarUrl(avatarUrl);
-            userRepository.save(user);
         }
+
+        // Store Google OAuth tokens for Gmail API access
+        if (provider == AuthProvider.GOOGLE && authentication instanceof OAuth2AuthenticationToken oauthToken) {
+            OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
+                    oauthToken.getAuthorizedClientRegistrationId(),
+                    oauthToken.getName());
+            if (client != null) {
+                String accessToken = client.getAccessToken().getTokenValue();
+                user.setGoogleAccessToken(accessToken);
+                if (client.getRefreshToken() != null) {
+                    user.setGoogleRefreshToken(client.getRefreshToken().getTokenValue());
+                }
+                user.setGmailConnected(true);
+            }
+        }
+
+        userRepository.save(user);
 
         String token = jwtService.generateToken(user.getEmail());
         String redirectUrl = "http://localhost:5173/oauth/callback?token=" + token;

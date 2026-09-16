@@ -12,13 +12,18 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Configuration
 @EnableWebSecurity
@@ -55,11 +60,32 @@ public class SecurityConfig {
         // Only enable OAuth2 login when client registrations are configured
         if (clientRegistrationRepository != null) {
             http.oauth2Login(oauth2 -> oauth2
+                .authorizationEndpoint(auth -> auth
+                    .authorizationRequestResolver(customAuthorizationRequestResolver()))
                 .successHandler(oAuth2LoginSuccessHandler)
             );
         }
 
         return http.build();
+    }
+
+    /**
+     * Custom resolver that adds access_type=offline and prompt=consent
+     * for Google OAuth so we receive a refresh token.
+     */
+    private OAuth2AuthorizationRequestResolver customAuthorizationRequestResolver() {
+        DefaultOAuth2AuthorizationRequestResolver defaultResolver =
+                new DefaultOAuth2AuthorizationRequestResolver(
+                        clientRegistrationRepository, "/oauth2/authorization");
+
+        defaultResolver.setAuthorizationRequestCustomizer(builder -> {
+            builder.additionalParameters(params -> {
+                params.put("access_type", "offline");
+                params.put("prompt", "consent");
+            });
+        });
+
+        return defaultResolver;
     }
 
     @Bean

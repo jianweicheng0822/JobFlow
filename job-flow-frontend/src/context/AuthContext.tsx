@@ -10,6 +10,7 @@ interface AuthUser {
   jobTitle: string | null
   bio: string | null
   hasPassword: boolean
+  gmailConnected: boolean
 }
 
 interface AuthContextType {
@@ -61,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const tryDemo = useCallback(() => {
     localStorage.setItem('jobflow-token', 'demo-token')
-    setUser({ name: 'Demo User', email: 'demo@jobflow.com', avatarUrl: null, jobTitle: null, bio: null, hasPassword: true })
+    setUser({ name: 'Demo User', email: 'demo@jobflow.com', avatarUrl: null, jobTitle: null, bio: null, hasPassword: true, gmailConnected: false })
   }, [])
 
   const updateUser = useCallback((updated: AuthUser) => {
@@ -82,5 +83,5 @@ export function useAuth() {
 }
 
 function toUser(data: AuthResponse): AuthUser {
-  return { name: data.name, email: data.email, avatarUrl: data.avatarUrl, jobTitle: data.jobTitle, bio: data.bio, hasPassword: data.hasPassword }
+  return { name: data.name, email: data.email, avatarUrl: data.avatarUrl, jobTitle: data.jobTitle, bio: data.bio, hasPassword: data.hasPassword, gmailConnected: data.gmailConnected }
 }

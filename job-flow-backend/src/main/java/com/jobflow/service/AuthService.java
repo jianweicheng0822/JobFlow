@@ -96,6 +96,7 @@ public class AuthService {
                 .jobTitle(user.getJobTitle())
                 .bio(user.getBio())
                 .hasPassword(user.getPassword() != null)
+                .gmailConnected(user.isGmailConnected())
                 .build();
     }
 }
