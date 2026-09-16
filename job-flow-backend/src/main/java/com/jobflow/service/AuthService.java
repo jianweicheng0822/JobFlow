@@ -73,12 +73,14 @@ public class AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        if (user.getPassword() == null) {
-            throw new IllegalArgumentException("Cannot change password for OAuth accounts");
-        }
-
-        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("Current password is incorrect");
+        // OAuth users setting password for the first time: skip current password check
+        if (user.getPassword() != null) {
+            if (request.getCurrentPassword() == null || request.getCurrentPassword().isBlank()) {
+                throw new IllegalArgumentException("Current password is required");
+            }
+            if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+                throw new IllegalArgumentException("Current password is incorrect");
+            }
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
@@ -93,6 +95,7 @@ public class AuthService {
                 .avatarUrl(user.getAvatarUrl())
                 .jobTitle(user.getJobTitle())
                 .bio(user.getBio())
+                .hasPassword(user.getPassword() != null)
                 .build();
     }
 }

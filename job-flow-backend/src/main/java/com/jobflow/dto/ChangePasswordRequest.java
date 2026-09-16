@@ -7,7 +7,7 @@ import lombok.Data;
 @Data
 public class ChangePasswordRequest {
 
-    @NotBlank(message = "Current password is required")
+    // Optional for OAuth users setting password for the first time
     private String currentPassword;
 
     @NotBlank(message = "New password is required")

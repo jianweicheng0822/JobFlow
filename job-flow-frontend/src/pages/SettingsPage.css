@@ -268,6 +268,11 @@
   color: #991b1b;
 }
 
+.settings-msg--info {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
 /* ===== Toggle Switch ===== */
 .settings-toggle-list {
   display: flex;

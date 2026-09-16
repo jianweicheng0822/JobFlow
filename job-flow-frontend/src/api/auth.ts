@@ -7,6 +7,7 @@ export interface AuthResponse {
   avatarUrl: string | null
   jobTitle: string | null
   bio: string | null
+  hasPassword: boolean
 }
 
 export interface LoginRequest {

@@ -96,6 +96,7 @@ export default function SettingsPage() {
         avatarUrl: res.data.avatarUrl,
         jobTitle: res.data.jobTitle,
         bio: res.data.bio,
+        hasPassword: res.data.hasPassword,
       })
       setProfileMsg({ type: 'success', text: 'Profile updated successfully.' })
     } catch (err: unknown) {
@@ -114,11 +115,17 @@ export default function SettingsPage() {
     setProfileMsg(null)
   }
 
+  const needsCurrentPassword = user?.hasPassword ?? true
+
   async function handleChangePassword() {
     setPasswordMsg(null)
 
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      setPasswordMsg({ type: 'error', text: 'All fields are required.' })
+    if (needsCurrentPassword && !currentPassword) {
+      setPasswordMsg({ type: 'error', text: 'Current password is required.' })
+      return
+    }
+    if (!newPassword || !confirmPassword) {
+      setPasswordMsg({ type: 'error', text: 'Please fill in all required fields.' })
       return
     }
     if (newPassword !== confirmPassword) {
@@ -133,13 +140,14 @@ export default function SettingsPage() {
     setPasswordLoading(true)
     try {
       await authApi.changePassword({
-        currentPassword,
+        currentPassword: needsCurrentPassword ? currentPassword : '',
         newPassword,
       })
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
       setPasswordMsg({ type: 'success', text: 'Password updated successfully.' })
+      if (user) updateUser({ ...user, hasPassword: true })
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } }
       const msg = error.response?.data?.message || 'Failed to change password.'
@@ -257,17 +265,24 @@ export default function SettingsPage() {
       {/* Account Tab */}
       {activeTab === 'account' && (
         <div className="settings-section">
-          <div className="settings-form">
-            <div className="settings-field">
-              <label className="settings-label">Current Password</label>
-              <input
-                type="password"
-                className="settings-input"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="Enter current password"
-              />
+          {!needsCurrentPassword && (
+            <div className="settings-msg settings-msg--info">
+              You signed in with an external provider. Set a password to also log in with email.
             </div>
+          )}
+          <div className="settings-form">
+            {needsCurrentPassword && (
+              <div className="settings-field">
+                <label className="settings-label">Current Password</label>
+                <input
+                  type="password"
+                  className="settings-input"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter current password"
+                />
+              </div>
+            )}
             <div className="settings-field-row">
               <div className="settings-field">
                 <label className="settings-label">New Password</label>
