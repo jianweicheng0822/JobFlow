@@ -34,3 +34,6 @@ export const confirmImport = (items: GmailImportItem[]) =>
 
 export const getGmailStatus = () =>
   client.get<GmailStatus>('/gmail/status')
+
+export const getGmailLinkUrl = () =>
+  client.get<{ authUrl: string }>('/gmail/link')

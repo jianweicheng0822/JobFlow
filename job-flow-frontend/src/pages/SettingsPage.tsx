@@ -50,9 +50,11 @@ export default function SettingsPage() {
   // Integrations
   const [gmailStatus, setGmailStatus] = useState<{ gmailConnected: boolean; provider: string } | null>(null)
   const [gmailLoading, setGmailLoading] = useState(false)
+  const [gmailLinkLoading, setGmailLinkLoading] = useState(false)
   const [showGmailModal, setShowGmailModal] = useState(false)
   const [gmailPreviews, setGmailPreviews] = useState<gmailApi.GmailImportPreview[]>([])
   const [scanError, setScanError] = useState<string | null>(null)
+  const [gmailLinkMsg, setGmailLinkMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   // Theme
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -74,6 +76,23 @@ export default function SettingsPage() {
     }
   }, [user])
 
+  // Handle Gmail link callback from Google redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const gmailLinked = params.get('gmailLinked')
+    if (gmailLinked === 'true') {
+      setActiveTab('integrations')
+      setGmailLinkMsg({ type: 'success', text: 'Google account linked successfully! You can now scan Gmail.' })
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname)
+    } else if (gmailLinked === 'false') {
+      setActiveTab('integrations')
+      const error = params.get('error') || 'unknown'
+      setGmailLinkMsg({ type: 'error', text: `Failed to link Google account (${error}). Please try again.` })
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
+
   // Fetch Gmail connection status when integrations tab is active
   useEffect(() => {
     if (activeTab === 'integrations') {
@@ -82,6 +101,18 @@ export default function SettingsPage() {
         .catch(() => setGmailStatus(null))
     }
   }, [activeTab])
+
+  async function handleLinkGmail() {
+    setGmailLinkLoading(true)
+    setGmailLinkMsg(null)
+    try {
+      const res = await gmailApi.getGmailLinkUrl()
+      window.location.href = res.data.authUrl
+    } catch {
+      setGmailLinkMsg({ type: 'error', text: 'Failed to start Google linking. Please try again.' })
+      setGmailLinkLoading(false)
+    }
+  }
 
   async function handleScanGmail() {
     setGmailLoading(true)
@@ -420,7 +451,7 @@ export default function SettingsPage() {
                 <span className="settings-toggle-desc">
                   {gmailStatus?.gmailConnected
                     ? 'Connected — scan your inbox for job application emails'
-                    : 'Sign in with Google to enable Gmail scanning'}
+                    : 'Connect your Google account to enable Gmail scanning'}
                 </span>
               </div>
             </div>
@@ -437,16 +468,21 @@ export default function SettingsPage() {
                   </button>
                 </>
               ) : (
-                <a
-                  href="http://localhost:8080/oauth2/authorization/google"
+                <button
                   className="settings-btn-primary"
-                  style={{ textDecoration: 'none', display: 'inline-block' }}
+                  onClick={handleLinkGmail}
+                  disabled={gmailLinkLoading}
                 >
-                  Connect Google Account
-                </a>
+                  {gmailLinkLoading ? 'Connecting...' : 'Connect Google Account'}
+                </button>
               )}
             </div>
           </div>
+          {gmailLinkMsg && (
+            <div className={`settings-msg settings-msg--${gmailLinkMsg.type}`} style={{ marginTop: 12 }}>
+              {gmailLinkMsg.text}
+            </div>
+          )}
           {scanError && (
             <div className="settings-msg settings-msg--error" style={{ marginTop: 12 }}>
               {scanError}
