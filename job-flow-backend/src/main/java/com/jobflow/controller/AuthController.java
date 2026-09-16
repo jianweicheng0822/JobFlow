@@ -1,8 +1,10 @@
 package com.jobflow.controller;
 
 import com.jobflow.dto.AuthResponse;
+import com.jobflow.dto.ChangePasswordRequest;
 import com.jobflow.dto.LoginRequest;
 import com.jobflow.dto.RegisterRequest;
+import com.jobflow.dto.UpdateProfileRequest;
 import com.jobflow.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,5 +33,18 @@ public class AuthController {
     @GetMapping("/me")
     public AuthResponse getCurrentUser(Authentication authentication) {
         return authService.getCurrentUser(authentication.getName());
+    }
+
+    @PutMapping("/profile")
+    public AuthResponse updateProfile(Authentication authentication,
+                                      @Valid @RequestBody UpdateProfileRequest request) {
+        return authService.updateProfile(authentication.getName(), request);
+    }
+
+    @PutMapping("/password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void changePassword(Authentication authentication,
+                               @Valid @RequestBody ChangePasswordRequest request) {
+        authService.changePassword(authentication.getName(), request);
     }
 }

@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { Camera, User, Lock, Bell, Palette, Sun, Moon } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import * as authApi from '../api/auth'
 import './SettingsPage.css'
 
 const AVATAR_STORAGE_KEY = 'jobflow-avatar'
@@ -15,7 +16,7 @@ const tabs: { key: SettingsTab; label: string; icon: typeof User }[] = [
 ]
 
 export default function SettingsPage() {
-  const { user } = useAuth()
+  const { user, updateUser } = useAuth()
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile')
 
   const [avatar, setAvatar] = useState<string | null>(() => {
@@ -23,19 +24,27 @@ export default function SettingsPage() {
   })
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Profile fields
   const [fullName, setFullName] = useState(user?.name || '')
   const [email, setEmail] = useState(user?.email || '')
-  const [jobTitle, setJobTitle] = useState('')
-  const [bio, setBio] = useState('')
+  const [jobTitle, setJobTitle] = useState(user?.jobTitle || '')
+  const [bio, setBio] = useState(user?.bio || '')
+  const [profileLoading, setProfileLoading] = useState(false)
+  const [profileMsg, setProfileMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
+  // Password fields
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordLoading, setPasswordLoading] = useState(false)
+  const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
+  // Notifications
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [interviewReminders, setInterviewReminders] = useState(true)
   const [weeklySummary, setWeeklySummary] = useState(false)
 
+  // Theme
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('jobflow-theme') as 'light' | 'dark') || 'light'
   })
@@ -44,6 +53,16 @@ export default function SettingsPage() {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem('jobflow-theme', theme)
   }, [theme])
+
+  // Sync form when user changes
+  useEffect(() => {
+    if (user) {
+      setFullName(user.name || '')
+      setEmail(user.email || '')
+      setJobTitle(user.jobTitle || '')
+      setBio(user.bio || '')
+    }
+  }, [user])
 
   const handleAvatarClick = () => {
     fileInputRef.current?.click()
@@ -59,6 +78,75 @@ export default function SettingsPage() {
       setAvatar(dataUrl)
     }
     reader.readAsDataURL(file)
+  }
+
+  async function handleSaveProfile() {
+    setProfileLoading(true)
+    setProfileMsg(null)
+    try {
+      const res = await authApi.updateProfile({
+        name: fullName.trim(),
+        email: email.trim() || undefined,
+        jobTitle: jobTitle.trim() || undefined,
+        bio: bio.trim() || undefined,
+      })
+      updateUser({
+        name: res.data.name,
+        email: res.data.email,
+        avatarUrl: res.data.avatarUrl,
+        jobTitle: res.data.jobTitle,
+        bio: res.data.bio,
+      })
+      setProfileMsg({ type: 'success', text: 'Profile updated successfully.' })
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to update profile.'
+      setProfileMsg({ type: 'error', text: msg })
+    } finally {
+      setProfileLoading(false)
+    }
+  }
+
+  function handleCancelProfile() {
+    setFullName(user?.name || '')
+    setEmail(user?.email || '')
+    setJobTitle(user?.jobTitle || '')
+    setBio(user?.bio || '')
+    setProfileMsg(null)
+  }
+
+  async function handleChangePassword() {
+    setPasswordMsg(null)
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordMsg({ type: 'error', text: 'All fields are required.' })
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMsg({ type: 'error', text: 'New passwords do not match.' })
+      return
+    }
+    if (newPassword.length < 6) {
+      setPasswordMsg({ type: 'error', text: 'New password must be at least 6 characters.' })
+      return
+    }
+
+    setPasswordLoading(true)
+    try {
+      await authApi.changePassword({
+        currentPassword,
+        newPassword,
+      })
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setPasswordMsg({ type: 'success', text: 'Password updated successfully.' })
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } }
+      const msg = error.response?.data?.message || 'Failed to change password.'
+      setPasswordMsg({ type: 'error', text: msg })
+    } finally {
+      setPasswordLoading(false)
+    }
   }
 
   return (
@@ -151,9 +239,16 @@ export default function SettingsPage() {
                 placeholder="Tell us about yourself..."
               />
             </div>
+            {profileMsg && (
+              <div className={`settings-msg settings-msg--${profileMsg.type}`}>
+                {profileMsg.text}
+              </div>
+            )}
             <div className="settings-actions">
-              <button className="settings-btn-secondary">Cancel</button>
-              <button className="settings-btn-primary">Save Changes</button>
+              <button className="settings-btn-secondary" onClick={handleCancelProfile}>Cancel</button>
+              <button className="settings-btn-primary" onClick={handleSaveProfile} disabled={profileLoading}>
+                {profileLoading ? 'Saving...' : 'Save Changes'}
+              </button>
             </div>
           </div>
         </div>
@@ -195,8 +290,15 @@ export default function SettingsPage() {
                 />
               </div>
             </div>
+            {passwordMsg && (
+              <div className={`settings-msg settings-msg--${passwordMsg.type}`}>
+                {passwordMsg.text}
+              </div>
+            )}
             <div className="settings-actions">
-              <button className="settings-btn-primary">Update Password</button>
+              <button className="settings-btn-primary" onClick={handleChangePassword} disabled={passwordLoading}>
+                {passwordLoading ? 'Updating...' : 'Update Password'}
+              </button>
             </div>
           </div>
         </div>

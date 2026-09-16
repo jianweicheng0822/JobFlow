@@ -5,6 +5,8 @@ export interface AuthResponse {
   name: string
   email: string
   avatarUrl: string | null
+  jobTitle: string | null
+  bio: string | null
 }
 
 export interface LoginRequest {
@@ -18,6 +20,18 @@ export interface RegisterRequest {
   password: string
 }
 
+export interface UpdateProfileRequest {
+  name: string
+  email?: string
+  jobTitle?: string
+  bio?: string
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string
+  newPassword: string
+}
+
 export const login = (data: LoginRequest) =>
   client.post<AuthResponse>('/auth/login', data)
 
@@ -26,3 +40,9 @@ export const register = (data: RegisterRequest) =>
 
 export const getMe = () =>
   client.get<AuthResponse>('/auth/me')
+
+export const updateProfile = (data: UpdateProfileRequest) =>
+  client.put<AuthResponse>('/auth/profile', data)
+
+export const changePassword = (data: ChangePasswordRequest) =>
+  client.put<void>('/auth/password', data)

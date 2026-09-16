@@ -241,8 +241,31 @@
   cursor: pointer;
 }
 
+.settings-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .settings-btn-secondary:hover {
   background: var(--content-bg);
+}
+
+/* ===== Feedback Messages ===== */
+.settings-msg {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 14px;
+  border-radius: 8px;
+}
+
+.settings-msg--success {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.settings-msg--error {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 /* ===== Toggle Switch ===== */

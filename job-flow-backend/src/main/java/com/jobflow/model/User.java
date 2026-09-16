@@ -30,6 +30,11 @@ public class User {
 
     private String avatarUrl;
 
+    private String jobTitle;
+
+    @Column(columnDefinition = "TEXT")
+    private String bio;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AuthProvider provider;
