@@ -133,10 +133,10 @@ export function resolveMock(url: string, method: string): unknown | undefined {
     }
     if (url === '/interviews') return interviews;
     if (url === '/interviews/upcoming') return interviews;
-    if (url === '/auth/me') return { token: null, name: 'Demo User', email: 'demo@jobflow.com', avatarUrl: null };
+    if (url === '/auth/me') return { token: null, name: 'Demo User', email: 'demo@jobflow.com', avatarUrl: null, jobTitle: null, bio: null, hasPassword: true };
   }
 
-  // For write operations in demo mode, return a plausible response
+  // ===== Application CRUD =====
   if (method === 'post' && url === '/applications') {
     const newApp: JobApplicationDTO = {
       ...applications[0],
@@ -152,7 +152,73 @@ export function resolveMock(url: string, method: string): unknown | undefined {
   if (method === 'put' && url.match(/^\/applications\/\d+$/)) {
     return applications[0];
   }
+
+  // ===== Interview CRUD =====
+  if (method === 'post' && url === '/interviews') {
+    const newInterview: InterviewDTO = {
+      id: Date.now(),
+      jobApplicationId: 1,
+      positionTitle: 'New Interview',
+      companyName: 'Company',
+      interviewDate: new Date().toISOString(),
+      interviewType: 'VIDEO',
+      notes: null,
+    };
+    interviews.unshift(newInterview);
+    return newInterview;
+  }
+  if (method === 'put' && url.match(/^\/interviews\/\d+$/)) {
+    const id = Number(url.split('/').pop());
+    const found = interviews.find(i => i.id === id);
+    return found || interviews[0];
+  }
+
+  // ===== Company CRUD =====
+  if (method === 'post' && url === '/companies') {
+    const newCompany: CompanyDTO = {
+      id: Date.now(),
+      name: 'New Company',
+      logoUrl: null,
+      location: null,
+      website: null,
+    };
+    companies.push(newCompany);
+    return newCompany;
+  }
+  if (method === 'put' && url.match(/^\/companies\/\d+$/)) {
+    const id = Number(url.split('/').pop());
+    const found = companies.find(c => c.id === id);
+    return found || companies[0];
+  }
+
+  // ===== Profile & Password =====
+  if (method === 'put' && url === '/auth/profile') {
+    return { token: null, name: 'Demo User', email: 'demo@jobflow.com', avatarUrl: null, jobTitle: null, bio: null, hasPassword: true };
+  }
+  if (method === 'put' && url === '/auth/password') {
+    return {};
+  }
+
+  // ===== Generic delete =====
   if (method === 'delete') {
+    if (url.match(/^\/interviews\/\d+$/)) {
+      const id = Number(url.split('/').pop());
+      const idx = interviews.findIndex(i => i.id === id);
+      if (idx !== -1) interviews.splice(idx, 1);
+    }
+    if (url.match(/^\/companies\/\d+$/)) {
+      const id = Number(url.split('/').pop());
+      const idx = companies.findIndex(c => c.id === id);
+      if (idx !== -1) companies.splice(idx, 1);
+    }
+    if (url.match(/^\/applications\/\d+$/)) {
+      const id = Number(url.split('/').pop());
+      const idx = applications.findIndex(a => a.id === id);
+      if (idx !== -1) {
+        applications.splice(idx, 1);
+        stats.totalApplications = applications.length;
+      }
+    }
     return {};
   }
 
