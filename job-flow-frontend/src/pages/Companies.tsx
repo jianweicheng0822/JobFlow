@@ -6,6 +6,7 @@ import { getApplications } from '../api/applications'
 import type { CompanyDTO, JobApplicationDTO } from '../api/types'
 import Modal from '../components/Modal'
 import CompanyForm from '../components/CompanyForm'
+import { useToast } from '../context/ToastContext'
 
 // ===== Helpers =====
 const COMPANY_COLORS: Record<string, string> = {
@@ -63,6 +64,7 @@ export default function Companies() {
   const [showModal, setShowModal] = useState(false)
   const [editingCompany, setEditingCompany] = useState<CompanyDTO | undefined>(undefined)
   const [deleteTarget, setDeleteTarget] = useState<CompanyView | null>(null)
+  const { showToast } = useToast()
 
   const fetchData = useCallback(async () => {
     try {
@@ -112,8 +114,10 @@ export default function Companies() {
       await deleteCompany(deleteTarget.id)
       setDeleteTarget(null)
       fetchData()
+      showToast('Company deleted', 'success')
     } catch (err) {
       console.error('Failed to delete company:', err)
+      showToast('Failed to delete company', 'error')
     }
   }
 

@@ -5,6 +5,7 @@ import { getInterviews, deleteInterview } from '../api/interviews'
 import type { InterviewDTO, InterviewType } from '../api/types'
 import Modal from '../components/Modal'
 import InterviewForm from '../components/InterviewForm'
+import { useToast } from '../context/ToastContext'
 
 // ===== Helpers =====
 const TYPE_CONFIG: Record<InterviewType, { label: string; color: string; icon: typeof Phone }> = {
@@ -69,6 +70,7 @@ export default function Interviews() {
   const [showModal, setShowModal] = useState(false)
   const [editingInterview, setEditingInterview] = useState<InterviewDTO | undefined>(undefined)
   const [deleteTarget, setDeleteTarget] = useState<InterviewDTO | null>(null)
+  const { showToast } = useToast()
 
   const fetchData = useCallback(async () => {
     try {
@@ -112,8 +114,10 @@ export default function Interviews() {
       await deleteInterview(deleteTarget.id)
       setDeleteTarget(null)
       fetchData()
+      showToast('Interview deleted', 'success')
     } catch (err) {
       console.error('Failed to delete interview:', err)
+      showToast('Failed to delete interview', 'error')
     }
   }
 

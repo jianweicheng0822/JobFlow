@@ -1,5 +1,6 @@
 import { createBrowserRouter, Outlet } from 'react-router-dom'
 import { AuthProvider } from '../context/AuthContext'
+import { ToastProvider } from '../context/ToastContext'
 import Layout from '../components/Layout'
 import ProtectedRoute from '../components/ProtectedRoute'
 import Dashboard from '../pages/Dashboard'
@@ -16,7 +17,9 @@ import OAuthCallback from '../pages/OAuthCallback'
 function RootLayout() {
   return (
     <AuthProvider>
-      <Outlet />
+      <ToastProvider>
+        <Outlet />
+      </ToastProvider>
     </AuthProvider>
   )
 }

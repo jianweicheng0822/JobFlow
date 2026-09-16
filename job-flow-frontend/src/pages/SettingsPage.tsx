@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { Camera, User, Lock, Bell, Palette, Sun, Moon, Link } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 import * as authApi from '../api/auth'
 import * as gmailApi from '../api/gmail'
 import GmailImportModal from '../components/GmailImportModal'
@@ -20,6 +21,7 @@ const tabs: { key: SettingsTab; label: string; icon: typeof User }[] = [
 
 export default function SettingsPage() {
   const { user, updateUser } = useAuth()
+  const { showToast } = useToast()
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile')
 
   const [avatar, setAvatar] = useState<string | null>(() => {
@@ -33,7 +35,6 @@ export default function SettingsPage() {
   const [jobTitle, setJobTitle] = useState(user?.jobTitle || '')
   const [bio, setBio] = useState(user?.bio || '')
   const [profileLoading, setProfileLoading] = useState(false)
-  const [profileMsg, setProfileMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   // Password fields
   const [currentPassword, setCurrentPassword] = useState('')
@@ -54,7 +55,6 @@ export default function SettingsPage() {
   const [showGmailModal, setShowGmailModal] = useState(false)
   const [gmailPreviews, setGmailPreviews] = useState<gmailApi.GmailImportPreview[]>([])
   const [scanError, setScanError] = useState<string | null>(null)
-  const [gmailLinkMsg, setGmailLinkMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   // Theme
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -82,16 +82,16 @@ export default function SettingsPage() {
     const gmailLinked = params.get('gmailLinked')
     if (gmailLinked === 'true') {
       setActiveTab('integrations')
-      setGmailLinkMsg({ type: 'success', text: 'Google account linked successfully! You can now scan Gmail.' })
+      showToast('Google account linked successfully!', 'success')
       // Clean up URL
       window.history.replaceState({}, '', window.location.pathname)
     } else if (gmailLinked === 'false') {
       setActiveTab('integrations')
       const error = params.get('error') || 'unknown'
-      setGmailLinkMsg({ type: 'error', text: `Failed to link Google account (${error}). Please try again.` })
+      showToast(`Failed to link Google account (${error})`, 'error')
       window.history.replaceState({}, '', window.location.pathname)
     }
-  }, [])
+  }, [showToast])
 
   // Fetch Gmail connection status when integrations tab is active
   useEffect(() => {
@@ -104,12 +104,11 @@ export default function SettingsPage() {
 
   async function handleLinkGmail() {
     setGmailLinkLoading(true)
-    setGmailLinkMsg(null)
     try {
       const res = await gmailApi.getGmailLinkUrl()
       window.location.href = res.data.authUrl
     } catch {
-      setGmailLinkMsg({ type: 'error', text: 'Failed to start Google linking. Please try again.' })
+      showToast('Failed to start Google linking', 'error')
       setGmailLinkLoading(false)
     }
   }
@@ -147,7 +146,6 @@ export default function SettingsPage() {
 
   async function handleSaveProfile() {
     setProfileLoading(true)
-    setProfileMsg(null)
     try {
       const res = await authApi.updateProfile({
         name: fullName.trim(),
@@ -164,10 +162,10 @@ export default function SettingsPage() {
         hasPassword: res.data.hasPassword,
         gmailConnected: res.data.gmailConnected,
       })
-      setProfileMsg({ type: 'success', text: 'Profile updated successfully.' })
+      showToast('Profile updated', 'success')
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to update profile.'
-      setProfileMsg({ type: 'error', text: msg })
+      showToast(msg, 'error')
     } finally {
       setProfileLoading(false)
     }
@@ -178,7 +176,6 @@ export default function SettingsPage() {
     setEmail(user?.email || '')
     setJobTitle(user?.jobTitle || '')
     setBio(user?.bio || '')
-    setProfileMsg(null)
   }
 
   const needsCurrentPassword = user?.hasPassword ?? true
@@ -212,12 +209,12 @@ export default function SettingsPage() {
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
-      setPasswordMsg({ type: 'success', text: 'Password updated successfully.' })
+      showToast('Password updated', 'success')
       if (user) updateUser({ ...user, hasPassword: true, gmailConnected: user.gmailConnected })
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } }
       const msg = error.response?.data?.message || 'Failed to change password.'
-      setPasswordMsg({ type: 'error', text: msg })
+      showToast(msg, 'error')
     } finally {
       setPasswordLoading(false)
     }
@@ -313,11 +310,6 @@ export default function SettingsPage() {
                 placeholder="Tell us about yourself..."
               />
             </div>
-            {profileMsg && (
-              <div className={`settings-msg settings-msg--${profileMsg.type}`}>
-                {profileMsg.text}
-              </div>
-            )}
             <div className="settings-actions">
               <button className="settings-btn-secondary" onClick={handleCancelProfile}>Cancel</button>
               <button className="settings-btn-primary" onClick={handleSaveProfile} disabled={profileLoading}>
@@ -478,11 +470,6 @@ export default function SettingsPage() {
               )}
             </div>
           </div>
-          {gmailLinkMsg && (
-            <div className={`settings-msg settings-msg--${gmailLinkMsg.type}`} style={{ marginTop: 12 }}>
-              {gmailLinkMsg.text}
-            </div>
-          )}
           {scanError && (
             <div className="settings-msg settings-msg--error" style={{ marginTop: 12 }}>
               {scanError}

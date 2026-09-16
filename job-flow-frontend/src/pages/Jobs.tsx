@@ -5,6 +5,7 @@ import { getApplications, deleteApplication } from '../api/applications'
 import type { JobApplicationDTO, ApplicationStatus } from '../api/types'
 import Modal from '../components/Modal'
 import ApplicationForm from '../components/ApplicationForm'
+import { useToast } from '../context/ToastContext'
 
 // ===== Helpers =====
 const STATUS_CONFIG: Record<ApplicationStatus, { label: string; color: string }> = {
@@ -128,6 +129,7 @@ export default function Jobs() {
   const [showModal, setShowModal] = useState(false)
   const [editingApp, setEditingApp] = useState<JobApplicationDTO | undefined>(undefined)
   const [deleteTarget, setDeleteTarget] = useState<JobApplicationDTO | null>(null)
+  const { showToast } = useToast()
 
   const fetchData = useCallback(async () => {
     try {
@@ -171,8 +173,10 @@ export default function Jobs() {
       await deleteApplication(deleteTarget.id)
       setDeleteTarget(null)
       fetchData()
+      showToast('Application deleted', 'success')
     } catch (err) {
       console.error('Failed to delete application:', err)
+      showToast('Failed to delete application', 'error')
     }
   }
 

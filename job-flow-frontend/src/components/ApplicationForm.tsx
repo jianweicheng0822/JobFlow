@@ -9,6 +9,7 @@ import type {
   CreateJobApplicationRequest,
   UpdateJobApplicationRequest,
 } from '../api/types';
+import { useToast } from '../context/ToastContext';
 import './ApplicationForm.css';
 
 const STATUS_OPTIONS: { value: ApplicationStatus; label: string }[] = [
@@ -28,6 +29,7 @@ interface ApplicationFormProps {
 
 export default function ApplicationForm({ application, onSuccess, onCancel }: ApplicationFormProps) {
   const isEdit = !!application;
+  const { showToast } = useToast();
 
   const [companies, setCompanies] = useState<CompanyDTO[]>([]);
   const [loading, setLoading] = useState(false);
@@ -96,8 +98,10 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
 
       if (isEdit) {
         await updateApplication(application!.id, data as UpdateJobApplicationRequest);
+        showToast('Application updated', 'success');
       } else {
         await createApplication(data as CreateJobApplicationRequest);
+        showToast('Application created', 'success');
       }
       onSuccess();
     } catch (err) {
