@@ -1,8 +1,11 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
+import { Plus, Pencil, Trash2 } from 'lucide-react'
 import './Companies.css'
-import { getCompanies } from '../api/companies'
+import { getCompanies, deleteCompany } from '../api/companies'
 import { getApplications } from '../api/applications'
 import type { CompanyDTO, JobApplicationDTO } from '../api/types'
+import Modal from '../components/Modal'
+import CompanyForm from '../components/CompanyForm'
 
 // ===== Helpers =====
 const COMPANY_COLORS: Record<string, string> = {
@@ -24,6 +27,7 @@ interface CompanyView {
   color: string
   location: string
   website: string
+  logoUrl: string | null
   jobsApplied: number
 }
 
@@ -40,11 +44,14 @@ function buildCompanyViews(companies: CompanyDTO[], applications: JobApplication
     color: getCompanyColor(c.name),
     location: c.location || '',
     website: c.website || '',
+    logoUrl: c.logoUrl,
     jobsApplied: counts[c.id] || 0,
   }))
 }
 
 export default function Companies() {
+  const [companies, setCompanies] = useState<CompanyDTO[]>([])
+  const [applications, setApplications] = useState<JobApplicationDTO[]>([])
   const [companyViews, setCompanyViews] = useState<CompanyView[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -52,23 +59,63 @@ export default function Companies() {
   const [search, setSearch] = useState('')
   const [locationFilter, setLocationFilter] = useState('')
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [companiesRes, appsRes] = await Promise.all([
-          getCompanies(),
-          getApplications(),
-        ])
-        setCompanyViews(buildCompanyViews(companiesRes.data, appsRes.data))
-      } catch (err) {
-        console.error('Failed to load companies:', err)
-        setError('Failed to load data. Make sure the backend is running.')
-      } finally {
-        setLoading(false)
-      }
+  // CRUD modal state
+  const [showModal, setShowModal] = useState(false)
+  const [editingCompany, setEditingCompany] = useState<CompanyDTO | undefined>(undefined)
+  const [deleteTarget, setDeleteTarget] = useState<CompanyView | null>(null)
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true)
+      const [companiesRes, appsRes] = await Promise.all([
+        getCompanies(),
+        getApplications(),
+      ])
+      setCompanies(companiesRes.data)
+      setApplications(appsRes.data)
+      setCompanyViews(buildCompanyViews(companiesRes.data, appsRes.data))
+      setError(null)
+    } catch (err) {
+      console.error('Failed to load companies:', err)
+      setError('Failed to load data. Make sure the backend is running.')
+    } finally {
+      setLoading(false)
     }
-    fetchData()
   }, [])
+
+  useEffect(() => { fetchData() }, [fetchData])
+
+  function openCreate() {
+    setEditingCompany(undefined)
+    setShowModal(true)
+  }
+
+  function openEdit(view: CompanyView) {
+    const dto = companies.find((c) => c.id === view.id)
+    setEditingCompany(dto)
+    setShowModal(true)
+  }
+
+  function closeModal() {
+    setShowModal(false)
+    setEditingCompany(undefined)
+  }
+
+  function handleFormSuccess() {
+    closeModal()
+    fetchData()
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    try {
+      await deleteCompany(deleteTarget.id)
+      setDeleteTarget(null)
+      fetchData()
+    } catch (err) {
+      console.error('Failed to delete company:', err)
+    }
+  }
 
   const locations = useMemo(() => [...new Set(companyViews.map((c) => c.location).filter(Boolean))], [companyViews])
 
@@ -96,7 +143,13 @@ export default function Companies() {
 
   return (
     <div className="companies-page">
-      <h1 className="companies-page-title">Companies</h1>
+      <div className="companies-page-header">
+        <h1 className="companies-page-title">Companies</h1>
+        <button className="companies-filter-btn" onClick={openCreate}>
+          <Plus size={14} />
+          New Company
+        </button>
+      </div>
 
       {/* Search & Filter Bar */}
       <div className="companies-filter-bar">
@@ -155,6 +208,14 @@ export default function Companies() {
                     </a>
                   )}
                 </div>
+                <div className="company-card-actions">
+                  <button className="company-card-action-btn company-card-action-btn--edit" title="Edit" onClick={() => openEdit(company)}>
+                    <Pencil size={14} />
+                  </button>
+                  <button className="company-card-action-btn company-card-action-btn--delete" title="Delete" onClick={() => setDeleteTarget(company)}>
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
               <div className="company-card-meta">
                 <span className="company-card-meta-item">
@@ -162,7 +223,7 @@ export default function Companies() {
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                     <circle cx="12" cy="10" r="3" />
                   </svg>
-                  {company.location}
+                  {company.location || 'No location'}
                 </span>
                 <span className="company-card-jobs-badge">
                   {company.jobsApplied} jobs applied
@@ -172,6 +233,34 @@ export default function Companies() {
           ))
         )}
       </div>
+
+      {/* Create / Edit Modal */}
+      {showModal && (
+        <Modal title={editingCompany ? 'Edit Company' : 'New Company'} onClose={closeModal}>
+          <CompanyForm
+            company={editingCompany}
+            onSuccess={handleFormSuccess}
+            onCancel={closeModal}
+          />
+        </Modal>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteTarget && (
+        <Modal title="Delete Company" onClose={() => setDeleteTarget(null)}>
+          <p style={{ marginBottom: 20, color: 'var(--text-secondary)', fontSize: 14 }}>
+            Are you sure you want to delete <strong>{deleteTarget.name}</strong>? This action cannot be undone.
+          </p>
+          <div className="app-form-actions">
+            <button className="app-form-btn app-form-btn--cancel" onClick={() => setDeleteTarget(null)}>
+              Cancel
+            </button>
+            <button className="app-form-btn app-form-btn--submit" style={{ background: 'var(--status-rejected)' }} onClick={handleDelete}>
+              Delete
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }

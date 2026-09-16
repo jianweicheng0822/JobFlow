@@ -19,6 +19,12 @@
   color: var(--status-rejected);
 }
 
+.companies-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .companies-page-title {
   font-size: 22px;
   font-weight: 700;
@@ -189,6 +195,47 @@
 .company-card-website:hover {
   text-decoration: underline;
   color: var(--primary);
+}
+
+/* ===== Card Action Buttons ===== */
+.company-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.company-card-action-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.company-card-action-btn--edit {
+  color: var(--sidebar-accent);
+}
+
+.company-card-action-btn--edit:hover {
+  background: var(--sidebar-accent);
+  color: white;
+  border-color: var(--sidebar-accent);
+}
+
+.company-card-action-btn--delete {
+  color: var(--status-rejected);
+}
+
+.company-card-action-btn--delete:hover {
+  background: var(--status-rejected);
+  color: white;
+  border-color: var(--status-rejected);
 }
 
 .company-card-meta {

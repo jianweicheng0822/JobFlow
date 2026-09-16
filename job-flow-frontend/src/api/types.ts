@@ -85,3 +85,10 @@ export interface CreateInterviewRequest {
   interviewType: InterviewType;
   notes?: string;
 }
+
+export interface CreateCompanyRequest {
+  name: string;
+  logoUrl?: string;
+  location?: string;
+  website?: string;
+}
