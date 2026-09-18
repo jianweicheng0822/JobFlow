@@ -7,6 +7,7 @@ import type { CompanyDTO, JobApplicationDTO } from '../api/types'
 import Modal from '../components/Modal'
 import CompanyForm from '../components/CompanyForm'
 import { useToast } from '../context/ToastContext'
+import { useLanguage } from '../context/LanguageContext'
 import { getErrorMessage } from '../api/client'
 
 // ===== Helpers =====
@@ -67,6 +68,7 @@ export default function Companies() {
   const [deleteTarget, setDeleteTarget] = useState<CompanyView | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const { showToast } = useToast()
+  const { t } = useLanguage()
 
   const fetchData = useCallback(async () => {
     try {
@@ -81,7 +83,7 @@ export default function Companies() {
       setError(null)
     } catch (err) {
       console.error('Failed to load companies:', err)
-      setError('Failed to load data. Make sure the backend is running.')
+      setError(t.backendError)
     } finally {
       setLoading(false)
     }
@@ -142,7 +144,7 @@ export default function Companies() {
   }
 
   if (loading) {
-    return <div className="companies-page"><div className="companies-loading">Loading...</div></div>
+    return <div className="companies-page"><div className="companies-loading">{t.loading}</div></div>
   }
 
   if (error) {
@@ -152,10 +154,10 @@ export default function Companies() {
   return (
     <div className="companies-page">
       <div className="companies-page-header">
-        <h1 className="companies-page-title">Companies</h1>
+        <h1 className="companies-page-title">{t.companies}</h1>
         <button className="companies-filter-btn" onClick={openCreate}>
           <Plus size={14} />
-          New Company
+          {t.newCompany}
         </button>
       </div>
 
@@ -170,7 +172,7 @@ export default function Companies() {
             <input
               type="text"
               className="companies-search-input"
-              placeholder="Search companies..."
+              placeholder={t.searchCompanies}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -180,7 +182,7 @@ export default function Companies() {
             value={locationFilter}
             onChange={(e) => setLocationFilter(e.target.value)}
           >
-            <option value="">Location</option>
+            <option value="">{t.location}</option>
             {locations.map((l) => (
               <option key={l} value={l}>{l}</option>
             ))}
@@ -190,14 +192,14 @@ export default function Companies() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
           </svg>
-          Reset
+          {t.reset}
         </button>
       </div>
 
       {/* Company Cards */}
       <div className="companies-grid">
         {filtered.length === 0 ? (
-          <div className="companies-empty">No companies found.</div>
+          <div className="companies-empty">{t.noCompaniesFound}</div>
         ) : (
           filtered.map((company) => (
             <div className="company-card" key={company.id}>
@@ -217,10 +219,10 @@ export default function Companies() {
                   )}
                 </div>
                 <div className="company-card-actions">
-                  <button className="company-card-action-btn company-card-action-btn--edit" title="Edit" onClick={() => openEdit(company)}>
+                  <button className="company-card-action-btn company-card-action-btn--edit" title={t.editCompany} onClick={() => openEdit(company)}>
                     <Pencil size={14} />
                   </button>
-                  <button className="company-card-action-btn company-card-action-btn--delete" title="Delete" onClick={() => setDeleteTarget(company)}>
+                  <button className="company-card-action-btn company-card-action-btn--delete" title={t.deleteCompany} onClick={() => setDeleteTarget(company)}>
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -231,10 +233,10 @@ export default function Companies() {
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                     <circle cx="12" cy="10" r="3" />
                   </svg>
-                  {company.location || 'No location'}
+                  {company.location || t.noLocation}
                 </span>
                 <span className="company-card-jobs-badge">
-                  {company.jobsApplied} jobs applied
+                  {company.jobsApplied} {t.jobsApplied}
                 </span>
               </div>
             </div>
@@ -244,7 +246,7 @@ export default function Companies() {
 
       {/* Create / Edit Modal */}
       {showModal && (
-        <Modal title={editingCompany ? 'Edit Company' : 'New Company'} onClose={closeModal}>
+        <Modal title={editingCompany ? t.editCompany : t.newCompany} onClose={closeModal}>
           <CompanyForm
             company={editingCompany}
             onSuccess={handleFormSuccess}
@@ -255,21 +257,21 @@ export default function Companies() {
 
       {/* Delete Confirmation Modal */}
       {deleteTarget && (
-        <Modal title="Delete Company" onClose={() => setDeleteTarget(null)}>
+        <Modal title={t.deleteCompany} onClose={() => setDeleteTarget(null)}>
           <p style={{ marginBottom: 20, color: 'var(--text-secondary)', fontSize: 14 }}>
-            Are you sure you want to delete <strong>{deleteTarget.name}</strong>?
+            {t.confirmDeleteCompany.replace('{name}', deleteTarget.name)}
             {deleteTarget.jobsApplied > 0 && (
               <span style={{ display: 'block', marginTop: 8, color: 'var(--status-rejected)' }}>
-                This will also delete {deleteTarget.jobsApplied} associated application{deleteTarget.jobsApplied > 1 ? 's' : ''} and their interviews.
+                {t.deleteCompanyWarning.replace('{count}', String(deleteTarget.jobsApplied))}
               </span>
             )}
           </p>
           <div className="app-form-actions">
             <button className="app-form-btn app-form-btn--cancel" onClick={() => setDeleteTarget(null)}>
-              Cancel
+              {t.cancel}
             </button>
             <button className="app-form-btn app-form-btn--submit" style={{ background: 'var(--status-rejected)' }} onClick={handleDelete} disabled={deleteLoading}>
-              {deleteLoading ? 'Deleting...' : 'Delete'}
+              {deleteLoading ? t.deleting : t.delete}
             </button>
           </div>
         </Modal>

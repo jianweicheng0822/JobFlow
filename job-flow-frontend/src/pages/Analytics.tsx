@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLanguage } from '../context/LanguageContext'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
@@ -11,12 +12,14 @@ import type { DashboardStatsDTO, ApplicationActivityDTO, JobApplicationDTO } fro
 
 type AnalyticsTab = 'overview' | 'trends' | 'status' | 'company'
 
-const tabs: { key: AnalyticsTab; label: string; icon: typeof LayoutDashboard }[] = [
-  { key: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { key: 'trends', label: 'Trends', icon: TrendingUp },
-  { key: 'status', label: 'Status', icon: PieIcon },
-  { key: 'company', label: 'Company', icon: BarChart3 },
-]
+const TAB_ICONS: Record<AnalyticsTab, typeof LayoutDashboard> = {
+  overview: LayoutDashboard,
+  trends: TrendingUp,
+  status: PieIcon,
+  company: BarChart3,
+}
+
+const TAB_KEYS: AnalyticsTab[] = ['overview', 'trends', 'status', 'company']
 
 function buildCompanyData(apps: JobApplicationDTO[]) {
   const counts: Record<string, number> = {}
@@ -36,7 +39,15 @@ const tooltipStyle = {
   fontSize: '13px',
 }
 
+const TAB_LABEL_KEYS: Record<AnalyticsTab, string> = {
+  overview: 'overview',
+  trends: 'trends',
+  status: 'statusDistribution',
+  company: 'company',
+}
+
 export default function Analytics() {
+  const { t } = useLanguage()
   const [activeTab, setActiveTab] = useState<AnalyticsTab>('overview')
   const [stats, setStats] = useState<DashboardStatsDTO | null>(null)
   const [activityData, setActivityData] = useState<ApplicationActivityDTO[]>([])
@@ -57,16 +68,16 @@ export default function Analytics() {
         setCompanyData(buildCompanyData(appsRes.data))
       } catch (err) {
         console.error('Failed to load analytics:', err)
-        setError('Failed to load data. Make sure the backend is running.')
+        setError(t.backendError)
       } finally {
         setLoading(false)
       }
     }
     fetchData()
-  }, [])
+  }, [t])
 
   if (loading) {
-    return <div className="analytics-page"><div className="analytics-loading">Loading...</div></div>
+    return <div className="analytics-page"><div className="analytics-loading">{t.loading}...</div></div>
   }
 
   if (error) {
@@ -80,18 +91,18 @@ export default function Analytics() {
   const interviewRate = total > 0 ? Math.round((interviewCount / total) * 100) : 0
 
   const statSummary = [
-    { label: 'Total Applications', value: String(total), trend: 'up' as const },
-    { label: 'Response Rate', value: `${responseRate}%`, trend: 'up' as const },
-    { label: 'Interview Rate', value: `${interviewRate}%`, trend: interviewRate > 0 ? 'up' as const : 'down' as const },
-    { label: 'Offers', value: String(stats?.offers ?? 0), trend: 'up' as const },
+    { label: t.totalApplications, value: String(total), trend: 'up' as const },
+    { label: t.responseRate, value: `${responseRate}%`, trend: 'up' as const },
+    { label: t.interviewRate, value: `${interviewRate}%`, trend: interviewRate > 0 ? 'up' as const : 'down' as const },
+    { label: t.offers, value: String(stats?.offers ?? 0), trend: 'up' as const },
   ]
 
   const statusData = [
-    { name: 'Applied', value: (stats?.totalApplications ?? 0) - (stats?.inReview ?? 0) - (stats?.interviews ?? 0) - (stats?.offers ?? 0) - (stats?.rejections ?? 0), color: '#4f6ef7' },
-    { name: 'In Review', value: stats?.inReview ?? 0, color: '#f59e0b' },
-    { name: 'Interview', value: stats?.interviews ?? 0, color: '#10b981' },
-    { name: 'Offer', value: stats?.offers ?? 0, color: '#8b5cf6' },
-    { name: 'Rejected', value: stats?.rejections ?? 0, color: '#ef4444' },
+    { name: t.statusApplied, value: (stats?.totalApplications ?? 0) - (stats?.inReview ?? 0) - (stats?.interviews ?? 0) - (stats?.offers ?? 0) - (stats?.rejections ?? 0), color: '#4f6ef7' },
+    { name: t.statusInReview, value: stats?.inReview ?? 0, color: '#f59e0b' },
+    { name: t.statusInterview, value: stats?.interviews ?? 0, color: '#10b981' },
+    { name: t.statusOffer, value: stats?.offers ?? 0, color: '#8b5cf6' },
+    { name: t.statusRejected, value: stats?.rejections ?? 0, color: '#ef4444' },
   ].filter((d) => d.value > 0)
 
   const trendData = activityData.map((d) => ({
@@ -101,21 +112,22 @@ export default function Analytics() {
 
   return (
     <div className="analytics-page">
-      <h1 className="analytics-page-title">Analytics</h1>
+      <h1 className="analytics-page-title">{t.analytics}</h1>
 
       <div className="analytics-layout">
         {/* Left Side Nav */}
         <nav className="analytics-nav">
-          {tabs.map((tab) => {
-            const Icon = tab.icon
+          {TAB_KEYS.map((key) => {
+            const Icon = TAB_ICONS[key]
+            const label = (t as any)[TAB_LABEL_KEYS[key]] || key
             return (
               <button
-                key={tab.key}
-                className={`analytics-nav-item ${activeTab === tab.key ? 'analytics-nav-item--active' : ''}`}
-                onClick={() => setActiveTab(tab.key)}
+                key={key}
+                className={`analytics-nav-item ${activeTab === key ? 'analytics-nav-item--active' : ''}`}
+                onClick={() => setActiveTab(key)}
               >
                 <Icon size={18} />
-                {tab.label}
+                {label}
               </button>
             )
           })}
@@ -141,7 +153,7 @@ export default function Analytics() {
           {/* Trends Tab */}
           {activeTab === 'trends' && (
             <div className="analytics-chart-card">
-              <h2 className="analytics-chart-title">Application Trend</h2>
+              <h2 className="analytics-chart-title">{t.applicationTrend}</h2>
               <div className="analytics-chart-wrapper">
                 <ResponsiveContainer width="100%" height={320}>
                   <LineChart data={trendData}>
@@ -166,7 +178,7 @@ export default function Analytics() {
           {/* Status Tab */}
           {activeTab === 'status' && (
             <div className="analytics-chart-card">
-              <h2 className="analytics-chart-title">Status Distribution</h2>
+              <h2 className="analytics-chart-title">{t.statusDistribution}</h2>
               <div className="analytics-chart-wrapper">
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
@@ -202,7 +214,7 @@ export default function Analytics() {
           {/* Company Tab */}
           {activeTab === 'company' && (
             <div className="analytics-chart-card">
-              <h2 className="analytics-chart-title">Applications by Company</h2>
+              <h2 className="analytics-chart-title">{t.applicationsByCompany}</h2>
               <div className="analytics-chart-wrapper">
                 <ResponsiveContainer width="100%" height={340}>
                   <BarChart data={companyData} layout="vertical">

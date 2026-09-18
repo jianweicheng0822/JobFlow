@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { createCompany, updateCompany } from '../api/companies';
 import type { CompanyDTO, CreateCompanyRequest } from '../api/types';
+import { useLanguage } from '../context/LanguageContext';
 import './ApplicationForm.css';
 
 interface CompanyFormProps {
@@ -12,6 +13,7 @@ interface CompanyFormProps {
 
 export default function CompanyForm({ company, onSuccess, onCancel }: CompanyFormProps) {
   const isEdit = !!company;
+  const { t } = useLanguage();
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -23,7 +25,7 @@ export default function CompanyForm({ company, onSuccess, onCancel }: CompanyFor
 
   function validate(): boolean {
     const newErrors: Record<string, string> = {};
-    if (!name.trim()) newErrors.name = 'Company name is required';
+    if (!name.trim()) newErrors.name = t.companyNameRequired;
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }
@@ -49,7 +51,7 @@ export default function CompanyForm({ company, onSuccess, onCancel }: CompanyFor
       onSuccess();
     } catch (err) {
       console.error('Failed to save company:', err);
-      setErrors({ form: 'Failed to save. Please try again.' });
+      setErrors({ form: t.saveFailed });
     } finally {
       setLoading(false);
     }
@@ -59,49 +61,49 @@ export default function CompanyForm({ company, onSuccess, onCancel }: CompanyFor
     <form className="app-form" onSubmit={handleSubmit}>
       <div className="app-form-field">
         <label className="app-form-label">
-          Company Name <span className="required">*</span>
+          {t.companyName} <span className="required">*</span>
         </label>
         <input
           className="app-form-input"
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Google"
+          placeholder={t.companyNamePlaceholder}
         />
         {errors.name && <span className="app-form-error">{errors.name}</span>}
       </div>
 
       <div className="app-form-row">
         <div className="app-form-field">
-          <label className="app-form-label">Location</label>
+          <label className="app-form-label">{t.location}</label>
           <input
             className="app-form-input"
             type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            placeholder="e.g. Mountain View, CA"
+            placeholder={t.companyLocationPlaceholder}
           />
         </div>
         <div className="app-form-field">
-          <label className="app-form-label">Website</label>
+          <label className="app-form-label">{t.website}</label>
           <input
             className="app-form-input"
             type="text"
             value={website}
             onChange={(e) => setWebsite(e.target.value)}
-            placeholder="e.g. https://google.com"
+            placeholder={t.websitePlaceholder}
           />
         </div>
       </div>
 
       <div className="app-form-field">
-        <label className="app-form-label">Logo URL</label>
+        <label className="app-form-label">{t.logoUrl}</label>
         <input
           className="app-form-input"
           type="text"
           value={logoUrl}
           onChange={(e) => setLogoUrl(e.target.value)}
-          placeholder="e.g. https://example.com/logo.png"
+          placeholder={t.logoUrlPlaceholder}
         />
       </div>
 
@@ -109,10 +111,10 @@ export default function CompanyForm({ company, onSuccess, onCancel }: CompanyFor
 
       <div className="app-form-actions">
         <button type="button" className="app-form-btn app-form-btn--cancel" onClick={onCancel}>
-          Cancel
+          {t.cancel}
         </button>
         <button type="submit" className="app-form-btn app-form-btn--submit" disabled={loading}>
-          {loading ? 'Saving...' : isEdit ? 'Save Changes' : 'Add Company'}
+          {loading ? t.saving : isEdit ? t.save : t.addCompany}
         </button>
       </div>
     </form>

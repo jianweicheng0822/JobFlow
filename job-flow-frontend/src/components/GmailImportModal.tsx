@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { X, Check, Mail } from 'lucide-react'
 import * as gmailApi from '../api/gmail'
 import type { GmailImportPreview } from '../api/gmail'
+import { useLanguage } from '../context/LanguageContext'
 import './GmailImportModal.css'
 
 interface Props {
@@ -14,6 +15,7 @@ interface EditableRow extends GmailImportPreview {
 }
 
 export default function GmailImportModal({ previews, onClose }: Props) {
+  const { t } = useLanguage()
   const [rows, setRows] = useState<EditableRow[]>(() =>
     previews.map((p) => ({ ...p, selected: true }))
   )
@@ -54,7 +56,7 @@ export default function GmailImportModal({ previews, onClose }: Props) {
       setResult(res.data)
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } }
-      setError(e.response?.data?.message || 'Import failed. Please try again.')
+      setError(e.response?.data?.message || t.importFailed)
     } finally {
       setImporting(false)
     }
@@ -66,7 +68,7 @@ export default function GmailImportModal({ previews, onClose }: Props) {
         <div className="gmail-modal-header">
           <div className="gmail-modal-title">
             <Mail size={20} />
-            {result ? 'Import Complete' : 'Gmail Scan Results'}
+            {result ? t.importComplete : t.gmailScanResults}
           </div>
           <button className="gmail-modal-close" onClick={onClose}>
             <X size={18} />
@@ -79,28 +81,25 @@ export default function GmailImportModal({ previews, onClose }: Props) {
               <Check size={32} />
             </div>
             <p className="gmail-modal-result-text">
-              Successfully imported <strong>{result.importedCount}</strong> application{result.importedCount !== 1 ? 's' : ''}.
-              {result.skippedCount > 0 && (
-                <> {result.skippedCount} already imported (skipped).</>
-              )}
+              {t.importSuccess.replace('{count}', String(result.importedCount)).replace('{skipped}', String(result.skippedCount))}
             </p>
             <button className="gmail-modal-btn-primary" onClick={onClose}>
-              Done
+              {t.done}
             </button>
           </div>
         ) : previews.length === 0 ? (
           <div className="gmail-modal-empty">
             <Mail size={40} strokeWidth={1.5} />
-            <p>No new application emails found in the last 90 days.</p>
+            <p>{t.noNewEmails}</p>
             <button className="gmail-modal-btn-secondary" onClick={onClose}>
-              Close
+              {t.close}
             </button>
           </div>
         ) : (
           <>
             <div className="gmail-modal-body">
               <p className="gmail-modal-hint">
-                Found {previews.length} application email{previews.length !== 1 ? 's' : ''}. Review and edit before importing.
+                {t.foundEmails.replace('{count}', String(previews.length))}
               </p>
               <div className="gmail-table-wrapper">
                 <table className="gmail-table">
@@ -113,10 +112,10 @@ export default function GmailImportModal({ previews, onClose }: Props) {
                           onChange={(e) => toggleAll(e.target.checked)}
                         />
                       </th>
-                      <th>Company</th>
-                      <th>Position</th>
-                      <th>Date</th>
-                      <th>Subject</th>
+                      <th>{t.company}</th>
+                      <th>{t.position}</th>
+                      <th>{t.date}</th>
+                      <th>{t.subject}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -167,14 +166,14 @@ export default function GmailImportModal({ previews, onClose }: Props) {
 
             <div className="gmail-modal-footer">
               <button className="gmail-modal-btn-secondary" onClick={onClose}>
-                Cancel
+                {t.cancel}
               </button>
               <button
                 className="gmail-modal-btn-primary"
                 onClick={handleImport}
                 disabled={importing || selectedCount === 0}
               >
-                {importing ? 'Importing...' : `Import ${selectedCount} Selected`}
+                {importing ? t.importing : t.importSelected.replace('{count}', String(selectedCount))}
               </button>
             </div>
           </>

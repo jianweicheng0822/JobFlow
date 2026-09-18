@@ -7,12 +7,19 @@ import Modal from '../components/Modal'
 import InterviewForm from '../components/InterviewForm'
 import { useToast } from '../context/ToastContext'
 import { getErrorMessage } from '../api/client'
+import { useLanguage } from '../context/LanguageContext'
 
 // ===== Helpers =====
-const TYPE_CONFIG: Record<InterviewType, { label: string; color: string; icon: typeof Phone }> = {
-  PHONE: { label: 'Phone', color: '#f59e0b', icon: Phone },
-  VIDEO: { label: 'Video', color: '#3b82f6', icon: Video },
-  ONSITE: { label: 'Onsite', color: '#10b981', icon: MapPin },
+const TYPE_CONFIG: Record<InterviewType, { color: string; icon: typeof Phone }> = {
+  PHONE: { color: '#f59e0b', icon: Phone },
+  VIDEO: { color: '#3b82f6', icon: Video },
+  ONSITE: { color: '#10b981', icon: MapPin },
+}
+
+const TYPE_LABEL_KEYS: Record<InterviewType, 'phone' | 'video' | 'onsite'> = {
+  PHONE: 'phone',
+  VIDEO: 'video',
+  ONSITE: 'onsite',
 }
 
 function formatDate(dateStr: string): string {
@@ -60,6 +67,7 @@ function InterviewsStatIcon({ type }: { type: string }) {
 }
 
 export default function Interviews() {
+  const { t } = useLanguage()
   const [interviews, setInterviews] = useState<InterviewDTO[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -82,7 +90,7 @@ export default function Interviews() {
       setError(null)
     } catch (err) {
       console.error('Failed to load interviews:', err)
-      setError('Failed to load data. Make sure the backend is running.')
+      setError(t.backendError)
     } finally {
       setLoading(false)
     }
@@ -153,9 +161,9 @@ export default function Interviews() {
   const completedCount = totalCount - upcomingCount
 
   const statCards = [
-    { label: 'Total Interviews', value: totalCount, icon: 'total' as const, colorClass: 'total' },
-    { label: 'Upcoming', value: upcomingCount, icon: 'upcoming' as const, colorClass: 'upcoming' },
-    { label: 'Completed', value: completedCount, icon: 'completed' as const, colorClass: 'completed' },
+    { label: t.totalInterviews, value: totalCount, icon: 'total' as const, colorClass: 'total' },
+    { label: t.upcoming, value: upcomingCount, icon: 'upcoming' as const, colorClass: 'upcoming' },
+    { label: t.completed, value: completedCount, icon: 'completed' as const, colorClass: 'completed' },
   ]
 
   const handleReset = () => {
@@ -164,7 +172,7 @@ export default function Interviews() {
   }
 
   if (loading) {
-    return <div className="interviews-page"><div className="interviews-loading">Loading...</div></div>
+    return <div className="interviews-page"><div className="interviews-loading">{t.loading}</div></div>
   }
 
   if (error) {
@@ -191,10 +199,10 @@ export default function Interviews() {
       {/* Interview Table */}
       <div className="interviews-table-section">
         <div className="interviews-section-header">
-          <h2 className="interviews-section-title">All Interviews</h2>
+          <h2 className="interviews-section-title">{t.allInterviews}</h2>
           <button className="interviews-add-btn" onClick={openCreate}>
             <Plus size={14} />
-            New Interview
+            {t.newInterview}
           </button>
         </div>
 
@@ -206,10 +214,10 @@ export default function Interviews() {
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
             >
-              <option value="">All Types</option>
-              <option value="PHONE">Phone</option>
-              <option value="VIDEO">Video</option>
-              <option value="ONSITE">Onsite</option>
+              <option value="">{t.allTypes}</option>
+              <option value="PHONE">{t.phone}</option>
+              <option value="VIDEO">{t.video}</option>
+              <option value="ONSITE">{t.onsite}</option>
             </select>
           </div>
           <div className="interviews-filter-right">
@@ -221,7 +229,7 @@ export default function Interviews() {
               <input
                 type="text"
                 className="interviews-search-input"
-                placeholder="Search..."
+                placeholder={`${t.search}...`}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -230,7 +238,7 @@ export default function Interviews() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
               </svg>
-              Filter
+              {t.filter}
             </button>
           </div>
         </div>
@@ -239,19 +247,19 @@ export default function Interviews() {
           <table className="interviews-table">
             <thead>
               <tr>
-                <th>Position</th>
-                <th>Company</th>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th>{t.position}</th>
+                <th>{t.company}</th>
+                <th>{t.date}</th>
+                <th>{t.time}</th>
+                <th>{t.type}</th>
+                <th>{t.status}</th>
+                <th>{t.actions}</th>
               </tr>
             </thead>
             <tbody>
               {sortedInterviews.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="interviews-table-empty">No interviews found.</td>
+                  <td colSpan={7} className="interviews-table-empty">{t.noInterviewsFound}</td>
                 </tr>
               ) : (
                 sortedInterviews.map((iv) => {
@@ -279,20 +287,20 @@ export default function Interviews() {
                       <td>
                         <span className="interviews-type-badge" style={{ background: typeCfg.color }}>
                           <TypeIcon size={12} />
-                          {typeCfg.label}
+                          {t[TYPE_LABEL_KEYS[iv.interviewType]]}
                         </span>
                       </td>
                       <td>
                         <span className={`interviews-status-badge interviews-status-badge--${upcoming ? 'upcoming' : 'completed'}`}>
-                          {upcoming ? 'Upcoming' : 'Completed'}
+                          {upcoming ? t.upcoming : t.completed}
                         </span>
                       </td>
                       <td>
                         <div className="interviews-actions">
-                          <button className="interviews-action-btn interviews-action-btn--edit" title="Edit" onClick={() => openEdit(iv)}>
+                          <button className="interviews-action-btn interviews-action-btn--edit" title={t.editInterview} onClick={() => openEdit(iv)}>
                             <Pencil size={14} />
                           </button>
-                          <button className="interviews-action-btn interviews-action-btn--delete" title="Delete" onClick={() => setDeleteTarget(iv)}>
+                          <button className="interviews-action-btn interviews-action-btn--delete" title={t.deleteInterview} onClick={() => setDeleteTarget(iv)}>
                             <Trash2 size={14} />
                           </button>
                         </div>
@@ -308,7 +316,7 @@ export default function Interviews() {
 
       {/* Create / Edit Modal */}
       {showModal && (
-        <Modal title={editingInterview ? 'Edit Interview' : 'Schedule Interview'} onClose={closeModal}>
+        <Modal title={editingInterview ? t.editInterview : t.scheduleInterview} onClose={closeModal}>
           <InterviewForm
             interview={editingInterview}
             onSuccess={handleFormSuccess}
@@ -319,16 +327,16 @@ export default function Interviews() {
 
       {/* Delete Confirmation Modal */}
       {deleteTarget && (
-        <Modal title="Delete Interview" onClose={() => setDeleteTarget(null)}>
+        <Modal title={t.deleteInterview} onClose={() => setDeleteTarget(null)}>
           <p style={{ marginBottom: 20, color: 'var(--text-secondary)', fontSize: 14 }}>
-            Are you sure you want to delete the interview for <strong>{deleteTarget.positionTitle}</strong> at <strong>{deleteTarget.companyName}</strong>? This action cannot be undone.
+            {t.confirmDeleteInterview.replace('{position}', deleteTarget.positionTitle).replace('{company}', deleteTarget.companyName)}
           </p>
           <div className="app-form-actions">
             <button className="app-form-btn app-form-btn--cancel" onClick={() => setDeleteTarget(null)}>
-              Cancel
+              {t.cancel}
             </button>
             <button className="app-form-btn app-form-btn--submit" style={{ background: 'var(--status-rejected)' }} onClick={handleDelete} disabled={deleteLoading}>
-              {deleteLoading ? 'Deleting...' : 'Delete'}
+              {deleteLoading ? t.deleting : t.delete}
             </button>
           </div>
         </Modal>

@@ -6,16 +6,26 @@ import type { JobApplicationDTO, ApplicationStatus } from '../api/types'
 import Modal from '../components/Modal'
 import ApplicationForm from '../components/ApplicationForm'
 import { useToast } from '../context/ToastContext'
+import { useLanguage } from '../context/LanguageContext'
 import { getErrorMessage } from '../api/client'
 
 // ===== Helpers =====
-const STATUS_CONFIG: Record<ApplicationStatus, { label: string; color: string }> = {
-  APPLIED: { label: 'Applied', color: 'var(--status-applied)' },
-  IN_REVIEW: { label: 'In Review', color: '#f59e0b' },
-  PHONE_SCREEN: { label: 'Phone Screen', color: 'var(--status-phone-screen)' },
-  INTERVIEW: { label: 'Interview', color: 'var(--status-interview)' },
-  OFFER: { label: 'Offer', color: 'var(--status-offer)' },
-  REJECTED: { label: 'Rejected', color: 'var(--status-rejected)' },
+const STATUS_COLORS: Record<ApplicationStatus, string> = {
+  APPLIED: 'var(--status-applied)',
+  IN_REVIEW: '#f59e0b',
+  PHONE_SCREEN: 'var(--status-phone-screen)',
+  INTERVIEW: 'var(--status-interview)',
+  OFFER: 'var(--status-offer)',
+  REJECTED: 'var(--status-rejected)',
+}
+
+const STATUS_LABEL_KEYS: Record<ApplicationStatus, string> = {
+  APPLIED: 'statusApplied',
+  IN_REVIEW: 'statusInReview',
+  PHONE_SCREEN: 'statusPhoneScreen',
+  INTERVIEW: 'statusInterview',
+  OFFER: 'statusOffer',
+  REJECTED: 'statusRejected',
 }
 
 const COMPANY_COLORS: Record<string, string> = {
@@ -134,6 +144,7 @@ export default function Jobs() {
   const [deleteTarget, setDeleteTarget] = useState<JobApplicationDTO | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const { showToast } = useToast()
+  const { t } = useLanguage()
 
   const fetchData = useCallback(async () => {
     try {
@@ -143,7 +154,7 @@ export default function Jobs() {
       setError(null)
     } catch (err) {
       console.error('Failed to load jobs:', err)
-      setError('Failed to load data. Make sure the backend is running.')
+      setError(t.backendError)
     } finally {
       setLoading(false)
     }
@@ -215,9 +226,9 @@ export default function Jobs() {
   const closedCount = applications.filter((a) => ['OFFER', 'REJECTED'].includes(a.status)).length
 
   const jobsStatCards = [
-    { label: 'Active Applications', value: activeCount, icon: 'active' as const, trend: 'up' as const },
-    { label: 'Saved Jobs', value: 0, icon: 'saved' as const, trend: 'up' as const },
-    { label: 'Closed', value: closedCount, icon: 'closed' as const, trend: 'down' as const },
+    { label: t.activeApplications, value: activeCount, icon: 'active' as const, trend: 'up' as const },
+    { label: t.savedJobs, value: 0, icon: 'saved' as const, trend: 'up' as const },
+    { label: t.closed, value: closedCount, icon: 'closed' as const, trend: 'down' as const },
   ]
 
   const handleReset = () => {
@@ -228,7 +239,7 @@ export default function Jobs() {
   }
 
   if (loading) {
-    return <div className="jobs-page"><div className="jobs-loading">Loading...</div></div>
+    return <div className="jobs-page"><div className="jobs-loading">{t.loading}</div></div>
   }
 
   if (error) {
@@ -259,10 +270,10 @@ export default function Jobs() {
           {/* Job Positions Table */}
           <div className="jobs-table-section">
             <div className="jobs-section-header">
-              <h2 className="jobs-section-title">Job Positions</h2>
+              <h2 className="jobs-section-title">{t.jobPositions}</h2>
               <button className="jobs-filter-btn" onClick={openCreate}>
                 <Plus size={14} />
-                New Application
+                {t.newApplication}
               </button>
             </div>
 
@@ -274,7 +285,7 @@ export default function Jobs() {
                   value={companyFilter}
                   onChange={(e) => setCompanyFilter(e.target.value)}
                 >
-                  <option value="">By Company</option>
+                  <option value="">{t.byCompany}</option>
                   {companies.map((c) => (
                     <option key={c} value={c}>{c}</option>
                   ))}
@@ -284,7 +295,7 @@ export default function Jobs() {
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value)}
                 >
-                  <option value="">Role</option>
+                  <option value="">{t.role}</option>
                   {roles.map((r) => (
                     <option key={r} value={r}>{r}</option>
                   ))}
@@ -294,7 +305,7 @@ export default function Jobs() {
                   value={locationFilter}
                   onChange={(e) => setLocationFilter(e.target.value)}
                 >
-                  <option value="">Location</option>
+                  <option value="">{t.location}</option>
                   {locations.map((l) => (
                     <option key={l} value={l}>{l}</option>
                   ))}
@@ -309,7 +320,7 @@ export default function Jobs() {
                   <input
                     type="text"
                     className="jobs-search-input"
-                    placeholder="Search..."
+                    placeholder={t.search}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                   />
@@ -318,7 +329,7 @@ export default function Jobs() {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
                   </svg>
-                  Filter
+                  {t.filter}
                 </button>
               </div>
             </div>
@@ -327,22 +338,23 @@ export default function Jobs() {
               <table className="jobs-table">
                 <thead>
                   <tr>
-                    <th>Job Title</th>
-                    <th>Company Logo</th>
-                    <th>Location</th>
-                    <th>Date Applied ↕</th>
-                    <th>Stage</th>
-                    <th>Actions</th>
+                    <th>{t.jobTitle}</th>
+                    <th>{t.companyLogo}</th>
+                    <th>{t.location}</th>
+                    <th>{t.dateAppliedSort} ↕</th>
+                    <th>{t.stage}</th>
+                    <th>{t.actions}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pagedJobs.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="jobs-table-empty">No matching jobs found.</td>
+                      <td colSpan={6} className="jobs-table-empty">{t.noMatchingJobs}</td>
                     </tr>
                   ) : (
                     pagedJobs.map((app) => {
-                      const statusCfg = STATUS_CONFIG[app.status]
+                      const statusColor = STATUS_COLORS[app.status]
+                      const statusLabel = (t as any)[STATUS_LABEL_KEYS[app.status]]
                       const companyColor = getCompanyColor(app.company.name)
                       return (
                         <tr key={app.id}>
@@ -365,17 +377,17 @@ export default function Jobs() {
                           <td>
                             <span
                               className="jobs-stage-badge"
-                              style={{ background: statusCfg.color }}
+                              style={{ background: statusColor }}
                             >
-                              {statusCfg.label}
+                              {statusLabel}
                             </span>
                           </td>
                           <td>
                             <div className="jobs-actions">
-                              <button className="jobs-action-btn jobs-action-btn--edit" title="Edit" onClick={() => openEdit(app)}>
+                              <button className="jobs-action-btn jobs-action-btn--edit" title={t.editApplication} onClick={() => openEdit(app)}>
                                 <Pencil size={14} />
                               </button>
-                              <button className="jobs-action-btn jobs-action-btn--delete" title="Delete" onClick={() => setDeleteTarget(app)}>
+                              <button className="jobs-action-btn jobs-action-btn--delete" title={t.deleteApplication} onClick={() => setDeleteTarget(app)}>
                                 <Trash2 size={14} />
                               </button>
                             </div>
@@ -392,7 +404,7 @@ export default function Jobs() {
             {filteredJobs.length > pageSize && (
               <div className="jobs-pagination">
                 <span className="jobs-pagination-info">
-                  Showing {currentPage * pageSize + 1}–{Math.min((currentPage + 1) * pageSize, filteredJobs.length)} of {filteredJobs.length}
+                  {t.showingRange.replace('{start}', String(currentPage * pageSize + 1)).replace('{end}', String(Math.min((currentPage + 1) * pageSize, filteredJobs.length))).replace('{total}', String(filteredJobs.length))}
                 </span>
                 <div className="jobs-pagination-controls">
                   <button
@@ -400,7 +412,7 @@ export default function Jobs() {
                     disabled={currentPage === 0}
                     onClick={() => setCurrentPage((p) => p - 1)}
                   >
-                    ‹ Prev
+                    ‹ {t.prev}
                   </button>
                   {(() => {
                     const pages: (number | string)[] = []
@@ -432,7 +444,7 @@ export default function Jobs() {
                     disabled={currentPage >= totalPages - 1}
                     onClick={() => setCurrentPage((p) => p + 1)}
                   >
-                    Next ›
+                    {t.next} ›
                   </button>
                 </div>
               </div>
@@ -443,7 +455,7 @@ export default function Jobs() {
         {/* Right Sidebar */}
         <div className="jobs-sidebar">
           <div className="jobs-top-employers">
-            <h3 className="jobs-sidebar-title">Top Employers</h3>
+            <h3 className="jobs-sidebar-title">{t.topEmployers}</h3>
             <div className="jobs-employers-list">
               {topEmployers.map((employer) => (
                 <div className="jobs-employer-item" key={employer.company}>
@@ -455,7 +467,7 @@ export default function Jobs() {
                   </span>
                   <div className="jobs-employer-info">
                     <div className="jobs-employer-name">{employer.company}</div>
-                    <div className="jobs-employer-count">{employer.jobsApplied} jobs applied</div>
+                    <div className="jobs-employer-count">{employer.jobsApplied} {t.jobsApplied}</div>
                   </div>
                 </div>
               ))}
@@ -466,7 +478,7 @@ export default function Jobs() {
 
       {/* Create / Edit Modal */}
       {showModal && (
-        <Modal title={editingApp ? 'Edit Application' : 'New Application'} onClose={closeModal}>
+        <Modal title={editingApp ? t.editApplication : t.newApplication} onClose={closeModal}>
           <ApplicationForm
             application={editingApp}
             onSuccess={handleFormSuccess}
@@ -477,16 +489,16 @@ export default function Jobs() {
 
       {/* Delete Confirmation Modal */}
       {deleteTarget && (
-        <Modal title="Delete Application" onClose={() => setDeleteTarget(null)}>
+        <Modal title={t.deleteApplication} onClose={() => setDeleteTarget(null)}>
           <p style={{ marginBottom: 20, color: 'var(--text-secondary)', fontSize: 14 }}>
-            Are you sure you want to delete <strong>{deleteTarget.positionTitle}</strong> at <strong>{deleteTarget.company.name}</strong>? This action cannot be undone.
+            {t.confirmDeleteApp.replace('{position}', deleteTarget.positionTitle).replace('{company}', deleteTarget.company.name)}
           </p>
           <div className="app-form-actions">
             <button className="app-form-btn app-form-btn--cancel" onClick={() => setDeleteTarget(null)}>
-              Cancel
+              {t.cancel}
             </button>
             <button className="app-form-btn app-form-btn--submit" style={{ background: 'var(--status-rejected)' }} onClick={handleDelete} disabled={deleteLoading}>
-              {deleteLoading ? 'Deleting...' : 'Delete'}
+              {deleteLoading ? t.deleting : t.delete}
             </button>
           </div>
         </Modal>

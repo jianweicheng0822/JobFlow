@@ -11,16 +11,19 @@ import type {
 } from '../api/types';
 import { useToast } from '../context/ToastContext';
 import { getErrorMessage } from '../api/client';
+import { useLanguage } from '../context/LanguageContext';
 import './ApplicationForm.css';
 
-const STATUS_OPTIONS: { value: ApplicationStatus; label: string }[] = [
-  { value: 'APPLIED', label: 'Applied' },
-  { value: 'IN_REVIEW', label: 'In Review' },
-  { value: 'PHONE_SCREEN', label: 'Phone Screen' },
-  { value: 'INTERVIEW', label: 'Interview' },
-  { value: 'OFFER', label: 'Offer' },
-  { value: 'REJECTED', label: 'Rejected' },
-];
+const STATUS_LABEL_KEYS: Record<ApplicationStatus, string> = {
+  APPLIED: 'statusApplied',
+  IN_REVIEW: 'statusInReview',
+  PHONE_SCREEN: 'statusPhoneScreen',
+  INTERVIEW: 'statusInterview',
+  OFFER: 'statusOffer',
+  REJECTED: 'statusRejected',
+};
+
+const STATUS_VALUES: ApplicationStatus[] = ['APPLIED', 'IN_REVIEW', 'PHONE_SCREEN', 'INTERVIEW', 'OFFER', 'REJECTED'];
 
 interface ApplicationFormProps {
   application?: JobApplicationDTO; // if provided, we're in edit mode
@@ -31,6 +34,7 @@ interface ApplicationFormProps {
 export default function ApplicationForm({ application, onSuccess, onCancel }: ApplicationFormProps) {
   const isEdit = !!application;
   const { showToast } = useToast();
+  const { t } = useLanguage();
 
   const [companies, setCompanies] = useState<CompanyDTO[]>([]);
   const [loading, setLoading] = useState(false);
@@ -69,8 +73,8 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
 
   function validate(): boolean {
     const newErrors: Record<string, string> = {};
-    if (!positionTitle.trim()) newErrors.positionTitle = 'Position title is required';
-    if (!companyInput.trim()) newErrors.company = 'Company is required';
+    if (!positionTitle.trim()) newErrors.positionTitle = t.positionRequired;
+    if (!companyInput.trim()) newErrors.company = t.companyRequired;
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }
@@ -99,14 +103,14 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
 
       if (isEdit) {
         await updateApplication(application!.id, data as UpdateJobApplicationRequest);
-        showToast('Application updated', 'success');
+        showToast(t.applicationUpdated, 'success');
       } else {
         await createApplication(data as CreateJobApplicationRequest);
-        showToast('Application created', 'success');
+        showToast(t.applicationCreated, 'success');
       }
       onSuccess();
     } catch (err) {
-      const msg = getErrorMessage(err, 'Failed to save application');
+      const msg = getErrorMessage(err, t.applicationSaveFailed);
       setErrors({ form: msg });
       showToast(msg, 'error');
     } finally {
@@ -118,21 +122,21 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
     <form className="app-form" onSubmit={handleSubmit}>
       <div className="app-form-field">
         <label className="app-form-label">
-          Position Title <span className="required">*</span>
+          {t.positionTitle} <span className="required">*</span>
         </label>
         <input
           className="app-form-input"
           type="text"
           value={positionTitle}
           onChange={(e) => setPositionTitle(e.target.value)}
-          placeholder="e.g. Frontend Developer"
+          placeholder={t.positionPlaceholder}
         />
         {errors.positionTitle && <span className="app-form-error">{errors.positionTitle}</span>}
       </div>
 
       <div className="app-form-field" ref={dropdownRef}>
         <label className="app-form-label">
-          Company <span className="required">*</span>
+          {t.company} <span className="required">*</span>
         </label>
         <input
           className="app-form-input"
@@ -144,7 +148,7 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
             setShowDropdown(true);
           }}
           onFocus={() => setShowDropdown(true)}
-          placeholder="Type to search or enter a new company"
+          placeholder={t.companyPlaceholder}
           autoComplete="off"
         />
         {showDropdown && companyInput.trim() && (
@@ -165,7 +169,7 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
             ))}
             {filteredCompanies.length === 0 && (
               <div className="company-dropdown-new">
-                + Add "{companyInput.trim()}" as new company
+                {t.addNewCompany.replace('{name}', companyInput.trim())}
               </div>
             )}
           </div>
@@ -175,42 +179,42 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
 
       <div className="app-form-row">
         <div className="app-form-field">
-          <label className="app-form-label">Location</label>
+          <label className="app-form-label">{t.location}</label>
           <input
             className="app-form-input"
             type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            placeholder="e.g. San Francisco, CA"
+            placeholder={t.locationPlaceholder}
           />
         </div>
         <div className="app-form-field">
-          <label className="app-form-label">Salary</label>
+          <label className="app-form-label">{t.salary}</label>
           <input
             className="app-form-input"
             type="text"
             value={salary}
             onChange={(e) => setSalary(e.target.value)}
-            placeholder="e.g. $120,000"
+            placeholder={t.salaryPlaceholder}
           />
         </div>
       </div>
 
       <div className="app-form-row">
         <div className="app-form-field">
-          <label className="app-form-label">Status</label>
+          <label className="app-form-label">{t.status}</label>
           <select
             className="app-form-select"
             value={status}
             onChange={(e) => setStatus(e.target.value as ApplicationStatus)}
           >
-            {STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            {STATUS_VALUES.map((val) => (
+              <option key={val} value={val}>{(t as Record<string, string>)[STATUS_LABEL_KEYS[val]]}</option>
             ))}
           </select>
         </div>
         <div className="app-form-field">
-          <label className="app-form-label">Applied Date</label>
+          <label className="app-form-label">{t.appliedDate}</label>
           <input
             className="app-form-input"
             type="date"
@@ -221,12 +225,12 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
       </div>
 
       <div className="app-form-field">
-        <label className="app-form-label">Notes</label>
+        <label className="app-form-label">{t.notes}</label>
         <textarea
           className="app-form-textarea"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="Any additional notes..."
+          placeholder={t.notesPlaceholder}
         />
       </div>
 
@@ -234,10 +238,10 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
 
       <div className="app-form-actions">
         <button type="button" className="app-form-btn app-form-btn--cancel" onClick={onCancel}>
-          Cancel
+          {t.cancel}
         </button>
         <button type="submit" className="app-form-btn app-form-btn--submit" disabled={loading}>
-          {loading ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Application'}
+          {loading ? t.saving : isEdit ? t.save : t.createApplication}
         </button>
       </div>
     </form>

@@ -1,15 +1,16 @@
 import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useLanguage } from '../context/LanguageContext'
 
 export default function OAuthCallback() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const { t } = useLanguage()
 
   useEffect(() => {
     const token = searchParams.get('token')
     if (token) {
       localStorage.setItem('jobflow-token', token)
-      // Full reload so AuthContext picks up the new token
       window.location.href = '/'
     } else {
       navigate('/login', { replace: true })
@@ -25,7 +26,7 @@ export default function OAuthCallback() {
       color: 'var(--text-secondary)',
       fontSize: 14,
     }}>
-      Signing you in...
+      {t.signingYouIn}
     </div>
   )
 }

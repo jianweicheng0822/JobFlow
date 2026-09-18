@@ -1,7 +1,8 @@
 import { useRef, useState, useEffect } from 'react'
-import { Camera, User, Lock, Bell, Palette, Sun, Moon, Link } from 'lucide-react'
+import { Camera, User, Lock, Bell, Palette, Sun, Moon, Link, Globe } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
+import { useLanguage } from '../context/LanguageContext'
 import { getErrorMessage } from '../api/client'
 import * as authApi from '../api/auth'
 import * as gmailApi from '../api/gmail'
@@ -12,17 +13,18 @@ const AVATAR_STORAGE_KEY = 'jobflow-avatar'
 
 type SettingsTab = 'profile' | 'account' | 'notifications' | 'appearance' | 'integrations'
 
-const tabs: { key: SettingsTab; label: string; icon: typeof User }[] = [
-  { key: 'profile', label: 'Profile', icon: User },
-  { key: 'account', label: 'Account', icon: Lock },
-  { key: 'integrations', label: 'Integrations', icon: Link },
-  { key: 'notifications', label: 'Notifications', icon: Bell },
-  { key: 'appearance', label: 'Appearance', icon: Palette },
+const tabDefs: { key: SettingsTab; labelKey: string; icon: typeof User }[] = [
+  { key: 'profile', labelKey: 'profile', icon: User },
+  { key: 'account', labelKey: 'account', icon: Lock },
+  { key: 'integrations', labelKey: 'integrations', icon: Link },
+  { key: 'notifications', labelKey: 'notifications', icon: Bell },
+  { key: 'appearance', labelKey: 'appearance', icon: Palette },
 ]
 
 export default function SettingsPage() {
   const { user, updateUser } = useAuth()
   const { showToast } = useToast()
+  const { t, lang, setLanguage } = useLanguage()
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile')
 
   const [avatar, setAvatar] = useState<string | null>(() => {
@@ -83,13 +85,13 @@ export default function SettingsPage() {
     const gmailLinked = params.get('gmailLinked')
     if (gmailLinked === 'true') {
       setActiveTab('integrations')
-      showToast('Google account linked successfully!', 'success')
+      showToast(t.googleLinked, 'success')
       // Clean up URL
       window.history.replaceState({}, '', window.location.pathname)
     } else if (gmailLinked === 'false') {
       setActiveTab('integrations')
       const error = params.get('error') || 'unknown'
-      showToast(`Failed to link Google account (${error})`, 'error')
+      showToast(`${t.googleLinkFailed} (${error})`, 'error')
       window.history.replaceState({}, '', window.location.pathname)
     }
   }, [showToast])
@@ -109,7 +111,7 @@ export default function SettingsPage() {
       const res = await gmailApi.getGmailLinkUrl()
       window.location.href = res.data.authUrl
     } catch {
-      showToast('Failed to start Google linking', 'error')
+      showToast(t.googleLinkStartFailed, 'error')
       setGmailLinkLoading(false)
     }
   }
@@ -163,9 +165,9 @@ export default function SettingsPage() {
         hasPassword: res.data.hasPassword,
         gmailConnected: res.data.gmailConnected,
       })
-      showToast('Profile updated', 'success')
+      showToast(t.profileUpdated, 'success')
     } catch (err) {
-      showToast(getErrorMessage(err, 'Failed to update profile'), 'error')
+      showToast(getErrorMessage(err, t.profileUpdateFailed), 'error')
     } finally {
       setProfileLoading(false)
     }
@@ -184,19 +186,19 @@ export default function SettingsPage() {
     setPasswordMsg(null)
 
     if (needsCurrentPassword && !currentPassword) {
-      setPasswordMsg({ type: 'error', text: 'Current password is required.' })
+      setPasswordMsg({ type: 'error', text: t.currentPasswordRequired })
       return
     }
     if (!newPassword || !confirmPassword) {
-      setPasswordMsg({ type: 'error', text: 'Please fill in all required fields.' })
+      setPasswordMsg({ type: 'error', text: t.fillAllFields })
       return
     }
     if (newPassword !== confirmPassword) {
-      setPasswordMsg({ type: 'error', text: 'New passwords do not match.' })
+      setPasswordMsg({ type: 'error', text: t.newPasswordMismatch })
       return
     }
     if (newPassword.length < 6) {
-      setPasswordMsg({ type: 'error', text: 'New password must be at least 6 characters.' })
+      setPasswordMsg({ type: 'error', text: t.passwordMinLength })
       return
     }
 
@@ -209,10 +211,10 @@ export default function SettingsPage() {
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
-      showToast('Password updated', 'success')
+      showToast(t.passwordUpdated, 'success')
       if (user) updateUser({ ...user, hasPassword: true, gmailConnected: user.gmailConnected })
     } catch (err) {
-      showToast(getErrorMessage(err, 'Failed to change password'), 'error')
+      showToast(getErrorMessage(err, t.passwordChangeFailed), 'error')
     } finally {
       setPasswordLoading(false)
     }
@@ -220,12 +222,12 @@ export default function SettingsPage() {
 
   return (
     <div className="settings-page">
-      <h1 className="settings-page-title">Settings</h1>
+      <h1 className="settings-page-title">{t.settings}</h1>
 
       <div className="settings-layout">
         {/* Left Side Nav */}
         <nav className="settings-nav">
-          {tabs.map((tab) => {
+          {tabDefs.map((tab) => {
             const Icon = tab.icon
             return (
               <button
@@ -234,7 +236,7 @@ export default function SettingsPage() {
                 onClick={() => setActiveTab(tab.key)}
               >
                 <Icon size={18} />
-                {tab.label}
+                {t[tab.labelKey as keyof typeof t]}
               </button>
             )
           })}
@@ -265,14 +267,14 @@ export default function SettingsPage() {
             </div>
             <div className="settings-avatar-text">
               <span className="settings-avatar-name">{fullName}</span>
-              <span className="settings-avatar-hint">Click avatar to change photo</span>
+              <span className="settings-avatar-hint">{t.clickAvatarToChange}</span>
             </div>
           </div>
 
           <div className="settings-form">
             <div className="settings-field-row">
               <div className="settings-field">
-                <label className="settings-label">Full Name</label>
+                <label className="settings-label">{t.fullName}</label>
                 <input
                   type="text"
                   className="settings-input"
@@ -281,7 +283,7 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="settings-field">
-                <label className="settings-label">Email</label>
+                <label className="settings-label">{t.email}</label>
                 <input
                   type="email"
                   className="settings-input"
@@ -291,7 +293,7 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="settings-field">
-              <label className="settings-label">Job Title</label>
+              <label className="settings-label">{t.jobTitleLabel}</label>
               <input
                 type="text"
                 className="settings-input"
@@ -300,18 +302,18 @@ export default function SettingsPage() {
               />
             </div>
             <div className="settings-field">
-              <label className="settings-label">Bio</label>
+              <label className="settings-label">{t.bio}</label>
               <textarea
                 className="settings-textarea"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                placeholder="Tell us about yourself..."
+                placeholder={t.bioPlaceholder}
               />
             </div>
             <div className="settings-actions">
-              <button className="settings-btn-secondary" onClick={handleCancelProfile}>Cancel</button>
+              <button className="settings-btn-secondary" onClick={handleCancelProfile}>{t.cancel}</button>
               <button className="settings-btn-primary" onClick={handleSaveProfile} disabled={profileLoading}>
-                {profileLoading ? 'Saving...' : 'Save Changes'}
+                {profileLoading ? t.saving : t.save}
               </button>
             </div>
           </div>
@@ -323,41 +325,41 @@ export default function SettingsPage() {
         <div className="settings-section">
           {!needsCurrentPassword && (
             <div className="settings-msg settings-msg--info">
-              You signed in with an external provider. Set a password to also log in with email.
+              {t.oauthPasswordHint}
             </div>
           )}
           <div className="settings-form">
             {needsCurrentPassword && (
               <div className="settings-field">
-                <label className="settings-label">Current Password</label>
+                <label className="settings-label">{t.currentPassword}</label>
                 <input
                   type="password"
                   className="settings-input"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Enter current password"
+                  placeholder={t.currentPasswordPlaceholder}
                 />
               </div>
             )}
             <div className="settings-field-row">
               <div className="settings-field">
-                <label className="settings-label">New Password</label>
+                <label className="settings-label">{t.newPassword}</label>
                 <input
                   type="password"
                   className="settings-input"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password"
+                  placeholder={t.newPasswordPlaceholder}
                 />
               </div>
               <div className="settings-field">
-                <label className="settings-label">Confirm Password</label>
+                <label className="settings-label">{t.confirmPassword}</label>
                 <input
                   type="password"
                   className="settings-input"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm new password"
+                  placeholder={t.confirmNewPasswordPlaceholder}
                 />
               </div>
             </div>
@@ -368,7 +370,7 @@ export default function SettingsPage() {
             )}
             <div className="settings-actions">
               <button className="settings-btn-primary" onClick={handleChangePassword} disabled={passwordLoading}>
-                {passwordLoading ? 'Updating...' : 'Update Password'}
+                {passwordLoading ? t.updating : t.updatePassword}
               </button>
             </div>
           </div>
@@ -381,8 +383,8 @@ export default function SettingsPage() {
           <div className="settings-toggle-list">
             <div className="settings-toggle-item">
               <div className="settings-toggle-info">
-                <span className="settings-toggle-label">Email Notifications</span>
-                <span className="settings-toggle-desc">Receive emails when your application status changes</span>
+                <span className="settings-toggle-label">{t.emailNotifications}</span>
+                <span className="settings-toggle-desc">{t.emailNotificationsDesc}</span>
               </div>
               <label className="settings-toggle">
                 <input
@@ -395,8 +397,8 @@ export default function SettingsPage() {
             </div>
             <div className="settings-toggle-item">
               <div className="settings-toggle-info">
-                <span className="settings-toggle-label">Interview Reminders</span>
-                <span className="settings-toggle-desc">Get notified before upcoming interviews</span>
+                <span className="settings-toggle-label">{t.interviewReminders}</span>
+                <span className="settings-toggle-desc">{t.interviewRemindersDesc}</span>
               </div>
               <label className="settings-toggle">
                 <input
@@ -409,8 +411,8 @@ export default function SettingsPage() {
             </div>
             <div className="settings-toggle-item">
               <div className="settings-toggle-info">
-                <span className="settings-toggle-label">Weekly Summary</span>
-                <span className="settings-toggle-desc">Receive a weekly report of your job search activity</span>
+                <span className="settings-toggle-label">{t.weeklySummary}</span>
+                <span className="settings-toggle-desc">{t.weeklySummaryDesc}</span>
               </div>
               <label className="settings-toggle">
                 <input
@@ -428,7 +430,7 @@ export default function SettingsPage() {
       {/* Integrations Tab */}
       {activeTab === 'integrations' && (
         <div className="settings-section">
-          <h3 className="settings-section-title">Gmail Integration</h3>
+          <h3 className="settings-section-title">{t.gmailIntegration}</h3>
           <div className="settings-integration-card">
             <div className="settings-integration-info">
               <div className="settings-integration-icon">
@@ -437,24 +439,24 @@ export default function SettingsPage() {
                 </svg>
               </div>
               <div>
-                <span className="settings-integration-name">Gmail</span>
+                <span className="settings-integration-name">{t.gmail}</span>
                 <span className="settings-toggle-desc">
                   {gmailStatus?.gmailConnected
-                    ? 'Connected — scan your inbox for job application emails'
-                    : 'Connect your Google account to enable Gmail scanning'}
+                    ? t.gmailConnected
+                    : t.gmailDisconnected}
                 </span>
               </div>
             </div>
             <div className="settings-integration-actions">
               {gmailStatus?.gmailConnected ? (
                 <>
-                  <span className="settings-integration-badge settings-integration-badge--connected">Connected</span>
+                  <span className="settings-integration-badge settings-integration-badge--connected">{t.connected}</span>
                   <button
                     className="settings-btn-primary"
                     onClick={handleScanGmail}
                     disabled={gmailLoading}
                   >
-                    {gmailLoading ? 'Scanning...' : 'Scan Gmail'}
+                    {gmailLoading ? t.scanning : t.scanGmail}
                   </button>
                 </>
               ) : (
@@ -463,7 +465,7 @@ export default function SettingsPage() {
                   onClick={handleLinkGmail}
                   disabled={gmailLinkLoading}
                 >
-                  {gmailLinkLoading ? 'Connecting...' : 'Connect Google Account'}
+                  {gmailLinkLoading ? t.connecting : t.connectGoogleAccount}
                 </button>
               )}
             </div>
@@ -488,8 +490,8 @@ export default function SettingsPage() {
         <div className="settings-section">
           <div className="settings-form">
             <div className="settings-field">
-              <label className="settings-label">Theme</label>
-              <span className="settings-toggle-desc">Choose your preferred appearance</span>
+              <label className="settings-label">{t.theme}</label>
+              <span className="settings-toggle-desc">{t.themeDesc}</span>
             </div>
             <div className="settings-theme-options">
               <button
@@ -506,7 +508,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="settings-theme-label">
                   <Sun size={16} />
-                  Light
+                  {t.light}
                 </div>
               </button>
               <button
@@ -523,7 +525,38 @@ export default function SettingsPage() {
                 </div>
                 <div className="settings-theme-label">
                   <Moon size={16} />
-                  Dark
+                  {t.dark}
+                </div>
+              </button>
+            </div>
+
+            <div className="settings-field" style={{ marginTop: 24 }}>
+              <label className="settings-label">{t.language}</label>
+              <span className="settings-toggle-desc">{t.languageDesc}</span>
+            </div>
+            <div className="settings-theme-options">
+              <button
+                className={`settings-theme-card ${lang === 'en' ? 'settings-theme-card--active' : ''}`}
+                onClick={() => setLanguage('en')}
+              >
+                <div className="settings-theme-preview settings-theme-preview--light" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
+                  EN
+                </div>
+                <div className="settings-theme-label">
+                  <Globe size={16} />
+                  English
+                </div>
+              </button>
+              <button
+                className={`settings-theme-card ${lang === 'zh' ? 'settings-theme-card--active' : ''}`}
+                onClick={() => setLanguage('zh')}
+              >
+                <div className="settings-theme-preview settings-theme-preview--light" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
+                  中
+                </div>
+                <div className="settings-theme-label">
+                  <Globe size={16} />
+                  中文
                 </div>
               </button>
             </div>

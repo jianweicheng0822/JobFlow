@@ -2,16 +2,10 @@ import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, Camera, LogOut } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
 import './TopBar.css'
 
 const AVATAR_STORAGE_KEY = 'jobflow-avatar'
-
-function getGreeting(): string {
-  const hour = new Date().getHours()
-  if (hour >= 5 && hour < 12) return 'Good morning'
-  if (hour >= 12 && hour < 18) return 'Good afternoon'
-  return 'Good evening'
-}
 
 function getInitials(name: string): string {
   return name
@@ -22,8 +16,16 @@ function getInitials(name: string): string {
     .slice(0, 2)
 }
 
+function getGreeting(t: { goodMorning: string; goodAfternoon: string; goodEvening: string }): string {
+  const hour = new Date().getHours()
+  if (hour >= 5 && hour < 12) return t.goodMorning
+  if (hour >= 12 && hour < 18) return t.goodAfternoon
+  return t.goodEvening
+}
+
 export default function TopBar() {
   const { user, logout } = useAuth()
+  const { t } = useLanguage()
   const navigate = useNavigate()
 
   const [avatar, setAvatar] = useState<string | null>(() => {
@@ -59,14 +61,13 @@ export default function TopBar() {
   return (
     <header className="topbar">
       <div className="topbar-greeting">
-        <h1>{getGreeting()}, {displayName.split(' ')[0]}!</h1>
-        <p>Current job applications status</p>
+        <h1>{getGreeting(t)}, {displayName.split(' ')[0]}!</h1>
       </div>
 
       <div className="topbar-right">
         <div className="topbar-search">
           <Search size={16} />
-          <input type="text" placeholder="Search..." />
+          <input type="text" placeholder={t.search} />
         </div>
 
         <div className="topbar-avatar">
@@ -93,7 +94,7 @@ export default function TopBar() {
           </div>
         </div>
 
-        <button className="topbar-logout" onClick={handleLogout} title="Sign out">
+        <button className="topbar-logout" onClick={handleLogout} title={t.signOut}>
           <LogOut size={18} />
         </button>
       </div>

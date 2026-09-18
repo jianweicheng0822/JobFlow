@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLanguage } from '../context/LanguageContext'
 import './Dashboard.css'
 import { getStats, getApplications, getRecentApplications } from '../api/applications'
 import { getUpcomingInterviews } from '../api/interviews'
@@ -23,13 +24,23 @@ interface PipelineColumn {
 }
 
 // ===== Helpers =====
-const STATUS_CONFIG: Record<ApplicationStatus, { label: string; color: string }> = {
-  APPLIED: { label: 'Applied', color: 'var(--status-applied)' },
-  IN_REVIEW: { label: 'In Review', color: 'var(--status-applied)' },
-  PHONE_SCREEN: { label: 'Phone Screen', color: 'var(--status-phone-screen)' },
-  INTERVIEW: { label: 'Interview', color: 'var(--status-interview)' },
-  OFFER: { label: 'Offer', color: 'var(--status-offer)' },
-  REJECTED: { label: 'Rejection', color: 'var(--status-rejected)' },
+const STATUS_COLORS: Record<ApplicationStatus, string> = {
+  APPLIED: 'var(--status-applied)',
+  IN_REVIEW: 'var(--status-applied)',
+  PHONE_SCREEN: 'var(--status-phone-screen)',
+  INTERVIEW: 'var(--status-interview)',
+  OFFER: 'var(--status-offer)',
+  REJECTED: 'var(--status-rejected)',
+}
+
+// Maps status keys to translation keys
+const STATUS_LABEL_KEYS: Record<ApplicationStatus, string> = {
+  APPLIED: 'statusApplied',
+  IN_REVIEW: 'statusInReview',
+  PHONE_SCREEN: 'statusPhoneScreen',
+  INTERVIEW: 'statusInterview',
+  OFFER: 'statusOffer',
+  REJECTED: 'statusRejected',
 }
 
 const COMPANY_COLORS: Record<string, string> = {
@@ -57,17 +68,17 @@ function formatInterviewTime(dateStr: string): string {
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
 }
 
-function buildPipelineColumns(applications: JobApplicationDTO[]): PipelineColumn[] {
+function buildPipelineColumns(applications: JobApplicationDTO[], t: Record<string, string>): PipelineColumn[] {
   const stages: ApplicationStatus[] = ['APPLIED', 'PHONE_SCREEN', 'INTERVIEW', 'OFFER', 'REJECTED']
 
   return stages.map((status) => {
     const matching = applications.filter((app) => app.status === status)
-    const config = STATUS_CONFIG[status]
+    const labelKey = STATUS_LABEL_KEYS[status]
 
     return {
-      stage: config.label,
+      stage: (t as any)[labelKey] || status,
       count: matching.length,
-      color: config.color,
+      color: STATUS_COLORS[status],
       cards: matching.map((app) => ({
         id: app.id,
         title: app.positionTitle,
@@ -155,6 +166,7 @@ function TrendLine({ direction }: { direction: 'up' | 'down' }) {
 }
 
 export default function Dashboard() {
+  const { t } = useLanguage()
   const [stats, setStats] = useState<DashboardStatsDTO | null>(null)
   const [pipelineColumns, setPipelineColumns] = useState<PipelineColumn[]>([])
   const [recentApps, setRecentApps] = useState<JobApplicationDTO[]>([])
@@ -172,21 +184,21 @@ export default function Dashboard() {
           getUpcomingInterviews(),
         ])
         setStats(statsRes.data)
-        setPipelineColumns(buildPipelineColumns(appsRes.data))
+        setPipelineColumns(buildPipelineColumns(appsRes.data, t))
         setRecentApps(recentRes.data)
         setInterviews(interviewsRes.data)
       } catch (err) {
         console.error('Failed to load dashboard data:', err)
-        setError('Failed to load data. Make sure the backend is running.')
+        setError(t.backendError)
       } finally {
         setLoading(false)
       }
     }
     fetchData()
-  }, [])
+  }, [t])
 
   if (loading) {
-    return <div className="dashboard"><div className="dashboard-loading">Loading...</div></div>
+    return <div className="dashboard"><div className="dashboard-loading">{t.loading}...</div></div>
   }
 
   if (error) {
@@ -194,16 +206,16 @@ export default function Dashboard() {
   }
 
   const statCards = [
-    { label: 'Total Applications', value: stats?.totalApplications ?? 0, icon: 'total' as const, trend: 'up' as const },
-    { label: 'In Review', value: stats?.inReview ?? 0, icon: 'review' as const, trend: 'up' as const },
-    { label: 'Interviews', value: stats?.interviews ?? 0, icon: 'interview' as const, trend: 'up' as const },
-    { label: 'Offers', value: stats?.offers ?? 0, icon: 'offer' as const, trend: 'down' as const },
-    { label: 'Rejections', value: stats?.rejections ?? 0, icon: 'rejected' as const, trend: 'up' as const },
+    { label: t.totalApplications, value: stats?.totalApplications ?? 0, icon: 'total' as const, trend: 'up' as const },
+    { label: t.inReview, value: stats?.inReview ?? 0, icon: 'review' as const, trend: 'up' as const },
+    { label: t.interviews, value: stats?.interviews ?? 0, icon: 'interview' as const, trend: 'up' as const },
+    { label: t.offers, value: stats?.offers ?? 0, icon: 'offer' as const, trend: 'down' as const },
+    { label: t.rejections, value: stats?.rejections ?? 0, icon: 'rejected' as const, trend: 'up' as const },
   ]
 
   const quickStats = [
-    { label: 'Total Offers', value: stats?.offers ?? 0, color: 'var(--status-offer)' },
-    { label: 'Total Rejections', value: stats?.rejections ?? 0, color: 'var(--status-rejected)' },
+    { label: t.totalOffers, value: stats?.offers ?? 0, color: 'var(--status-offer)' },
+    { label: t.totalRejections, value: stats?.rejections ?? 0, color: 'var(--status-rejected)' },
   ]
 
   return (
@@ -230,8 +242,8 @@ export default function Dashboard() {
           {/* Application Pipeline */}
           <div className="pipeline-section">
             <div className="section-header">
-              <h2 className="section-title">Application Pipeline</h2>
-              <a href="#" className="section-link">View All ▾</a>
+              <h2 className="section-title">{t.applicationPipeline}</h2>
+              <a href="#" className="section-link">{t.viewAll} ▾</a>
             </div>
             <div className="pipeline-board">
               {pipelineColumns.map((col) => (
@@ -260,7 +272,7 @@ export default function Dashboard() {
                           {card.salary && <span>💰 {card.salary}</span>}
                         </div>
                         <div className="pipeline-card-footer">
-                          <span className="pipeline-card-date">Date Applied: {card.date}</span>
+                          <span className="pipeline-card-date">{t.dateApplied}: {card.date}</span>
                         </div>
                       </div>
                     ))}
@@ -273,22 +285,23 @@ export default function Dashboard() {
           {/* Recently Updated Applications */}
           <div className="recent-section">
             <div className="section-header">
-              <h2 className="section-title">Recently Updated Applications</h2>
+              <h2 className="section-title">{t.recentlyUpdated}</h2>
             </div>
             <div className="recent-table-wrapper">
               <table className="recent-table">
                 <thead>
                   <tr>
-                    <th>Position</th>
-                    <th>Company</th>
-                    <th>Location</th>
-                    <th>Last Action</th>
-                    <th>Status</th>
+                    <th>{t.position}</th>
+                    <th>{t.company}</th>
+                    <th>{t.location}</th>
+                    <th>{t.lastAction}</th>
+                    <th>{t.status}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {recentApps.map((app) => {
-                    const statusCfg = STATUS_CONFIG[app.status]
+                    const statusColor = STATUS_COLORS[app.status]
+                    const statusLabel = (t as any)[STATUS_LABEL_KEYS[app.status]] || app.status
                     const companyColor = getCompanyColor(app.company.name)
                     return (
                       <tr key={app.id}>
@@ -309,9 +322,9 @@ export default function Dashboard() {
                         <td>
                           <span
                             className="recent-status-badge"
-                            style={{ background: statusCfg.color }}
+                            style={{ background: statusColor }}
                           >
-                            {statusCfg.label}
+                            {statusLabel}
                           </span>
                         </td>
                       </tr>
@@ -327,7 +340,7 @@ export default function Dashboard() {
         <div className="dashboard-sidebar">
           {/* Upcoming Interviews */}
           <div className="upcoming-section">
-            <h3 className="sidebar-section-title">Upcoming Interviews</h3>
+            <h3 className="sidebar-section-title">{t.upcomingInterviews}</h3>
             <div className="upcoming-list">
               {interviews.map((interview, idx) => (
                 <div className="upcoming-item" key={interview.id}>
@@ -345,14 +358,14 @@ export default function Dashboard() {
                 </div>
               ))}
               {interviews.length === 0 && (
-                <div className="upcoming-empty">No upcoming interviews</div>
+                <div className="upcoming-empty">{t.noUpcomingInterviews}</div>
               )}
             </div>
           </div>
 
           {/* Quick Stats */}
           <div className="quick-stats-section">
-            <h3 className="sidebar-section-title">Quick Stats</h3>
+            <h3 className="sidebar-section-title">{t.quickStats}</h3>
             <div className="quick-stats-list">
               {quickStats.map((stat) => (
                 <div className="quick-stat-item" key={stat.label}>

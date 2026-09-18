@@ -8,13 +8,15 @@ import type {
   InterviewType,
   CreateInterviewRequest,
 } from '../api/types';
+import { useLanguage } from '../context/LanguageContext';
 import './ApplicationForm.css';
 
-const TYPE_OPTIONS: { value: InterviewType; label: string }[] = [
-  { value: 'PHONE', label: 'Phone' },
-  { value: 'VIDEO', label: 'Video' },
-  { value: 'ONSITE', label: 'Onsite' },
-];
+const TYPE_VALUES: InterviewType[] = ['PHONE', 'VIDEO', 'ONSITE'];
+const TYPE_LABEL_KEYS: Record<InterviewType, 'phone' | 'video' | 'onsite'> = {
+  PHONE: 'phone',
+  VIDEO: 'video',
+  ONSITE: 'onsite',
+};
 
 interface InterviewFormProps {
   interview?: InterviewDTO;
@@ -24,6 +26,7 @@ interface InterviewFormProps {
 
 export default function InterviewForm({ interview, onSuccess, onCancel }: InterviewFormProps) {
   const isEdit = !!interview;
+  const { t } = useLanguage();
 
   const [applications, setApplications] = useState<JobApplicationDTO[]>([]);
   const [loading, setLoading] = useState(false);
@@ -43,8 +46,8 @@ export default function InterviewForm({ interview, onSuccess, onCancel }: Interv
 
   function validate(): boolean {
     const newErrors: Record<string, string> = {};
-    if (!jobApplicationId) newErrors.jobApplicationId = 'Please select a job application';
-    if (!interviewDate) newErrors.interviewDate = 'Interview date is required';
+    if (!jobApplicationId) newErrors.jobApplicationId = t.selectJobApplicationRequired;
+    if (!interviewDate) newErrors.interviewDate = t.interviewDateRequired;
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }
@@ -70,7 +73,7 @@ export default function InterviewForm({ interview, onSuccess, onCancel }: Interv
       onSuccess();
     } catch (err) {
       console.error('Failed to save interview:', err);
-      setErrors({ form: 'Failed to save. Please try again.' });
+      setErrors({ form: t.saveFailed });
     } finally {
       setLoading(false);
     }
@@ -80,14 +83,14 @@ export default function InterviewForm({ interview, onSuccess, onCancel }: Interv
     <form className="app-form" onSubmit={handleSubmit}>
       <div className="app-form-field">
         <label className="app-form-label">
-          Job Application <span className="required">*</span>
+          {t.jobApplication} <span className="required">*</span>
         </label>
         <select
           className="app-form-select"
           value={jobApplicationId}
           onChange={(e) => setJobApplicationId(e.target.value ? Number(e.target.value) : '')}
         >
-          <option value="">Select a job application</option>
+          <option value="">{t.selectJobApplication}</option>
           {applications.map((app) => (
             <option key={app.id} value={app.id}>
               {app.positionTitle} - {app.company.name}
@@ -100,7 +103,7 @@ export default function InterviewForm({ interview, onSuccess, onCancel }: Interv
       <div className="app-form-row">
         <div className="app-form-field">
           <label className="app-form-label">
-            Interview Date <span className="required">*</span>
+            {t.interviewDate} <span className="required">*</span>
           </label>
           <input
             className="app-form-input"
@@ -111,26 +114,26 @@ export default function InterviewForm({ interview, onSuccess, onCancel }: Interv
           {errors.interviewDate && <span className="app-form-error">{errors.interviewDate}</span>}
         </div>
         <div className="app-form-field">
-          <label className="app-form-label">Interview Type</label>
+          <label className="app-form-label">{t.interviewType}</label>
           <select
             className="app-form-select"
             value={interviewType}
             onChange={(e) => setInterviewType(e.target.value as InterviewType)}
           >
-            {TYPE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            {TYPE_VALUES.map((val) => (
+              <option key={val} value={val}>{t[TYPE_LABEL_KEYS[val]]}</option>
             ))}
           </select>
         </div>
       </div>
 
       <div className="app-form-field">
-        <label className="app-form-label">Notes</label>
+        <label className="app-form-label">{t.notes}</label>
         <textarea
           className="app-form-textarea"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="Any notes about this interview..."
+          placeholder={t.interviewNotesPlaceholder}
         />
       </div>
 
@@ -138,10 +141,10 @@ export default function InterviewForm({ interview, onSuccess, onCancel }: Interv
 
       <div className="app-form-actions">
         <button type="button" className="app-form-btn app-form-btn--cancel" onClick={onCancel}>
-          Cancel
+          {t.cancel}
         </button>
         <button type="submit" className="app-form-btn app-form-btn--submit" disabled={loading}>
-          {loading ? 'Saving...' : isEdit ? 'Save Changes' : 'Schedule Interview'}
+          {loading ? t.saving : isEdit ? t.save : t.scheduleInterview}
         </button>
       </div>
     </form>
