@@ -141,6 +141,13 @@ public class JobApplicationService {
         jobApplicationRepository.delete(app);
     }
 
+    @Transactional
+    public void deleteBatch(Long userId, List<Long> ids) {
+        for (Long id : ids) {
+            delete(userId, id);
+        }
+    }
+
     public List<JobApplicationDTO> findRecent(Long userId) {
         return jobApplicationRepository.findTop10ByUserIdOrderByUpdatedAtDesc(userId).stream()
             .map(this::toDTO)

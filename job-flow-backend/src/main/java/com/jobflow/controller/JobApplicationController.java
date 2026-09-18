@@ -72,6 +72,12 @@ public class JobApplicationController {
         jobApplicationService.delete(getUserId(authentication), id);
     }
 
+    @DeleteMapping("/batch")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteBatch(@RequestBody List<Long> ids, Authentication authentication) {
+        jobApplicationService.deleteBatch(getUserId(authentication), ids);
+    }
+
     @GetMapping("/stats")
     public DashboardStatsDTO getStats(Authentication authentication) {
         return jobApplicationService.getStats(getUserId(authentication));
