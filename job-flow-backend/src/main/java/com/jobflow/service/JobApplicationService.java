@@ -40,11 +40,29 @@ public class JobApplicationService {
             .toList();
     }
 
-    public PageResponse<JobApplicationDTO> findAllPaged(Long userId, int page, int size, ApplicationStatus status) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "updatedAt"));
-        Page<JobApplication> result = (status != null)
-            ? jobApplicationRepository.findByUserIdAndStatus(userId, status, pageable)
-            : jobApplicationRepository.findByUserId(userId, pageable);
+    public PageResponse<JobApplicationDTO> findAllPaged(Long userId, int page, int size, ApplicationStatus status, String keyword, String sortBy, String sortDir) {
+        // Map frontend sort field names to entity property paths
+        String sortField = switch (sortBy) {
+            case "appliedDate" -> "appliedDate";
+            case "companyName" -> "company.name";
+            case "status" -> "status";
+            default -> "updatedAt";
+        };
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
+
+        Page<JobApplication> result;
+        boolean hasKeyword = keyword != null && !keyword.isBlank();
+
+        if (hasKeyword && status != null) {
+            result = jobApplicationRepository.searchByKeywordAndStatus(userId, keyword.trim(), status, pageable);
+        } else if (hasKeyword) {
+            result = jobApplicationRepository.searchByKeyword(userId, keyword.trim(), pageable);
+        } else if (status != null) {
+            result = jobApplicationRepository.findByUserIdAndStatus(userId, status, pageable);
+        } else {
+            result = jobApplicationRepository.findByUserId(userId, pageable);
+        }
 
         return PageResponse.<JobApplicationDTO>builder()
             .content(result.getContent().stream().map(this::toDTO).toList())
@@ -155,12 +173,21 @@ public class JobApplicationService {
     }
 
     public DashboardStatsDTO getStats(Long userId) {
+        long total = jobApplicationRepository.countByUserId(userId);
+        long interviews = jobApplicationRepository.countByUserIdAndStatus(userId, ApplicationStatus.INTERVIEW);
+        long offers = jobApplicationRepository.countByUserIdAndStatus(userId, ApplicationStatus.OFFER);
+
+        double interviewRate = total > 0 ? Math.round(interviews * 1000.0 / total) / 10.0 : 0;
+        double offerRate = total > 0 ? Math.round(offers * 1000.0 / total) / 10.0 : 0;
+
         return DashboardStatsDTO.builder()
-            .totalApplications(jobApplicationRepository.countByUserId(userId))
+            .totalApplications(total)
             .inReview(jobApplicationRepository.countByUserIdAndStatus(userId, ApplicationStatus.IN_REVIEW))
-            .interviews(jobApplicationRepository.countByUserIdAndStatus(userId, ApplicationStatus.INTERVIEW))
-            .offers(jobApplicationRepository.countByUserIdAndStatus(userId, ApplicationStatus.OFFER))
+            .interviews(interviews)
+            .offers(offers)
             .rejections(jobApplicationRepository.countByUserIdAndStatus(userId, ApplicationStatus.REJECTED))
+            .interviewRate(interviewRate)
+            .offerRate(offerRate)
             .build();
     }
 
@@ -178,6 +205,38 @@ public class JobApplicationService {
         return activity;
     }
 
+    public JobApplicationDTO toggleStar(Long userId, Long id) {
+        JobApplication app = jobApplicationRepository.findByIdAndUserId(id, userId)
+            .orElseThrow(() -> new NotFoundException("Job application not found: " + id));
+        app.setStarred(!app.isStarred());
+        return toDTO(jobApplicationRepository.save(app));
+    }
+
+    public String exportCsv(Long userId) {
+        List<JobApplication> apps = jobApplicationRepository.findByUserIdOrderByUpdatedAtDesc(userId);
+        StringBuilder sb = new StringBuilder();
+        sb.append("Position,Company,Status,Location,Salary,Applied Date,Last Action,Notes\n");
+        for (JobApplication app : apps) {
+            sb.append(escapeCsv(app.getPositionTitle())).append(',');
+            sb.append(escapeCsv(app.getCompany() != null ? app.getCompany().getName() : "")).append(',');
+            sb.append(app.getStatus()).append(',');
+            sb.append(escapeCsv(app.getLocation())).append(',');
+            sb.append(escapeCsv(app.getSalary())).append(',');
+            sb.append(app.getAppliedDate()).append(',');
+            sb.append(escapeCsv(app.getLastAction())).append(',');
+            sb.append(escapeCsv(app.getNotes())).append('\n');
+        }
+        return sb.toString();
+    }
+
+    private String escapeCsv(String value) {
+        if (value == null) return "";
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
+    }
+
     private JobApplicationDTO toDTO(JobApplication app) {
         return JobApplicationDTO.builder()
             .id(app.getId())
@@ -189,6 +248,7 @@ public class JobApplicationService {
             .appliedDate(app.getAppliedDate())
             .lastAction(app.getLastAction())
             .notes(app.getNotes())
+            .starred(app.isStarred())
             .createdAt(app.getCreatedAt())
             .updatedAt(app.getUpdatedAt())
             .build();

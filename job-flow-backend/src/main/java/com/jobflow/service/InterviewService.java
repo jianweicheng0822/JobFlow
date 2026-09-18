@@ -10,7 +10,9 @@ import com.jobflow.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Service
@@ -77,6 +79,7 @@ public class InterviewService {
 
     private InterviewDTO toDTO(Interview interview) {
         JobApplication app = interview.getJobApplication();
+        long daysUntil = ChronoUnit.DAYS.between(LocalDate.now(), interview.getInterviewDate().toLocalDate());
         return InterviewDTO.builder()
             .id(interview.getId())
             .jobApplicationId(app.getId())
@@ -85,6 +88,7 @@ public class InterviewService {
             .interviewDate(interview.getInterviewDate())
             .interviewType(interview.getInterviewType())
             .notes(interview.getNotes())
+            .daysUntil(daysUntil)
             .build();
     }
 }

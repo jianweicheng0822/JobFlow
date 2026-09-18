@@ -15,4 +15,8 @@ public class DashboardStatsDTO {
     private long interviews;
     private long offers;
     private long rejections;
+
+    // Conversion rates (percentage)
+    private double interviewRate;
+    private double offerRate;
 }

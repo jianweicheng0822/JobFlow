@@ -20,4 +20,5 @@ public class InterviewDTO {
     private LocalDateTime interviewDate;
     private InterviewType interviewType;
     private String notes;
+    private Long daysUntil;
 }

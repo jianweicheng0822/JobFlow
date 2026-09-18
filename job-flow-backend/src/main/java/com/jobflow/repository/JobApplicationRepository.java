@@ -21,6 +21,16 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
 
     Page<JobApplication> findByUserIdAndStatus(Long userId, ApplicationStatus status, Pageable pageable);
 
+    @Query("SELECT ja FROM JobApplication ja WHERE ja.user.id = :userId " +
+           "AND (LOWER(ja.positionTitle) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "OR LOWER(ja.company.name) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<JobApplication> searchByKeyword(Long userId, String keyword, Pageable pageable);
+
+    @Query("SELECT ja FROM JobApplication ja WHERE ja.user.id = :userId AND ja.status = :status " +
+           "AND (LOWER(ja.positionTitle) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "OR LOWER(ja.company.name) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<JobApplication> searchByKeywordAndStatus(Long userId, String keyword, ApplicationStatus status, Pageable pageable);
+
     List<JobApplication> findByUserIdAndStatusOrderByUpdatedAtDesc(Long userId, ApplicationStatus status);
 
     List<JobApplication> findTop10ByUserIdOrderByUpdatedAtDesc(Long userId);

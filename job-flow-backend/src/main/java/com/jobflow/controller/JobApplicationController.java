@@ -7,7 +7,10 @@ import com.jobflow.repository.UserRepository;
 import com.jobflow.service.JobApplicationService;
 import com.jobflow.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,8 +39,11 @@ public class JobApplicationController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) ApplicationStatus status,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "updatedAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
             Authentication authentication) {
-        return jobApplicationService.findAllPaged(getUserId(authentication), page, size, status);
+        return jobApplicationService.findAllPaged(getUserId(authentication), page, size, status, keyword, sortBy, sortDir);
     }
 
     @GetMapping("/{id}")
@@ -72,10 +78,25 @@ public class JobApplicationController {
         jobApplicationService.delete(getUserId(authentication), id);
     }
 
+    @PatchMapping("/{id}/star")
+    public JobApplicationDTO toggleStar(@PathVariable Long id, Authentication authentication) {
+        return jobApplicationService.toggleStar(getUserId(authentication), id);
+    }
+
     @DeleteMapping("/batch")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteBatch(@RequestBody List<Long> ids, Authentication authentication) {
         jobApplicationService.deleteBatch(getUserId(authentication), ids);
+    }
+
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> exportCsv(Authentication authentication) {
+        String csv = jobApplicationService.exportCsv(getUserId(authentication));
+        byte[] bytes = csv.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=applications.csv")
+            .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+            .body(bytes);
     }
 
     @GetMapping("/stats")

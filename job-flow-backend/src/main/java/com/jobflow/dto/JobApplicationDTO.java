@@ -23,6 +23,7 @@ public class JobApplicationDTO {
     private LocalDate appliedDate;
     private String lastAction;
     private String notes;
+    private boolean starred;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

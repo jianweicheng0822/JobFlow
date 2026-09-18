@@ -52,6 +52,10 @@ public class JobApplication {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean starred = false;
+
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
