@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +44,10 @@ public class InterviewService {
     }
 
     public InterviewDTO create(Long userId, CreateInterviewRequest request) {
+        if (request.getReminderHoursBefore() != null) {
+            validateReminderHours(request.getReminderHoursBefore());
+        }
+
         JobApplication app = jobApplicationRepository.findByIdAndUserId(request.getJobApplicationId(), userId)
             .orElseThrow(() -> new NotFoundException("Job application not found: " + request.getJobApplicationId()));
 
@@ -51,6 +56,8 @@ public class InterviewService {
             .interviewDate(request.getInterviewDate())
             .interviewType(request.getInterviewType())
             .notes(request.getNotes())
+            .reminderEnabled(request.getReminderEnabled() != null && request.getReminderEnabled())
+            .reminderHoursBefore(request.getReminderHoursBefore() != null ? request.getReminderHoursBefore() : 24)
             .build();
         return toDTO(interviewRepository.save(interview));
     }
@@ -64,9 +71,31 @@ public class InterviewService {
                 .orElseThrow(() -> new NotFoundException("Job application not found: " + request.getJobApplicationId()));
             interview.setJobApplication(app);
         }
-        if (request.getInterviewDate() != null) interview.setInterviewDate(request.getInterviewDate());
+        boolean shouldResetReminder = false;
+        if (request.getInterviewDate() != null) {
+            if (!request.getInterviewDate().equals(interview.getInterviewDate())) {
+                shouldResetReminder = true;
+            }
+            interview.setInterviewDate(request.getInterviewDate());
+        }
         if (request.getInterviewType() != null) interview.setInterviewType(request.getInterviewType());
         if (request.getNotes() != null) interview.setNotes(request.getNotes());
+        if (request.getReminderEnabled() != null) {
+            if (request.getReminderEnabled() != interview.isReminderEnabled()) {
+                shouldResetReminder = true;
+            }
+            interview.setReminderEnabled(request.getReminderEnabled());
+        }
+        if (request.getReminderHoursBefore() != null) {
+            validateReminderHours(request.getReminderHoursBefore());
+            if (request.getReminderHoursBefore() != interview.getReminderHoursBefore()) {
+                shouldResetReminder = true;
+            }
+            interview.setReminderHoursBefore(request.getReminderHoursBefore());
+        }
+        if (shouldResetReminder) {
+            interview.setReminderSent(false);
+        }
 
         return toDTO(interviewRepository.save(interview));
     }
@@ -75,6 +104,14 @@ public class InterviewService {
         Interview interview = interviewRepository.findByIdAndJobApplicationUserId(id, userId)
             .orElseThrow(() -> new NotFoundException("Interview not found: " + id));
         interviewRepository.delete(interview);
+    }
+
+    private static final Set<Integer> ALLOWED_REMINDER_HOURS = Set.of(1, 6, 24);
+
+    private void validateReminderHours(int hours) {
+        if (!ALLOWED_REMINDER_HOURS.contains(hours)) {
+            throw new IllegalArgumentException("reminderHoursBefore must be one of " + ALLOWED_REMINDER_HOURS);
+        }
     }
 
     private InterviewDTO toDTO(Interview interview) {
@@ -88,6 +125,9 @@ public class InterviewService {
             .interviewDate(interview.getInterviewDate())
             .interviewType(interview.getInterviewType())
             .notes(interview.getNotes())
+            .reminderEnabled(interview.isReminderEnabled())
+            .reminderHoursBefore(interview.getReminderHoursBefore())
+            .reminderSent(interview.isReminderSent())
             .daysUntil(daysUntil)
             .build();
     }
