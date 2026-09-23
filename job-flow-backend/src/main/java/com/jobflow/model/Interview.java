@@ -36,6 +36,18 @@ public class Interview {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean reminderEnabled = false;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private int reminderHoursBefore = 24;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean reminderSent = false;
+
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
