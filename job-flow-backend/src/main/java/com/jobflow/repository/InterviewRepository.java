@@ -25,4 +25,13 @@ public interface InterviewRepository extends JpaRepository<Interview, Long> {
     @Modifying
     @Query("DELETE FROM Interview i WHERE i.jobApplication.id IN :appIds")
     void deleteByJobApplicationIdIn(List<Long> appIds);
+
+    @Query(value = """
+        SELECT i.* FROM interviews i
+        WHERE i.reminder_enabled = 1
+          AND i.reminder_sent = 0
+          AND i.interview_date > NOW()
+          AND i.interview_date <= DATE_ADD(NOW(), INTERVAL i.reminder_hours_before HOUR)
+        """, nativeQuery = true)
+    List<Interview> findInterviewsNeedingReminder();
 }
