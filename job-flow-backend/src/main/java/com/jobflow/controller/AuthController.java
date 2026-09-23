@@ -9,6 +9,7 @@ import com.jobflow.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,8 +32,11 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public AuthResponse getCurrentUser(Authentication authentication) {
-        return authService.getCurrentUser(authentication.getName());
+    public ResponseEntity<AuthResponse> getCurrentUser(Authentication authentication) {
+        if (authentication == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.ok(authService.getCurrentUser(authentication.getName()));
     }
 
     @PutMapping("/profile")

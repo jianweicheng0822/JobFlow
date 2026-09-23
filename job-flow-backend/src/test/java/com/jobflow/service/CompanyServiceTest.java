@@ -4,6 +4,9 @@ import com.jobflow.dto.CompanyDTO;
 import com.jobflow.dto.CreateCompanyRequest;
 import com.jobflow.model.Company;
 import com.jobflow.repository.CompanyRepository;
+import com.jobflow.repository.EmailImportLogRepository;
+import com.jobflow.repository.InterviewRepository;
+import com.jobflow.repository.JobApplicationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,6 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,6 +29,15 @@ class CompanyServiceTest {
 
     @Mock
     private CompanyRepository companyRepository;
+
+    @Mock
+    private JobApplicationRepository jobApplicationRepository;
+
+    @Mock
+    private InterviewRepository interviewRepository;
+
+    @Mock
+    private EmailImportLogRepository emailImportLogRepository;
 
     @InjectMocks
     private CompanyService companyService;
@@ -119,6 +132,9 @@ class CompanyServiceTest {
 
     @Test
     void delete_callsRepository() {
+        when(jobApplicationRepository.findIdsByCompanyId(1L))
+                .thenReturn(Collections.emptyList());
+
         companyService.delete(1L);
 
         verify(companyRepository).deleteById(1L);
