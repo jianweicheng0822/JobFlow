@@ -268,4 +268,24 @@ class InterviewControllerIntegrationTest extends BaseIntegrationTest {
                         .content(json))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void createInterview_withReminder_returnsReminderFields() throws Exception {
+        Long companyId = createCompany(aliceToken);
+        Long appId = createApplication(aliceToken, companyId);
+
+        String json = String.format("""
+                {"jobApplicationId": %d, "interviewDate": "2030-06-15T10:00:00", "interviewType": "PHONE",
+                 "notes": "First round", "reminderEnabled": true, "reminderHoursBefore": 6}
+                """, appId);
+
+        mockMvc.perform(post("/api/interviews")
+                        .header("Authorization", "Bearer " + aliceToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.reminderEnabled").value(true))
+                .andExpect(jsonPath("$.reminderHoursBefore").value(6))
+                .andExpect(jsonPath("$.reminderSent").value(false));
+    }
 }

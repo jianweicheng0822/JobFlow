@@ -115,6 +115,65 @@ class InterviewServiceTest {
     }
 
     @Test
+    void create_withReminder_savesReminderFields() {
+        CreateInterviewRequest request = new CreateInterviewRequest();
+        request.setJobApplicationId(10L);
+        request.setInterviewDate(LocalDateTime.of(2030, 7, 1, 14, 0));
+        request.setInterviewType(InterviewType.ONSITE);
+        request.setNotes("On-site round");
+        request.setReminderEnabled(true);
+        request.setReminderHoursBefore(6);
+
+        when(jobApplicationRepository.findByIdAndUserId(10L, 1L))
+                .thenReturn(Optional.of(testApp));
+        when(interviewRepository.save(any(Interview.class)))
+                .thenAnswer(invocation -> {
+                    Interview saved = invocation.getArgument(0);
+                    saved.setId(102L);
+                    return saved;
+                });
+
+        InterviewDTO result = interviewService.create(1L, request);
+
+        assertThat(result.isReminderEnabled()).isTrue();
+        assertThat(result.getReminderHoursBefore()).isEqualTo(6);
+        assertThat(result.isReminderSent()).isFalse();
+    }
+
+    @Test
+    void create_withInvalidReminderHours_throwsException() {
+        CreateInterviewRequest request = new CreateInterviewRequest();
+        request.setJobApplicationId(10L);
+        request.setInterviewDate(LocalDateTime.of(2030, 7, 1, 14, 0));
+        request.setInterviewType(InterviewType.ONSITE);
+        request.setReminderHoursBefore(3);
+
+        assertThatThrownBy(() -> interviewService.create(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("reminderHoursBefore");
+    }
+
+    @Test
+    void update_reminderSettingsChanged_resetsReminderSent() {
+        testInterview.setReminderEnabled(true);
+        testInterview.setReminderHoursBefore(24);
+        testInterview.setReminderSent(true);
+
+        when(interviewRepository.findByIdAndJobApplicationUserId(100L, 1L))
+                .thenReturn(Optional.of(testInterview));
+        when(interviewRepository.save(any(Interview.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        CreateInterviewRequest request = new CreateInterviewRequest();
+        request.setReminderHoursBefore(6);
+
+        InterviewDTO result = interviewService.update(1L, 100L, request);
+
+        assertThat(result.getReminderHoursBefore()).isEqualTo(6);
+        assertThat(result.isReminderSent()).isFalse();
+    }
+
+    @Test
     void delete_notOwned_throwsException() {
         when(interviewRepository.findByIdAndJobApplicationUserId(100L, 2L))
                 .thenReturn(Optional.empty());
