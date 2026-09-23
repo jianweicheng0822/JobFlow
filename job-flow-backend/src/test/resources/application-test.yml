@@ -11,6 +11,9 @@ spring:
     show-sql: false
     database-platform: org.hibernate.dialect.H2Dialect
 
+  flyway:
+    enabled: false
+
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration
