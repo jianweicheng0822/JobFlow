@@ -11,4 +11,6 @@ public class CreateInterviewRequest {
     private LocalDateTime interviewDate;
     private InterviewType interviewType;
     private String notes;
+    private Boolean reminderEnabled;
+    private Integer reminderHoursBefore;
 }

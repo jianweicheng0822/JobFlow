@@ -20,5 +20,8 @@ public class InterviewDTO {
     private LocalDateTime interviewDate;
     private InterviewType interviewType;
     private String notes;
+    private boolean reminderEnabled;
+    private int reminderHoursBefore;
+    private boolean reminderSent;
     private Long daysUntil;
 }
