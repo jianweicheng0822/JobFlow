@@ -89,7 +89,7 @@ public class JobApplicationService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new NotFoundException("User not found"));
 
-        Company company = resolveCompany(request);
+        Company company = resolveCompany(user, request);
 
         JobApplication app = JobApplication.builder()
             .user(user)
@@ -105,10 +105,10 @@ public class JobApplicationService {
         return toDTO(jobApplicationRepository.save(app));
     }
 
-    // Look up company by ID, or find/create by name
-    private Company resolveCompany(CreateJobApplicationRequest request) {
+    // Look up company by ID (with ownership check), or find/create by name for user
+    private Company resolveCompany(User user, CreateJobApplicationRequest request) {
         if (request.getCompanyId() != null) {
-            return companyRepository.findById(request.getCompanyId())
+            return companyRepository.findByIdAndUserId(request.getCompanyId(), user.getId())
                 .orElseThrow(() -> new NotFoundException("Company not found: " + request.getCompanyId()));
         }
 
@@ -117,9 +117,9 @@ public class JobApplicationService {
             throw new RuntimeException("Either companyId or companyName is required");
         }
 
-        return companyRepository.findByNameIgnoreCase(name.trim())
+        return companyRepository.findByNameIgnoreCaseAndUserId(name.trim(), user.getId())
             .orElseGet(() -> companyRepository.save(
-                Company.builder().name(name.trim()).build()
+                Company.builder().name(name.trim()).user(user).build()
             ));
     }
 
@@ -128,7 +128,7 @@ public class JobApplicationService {
             .orElseThrow(() -> new NotFoundException("Job application not found: " + id));
 
         if (request.getCompanyId() != null) {
-            Company company = companyRepository.findById(request.getCompanyId())
+            Company company = companyRepository.findByIdAndUserId(request.getCompanyId(), userId)
                 .orElseThrow(() -> new NotFoundException("Company not found: " + request.getCompanyId()));
             app.setCompany(company);
         }

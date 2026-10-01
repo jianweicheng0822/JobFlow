@@ -165,11 +165,11 @@ public class GmailService {
                 continue;
             }
 
-            // Find or create company (same pattern as JobApplicationService.resolveCompany)
+            // Find or create company scoped to user
             String companyName = item.getCompanyName() != null ? item.getCompanyName().trim() : "Unknown";
-            Company company = companyRepository.findByNameIgnoreCase(companyName)
+            Company company = companyRepository.findByNameIgnoreCaseAndUserId(companyName, userId)
                     .orElseGet(() -> companyRepository.save(
-                            Company.builder().name(companyName).build()
+                            Company.builder().name(companyName).user(user).build()
                     ));
 
             // Create job application

@@ -3,10 +3,12 @@ package com.jobflow.service;
 import com.jobflow.dto.CompanyDTO;
 import com.jobflow.dto.CreateCompanyRequest;
 import com.jobflow.model.Company;
+import com.jobflow.model.User;
 import com.jobflow.repository.CompanyRepository;
 import com.jobflow.repository.EmailImportLogRepository;
 import com.jobflow.repository.InterviewRepository;
 import com.jobflow.repository.JobApplicationRepository;
+import com.jobflow.repository.UserRepository;
 import com.jobflow.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,31 +24,36 @@ public class CompanyService {
     private final JobApplicationRepository jobApplicationRepository;
     private final InterviewRepository interviewRepository;
     private final EmailImportLogRepository emailImportLogRepository;
+    private final UserRepository userRepository;
 
-    public List<CompanyDTO> findAll() {
-        return companyRepository.findAll().stream()
+    public List<CompanyDTO> findAll(Long userId) {
+        return companyRepository.findByUserId(userId).stream()
             .map(this::toDTO)
             .toList();
     }
 
-    public CompanyDTO findById(Long id) {
-        Company company = companyRepository.findById(id)
+    public CompanyDTO findById(Long userId, Long id) {
+        Company company = companyRepository.findByIdAndUserId(id, userId)
             .orElseThrow(() -> new NotFoundException("Company not found: " + id));
         return toDTO(company);
     }
 
-    public CompanyDTO create(CreateCompanyRequest request) {
+    public CompanyDTO create(Long userId, CreateCompanyRequest request) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new NotFoundException("User not found"));
+
         Company company = Company.builder()
             .name(request.getName())
             .logoUrl(request.getLogoUrl())
             .location(request.getLocation())
             .website(request.getWebsite())
+            .user(user)
             .build();
         return toDTO(companyRepository.save(company));
     }
 
-    public CompanyDTO update(Long id, CreateCompanyRequest request) {
-        Company company = companyRepository.findById(id)
+    public CompanyDTO update(Long userId, Long id, CreateCompanyRequest request) {
+        Company company = companyRepository.findByIdAndUserId(id, userId)
             .orElseThrow(() -> new NotFoundException("Company not found: " + id));
         company.setName(request.getName());
         company.setLogoUrl(request.getLogoUrl());
@@ -56,7 +63,10 @@ public class CompanyService {
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(Long userId, Long id) {
+        companyRepository.findByIdAndUserId(id, userId)
+            .orElseThrow(() -> new NotFoundException("Company not found: " + id));
+
         List<Long> appIds = jobApplicationRepository.findIdsByCompanyId(id);
         if (!appIds.isEmpty()) {
             interviewRepository.deleteByJobApplicationIdIn(appIds);
