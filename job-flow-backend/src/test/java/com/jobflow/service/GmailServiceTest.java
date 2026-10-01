@@ -114,8 +114,8 @@ class GmailServiceTest {
         when(emailImportLogRepository.existsByUserIdAndGmailMessageId(1L, "msg2")).thenReturn(false);
 
         Company company = Company.builder().id(10L).name("Google").build();
-        when(companyRepository.findByNameIgnoreCase("Google")).thenReturn(Optional.of(company));
-        when(companyRepository.findByNameIgnoreCase("Meta")).thenReturn(Optional.empty());
+        when(companyRepository.findByNameIgnoreCaseAndUserId("Google", 1L)).thenReturn(Optional.of(company));
+        when(companyRepository.findByNameIgnoreCaseAndUserId("Meta", 1L)).thenReturn(Optional.empty());
         Company metaCompany = Company.builder().id(11L).name("Meta").build();
         when(companyRepository.save(any(Company.class))).thenReturn(metaCompany);
         when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> {
@@ -161,7 +161,7 @@ class GmailServiceTest {
         when(emailImportLogRepository.existsByUserIdAndGmailMessageId(1L, "msg1")).thenReturn(false);
 
         Company unknownCompany = Company.builder().id(12L).name("Unknown").build();
-        when(companyRepository.findByNameIgnoreCase("Unknown")).thenReturn(Optional.of(unknownCompany));
+        when(companyRepository.findByNameIgnoreCaseAndUserId("Unknown", 1L)).thenReturn(Optional.of(unknownCompany));
         when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> {
             JobApplication app = inv.getArgument(0);
             app.setId(101L);
@@ -176,7 +176,7 @@ class GmailServiceTest {
         GmailImportResultDTO result = gmailService.importApplications(1L, request);
 
         assertThat(result.getImportedCount()).isEqualTo(1);
-        verify(companyRepository).findByNameIgnoreCase("Unknown");
+        verify(companyRepository).findByNameIgnoreCaseAndUserId("Unknown", 1L);
     }
 
     @Test
@@ -184,7 +184,7 @@ class GmailServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(emailImportLogRepository.existsByUserIdAndGmailMessageId(1L, "msg1")).thenReturn(false);
         Company company = Company.builder().id(10L).name("Google").build();
-        when(companyRepository.findByNameIgnoreCase("Google")).thenReturn(Optional.of(company));
+        when(companyRepository.findByNameIgnoreCaseAndUserId("Google", 1L)).thenReturn(Optional.of(company));
         when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> {
             JobApplication app = inv.getArgument(0);
             app.setId(102L);
@@ -205,7 +205,7 @@ class GmailServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(emailImportLogRepository.existsByUserIdAndGmailMessageId(1L, "msg1")).thenReturn(false);
         Company company = Company.builder().id(10L).name("Google").build();
-        when(companyRepository.findByNameIgnoreCase("Google")).thenReturn(Optional.of(company));
+        when(companyRepository.findByNameIgnoreCaseAndUserId("Google", 1L)).thenReturn(Optional.of(company));
         when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> {
             JobApplication app = inv.getArgument(0);
             app.setId(103L);
@@ -227,7 +227,7 @@ class GmailServiceTest {
         when(emailImportLogRepository.existsByUserIdAndGmailMessageId(1L, "msg1")).thenReturn(true);
         when(emailImportLogRepository.existsByUserIdAndGmailMessageId(1L, "msg2")).thenReturn(false);
         Company company = Company.builder().id(10L).name("Google").build();
-        when(companyRepository.findByNameIgnoreCase("Google")).thenReturn(Optional.of(company));
+        when(companyRepository.findByNameIgnoreCaseAndUserId("Google", 1L)).thenReturn(Optional.of(company));
         when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> {
             JobApplication app = inv.getArgument(0);
             app.setId(104L);

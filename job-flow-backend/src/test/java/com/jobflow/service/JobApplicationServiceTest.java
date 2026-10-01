@@ -247,7 +247,7 @@ class JobApplicationServiceTest {
         CompanyDTO newCompanyDTO = CompanyDTO.builder().id(20L).name("NewCorp").build();
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(companyRepository.findByNameIgnoreCase("NewCorp")).thenReturn(Optional.empty());
+        when(companyRepository.findByNameIgnoreCaseAndUserId("NewCorp", 1L)).thenReturn(Optional.empty());
         when(companyRepository.save(any(Company.class))).thenReturn(newCompany);
         when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> {
             JobApplication saved = inv.getArgument(0);
@@ -269,7 +269,7 @@ class JobApplicationServiceTest {
         request.setCompanyName("TestCorp");
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(companyRepository.findByNameIgnoreCase("TestCorp")).thenReturn(Optional.of(testCompany));
+        when(companyRepository.findByNameIgnoreCaseAndUserId("TestCorp", 1L)).thenReturn(Optional.of(testCompany));
         when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> {
             JobApplication saved = inv.getArgument(0);
             saved.setId(103L);

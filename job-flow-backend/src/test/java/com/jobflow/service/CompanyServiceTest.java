@@ -3,10 +3,12 @@ package com.jobflow.service;
 import com.jobflow.dto.CompanyDTO;
 import com.jobflow.dto.CreateCompanyRequest;
 import com.jobflow.model.Company;
+import com.jobflow.model.User;
 import com.jobflow.repository.CompanyRepository;
 import com.jobflow.repository.EmailImportLogRepository;
 import com.jobflow.repository.InterviewRepository;
 import com.jobflow.repository.JobApplicationRepository;
+import com.jobflow.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,13 +41,19 @@ class CompanyServiceTest {
     @Mock
     private EmailImportLogRepository emailImportLogRepository;
 
+    @Mock
+    private UserRepository userRepository;
+
     @InjectMocks
     private CompanyService companyService;
 
+    private User testUser;
     private Company testCompany;
 
     @BeforeEach
     void setUp() {
+        testUser = User.builder().id(1L).email("test@example.com").build();
+
         testCompany = Company.builder()
                 .id(1L)
                 .name("Acme Inc")
@@ -64,9 +72,9 @@ class CompanyServiceTest {
                 .website("https://globex.com")
                 .build();
 
-        when(companyRepository.findAll()).thenReturn(List.of(testCompany, second));
+        when(companyRepository.findByUserId(1L)).thenReturn(List.of(testCompany, second));
 
-        List<CompanyDTO> result = companyService.findAll();
+        List<CompanyDTO> result = companyService.findAll(1L);
 
         assertThat(result).hasSize(2);
         assertThat(result.get(0).getId()).isEqualTo(1L);
@@ -77,9 +85,9 @@ class CompanyServiceTest {
 
     @Test
     void findById_notFound_throwsException() {
-        when(companyRepository.findById(999L)).thenReturn(Optional.empty());
+        when(companyRepository.findByIdAndUserId(999L, 1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> companyService.findById(999L))
+        assertThatThrownBy(() -> companyService.findById(1L, 999L))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Company not found");
     }
@@ -92,6 +100,7 @@ class CompanyServiceTest {
         request.setWebsite("https://newco.com");
         request.setLogoUrl("https://newco.com/logo.png");
 
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(companyRepository.save(any(Company.class)))
                 .thenAnswer(invocation -> {
                     Company saved = invocation.getArgument(0);
@@ -99,7 +108,7 @@ class CompanyServiceTest {
                     return saved;
                 });
 
-        CompanyDTO result = companyService.create(request);
+        CompanyDTO result = companyService.create(1L, request);
 
         assertThat(result.getId()).isEqualTo(5L);
         assertThat(result.getName()).isEqualTo("NewCo");
@@ -112,7 +121,7 @@ class CompanyServiceTest {
 
     @Test
     void update_modifiesFields() {
-        when(companyRepository.findById(1L)).thenReturn(Optional.of(testCompany));
+        when(companyRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(testCompany));
         when(companyRepository.save(any(Company.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -122,7 +131,7 @@ class CompanyServiceTest {
         request.setWebsite("https://updated.com");
         request.setLogoUrl(null);
 
-        CompanyDTO result = companyService.update(1L, request);
+        CompanyDTO result = companyService.update(1L, 1L, request);
 
         assertThat(result.getName()).isEqualTo("Updated Name");
         assertThat(result.getLocation()).isEqualTo("Austin");
@@ -132,10 +141,11 @@ class CompanyServiceTest {
 
     @Test
     void delete_callsRepository() {
+        when(companyRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(testCompany));
         when(jobApplicationRepository.findIdsByCompanyId(1L))
                 .thenReturn(Collections.emptyList());
 
-        companyService.delete(1L);
+        companyService.delete(1L, 1L);
 
         verify(companyRepository).deleteById(1L);
     }
