@@ -3,6 +3,8 @@ import type { FormEvent } from 'react';
 import { createCompany, updateCompany } from '../api/companies';
 import type { CompanyDTO, CreateCompanyRequest } from '../api/types';
 import { useLanguage } from '../context/LanguageContext';
+import AutocompleteInput from './AutocompleteInput';
+import LOCATIONS from '../data/locations';
 import './ApplicationForm.css';
 
 interface CompanyFormProps {
@@ -76,11 +78,10 @@ export default function CompanyForm({ company, onSuccess, onCancel }: CompanyFor
       <div className="app-form-row">
         <div className="app-form-field">
           <label className="app-form-label">{t.location}</label>
-          <input
-            className="app-form-input"
-            type="text"
+          <AutocompleteInput
             value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            onChange={setLocation}
+            suggestions={LOCATIONS}
             placeholder={t.companyLocationPlaceholder}
           />
         </div>

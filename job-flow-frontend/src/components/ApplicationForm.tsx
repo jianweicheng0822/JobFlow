@@ -12,6 +12,9 @@ import type {
 import { useToast } from '../context/ToastContext';
 import { getErrorMessage } from '../api/client';
 import { useLanguage } from '../context/LanguageContext';
+import AutocompleteInput from './AutocompleteInput';
+import LOCATIONS from '../data/locations';
+import JOB_TITLES from '../data/jobTitles';
 import './ApplicationForm.css';
 
 const STATUS_LABEL_KEYS: Record<ApplicationStatus, string> = {
@@ -124,11 +127,10 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
         <label className="app-form-label">
           {t.positionTitle} <span className="required">*</span>
         </label>
-        <input
-          className="app-form-input"
-          type="text"
+        <AutocompleteInput
           value={positionTitle}
-          onChange={(e) => setPositionTitle(e.target.value)}
+          onChange={setPositionTitle}
+          suggestions={JOB_TITLES}
           placeholder={t.positionPlaceholder}
         />
         {errors.positionTitle && <span className="app-form-error">{errors.positionTitle}</span>}
@@ -152,11 +154,11 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
           autoComplete="off"
         />
         {showDropdown && companyInput.trim() && (
-          <div className="company-dropdown">
+          <div className="autocomplete-dropdown">
             {filteredCompanies.map((c) => (
               <div
                 key={c.id}
-                className="company-dropdown-item"
+                className="autocomplete-dropdown-item"
                 onMouseDown={() => {
                   setCompanyInput(c.name);
                   setSelectedCompanyId(c.id);
@@ -164,11 +166,11 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
                 }}
               >
                 {c.name}
-                {c.location && <span className="company-dropdown-loc">{c.location}</span>}
+                {c.location && <span className="autocomplete-dropdown-loc">{c.location}</span>}
               </div>
             ))}
             {filteredCompanies.length === 0 && (
-              <div className="company-dropdown-new">
+              <div className="autocomplete-dropdown-new">
                 {t.addNewCompany.replace('{name}', companyInput.trim())}
               </div>
             )}
@@ -180,11 +182,10 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
       <div className="app-form-row">
         <div className="app-form-field">
           <label className="app-form-label">{t.location}</label>
-          <input
-            className="app-form-input"
-            type="text"
+          <AutocompleteInput
             value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            onChange={setLocation}
+            suggestions={LOCATIONS}
             placeholder={t.locationPlaceholder}
           />
         </div>
