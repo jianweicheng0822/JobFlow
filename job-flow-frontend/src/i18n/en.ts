@@ -14,6 +14,7 @@ const en = {
   save: 'Save Changes',
   saving: 'Saving...',
   search: 'Search...',
+  noSearchResults: 'No results found',
   filter: 'Filter',
   reset: 'Reset',
   actions: 'Actions',

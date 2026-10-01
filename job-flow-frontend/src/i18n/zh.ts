@@ -14,6 +14,7 @@ const zh = {
   save: '保存更改',
   saving: '保存中...',
   search: '搜索...',
+  noSearchResults: '未找到结果',
   filter: '筛选',
   reset: '重置',
   actions: '操作',
