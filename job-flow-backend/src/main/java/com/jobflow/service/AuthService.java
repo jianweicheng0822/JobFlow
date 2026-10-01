@@ -81,6 +81,9 @@ public class AuthService {
             if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
                 throw new IllegalArgumentException("Current password is incorrect");
             }
+            if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+                throw new IllegalArgumentException("New password cannot be the same as your current password");
+            }
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));

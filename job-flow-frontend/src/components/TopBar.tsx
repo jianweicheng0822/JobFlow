@@ -93,7 +93,6 @@ export default function TopBar() {
           </div>
           <div className="topbar-avatar-info">
             <span className="topbar-avatar-name">{displayName}</span>
-            <span className="topbar-avatar-role">{user?.email}</span>
           </div>
         </div>
 

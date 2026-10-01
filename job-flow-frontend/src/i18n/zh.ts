@@ -168,6 +168,7 @@ const zh = {
   fillAllFields: '请填写所有必填项。',
   newPasswordMismatch: '两次输入的新密码不一致。',
   passwordMinLength: '新密码至少需要 6 个字符。',
+  passwordSameAsOld: '新密码不能与当前密码相同。',
   updatePassword: '更新密码',
   updating: '更新中...',
   profileUpdated: '个人资料已更新',

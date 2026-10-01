@@ -168,6 +168,7 @@ const en = {
   fillAllFields: 'Please fill in all required fields.',
   newPasswordMismatch: 'New passwords do not match.',
   passwordMinLength: 'New password must be at least 6 characters.',
+  passwordSameAsOld: 'New password cannot be the same as your current password.',
   updatePassword: 'Update Password',
   updating: 'Updating...',
   profileUpdated: 'Profile updated',

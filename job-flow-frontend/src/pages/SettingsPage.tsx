@@ -204,6 +204,10 @@ export default function SettingsPage() {
       setPasswordMsg({ type: 'error', text: t.passwordMinLength })
       return
     }
+    if (needsCurrentPassword && newPassword === currentPassword) {
+      setPasswordMsg({ type: 'error', text: t.passwordSameAsOld })
+      return
+    }
 
     setPasswordLoading(true)
     try {
@@ -291,27 +295,9 @@ export default function SettingsPage() {
                   type="email"
                   className="settings-input"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  disabled
                 />
               </div>
-            </div>
-            <div className="settings-field">
-              <label className="settings-label">{t.jobTitleLabel}</label>
-              <input
-                type="text"
-                className="settings-input"
-                value={jobTitle}
-                onChange={(e) => setJobTitle(e.target.value)}
-              />
-            </div>
-            <div className="settings-field">
-              <label className="settings-label">{t.bio}</label>
-              <textarea
-                className="settings-textarea"
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                placeholder={t.bioPlaceholder}
-              />
             </div>
             <div className="settings-actions">
               <button className="settings-btn-secondary" onClick={handleCancelProfile}>{t.cancel}</button>
