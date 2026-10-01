@@ -54,7 +54,7 @@ function buildCompanyViews(companies: CompanyDTO[], applications: JobApplication
 
 export default function Companies() {
   const [companies, setCompanies] = useState<CompanyDTO[]>([])
-  const [applications, setApplications] = useState<JobApplicationDTO[]>([])
+  const [, setApplications] = useState<JobApplicationDTO[]>([])
   const [companyViews, setCompanyViews] = useState<CompanyView[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

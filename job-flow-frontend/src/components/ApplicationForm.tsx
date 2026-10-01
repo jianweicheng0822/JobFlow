@@ -105,7 +105,7 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
         await updateApplication(application!.id, data as UpdateJobApplicationRequest);
         showToast(t.applicationUpdated, 'success');
       } else {
-        await createApplication(data as CreateJobApplicationRequest);
+        await createApplication(data as unknown as CreateJobApplicationRequest);
         showToast(t.applicationCreated, 'success');
       }
       onSuccess();
