@@ -1,6 +1,8 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import CompanyForm from '../CompanyForm';
+import { ToastProvider } from '../../context/ToastContext';
+import { LanguageProvider } from '../../context/LanguageContext';
 import type { CompanyDTO } from '../../api/types';
 
 // Mock API modules
@@ -8,6 +10,14 @@ vi.mock('../../api/companies', () => ({
   createCompany: vi.fn().mockResolvedValue({ data: {} }),
   updateCompany: vi.fn().mockResolvedValue({ data: {} }),
 }));
+
+function Wrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <LanguageProvider>
+      <ToastProvider>{children}</ToastProvider>
+    </LanguageProvider>
+  );
+}
 
 describe('CompanyForm', () => {
   const onSuccess = vi.fn();
@@ -18,7 +28,7 @@ describe('CompanyForm', () => {
   });
 
   it('renders all form fields', () => {
-    render(<CompanyForm onSuccess={onSuccess} onCancel={onCancel} />);
+    render(<CompanyForm onSuccess={onSuccess} onCancel={onCancel} />, { wrapper: Wrapper });
 
     expect(screen.getByText('Company Name')).toBeInTheDocument();
     expect(screen.getByText('Location')).toBeInTheDocument();
@@ -27,7 +37,7 @@ describe('CompanyForm', () => {
   });
 
   it('shows validation error for empty company name', () => {
-    render(<CompanyForm onSuccess={onSuccess} onCancel={onCancel} />);
+    render(<CompanyForm onSuccess={onSuccess} onCancel={onCancel} />, { wrapper: Wrapper });
 
     fireEvent.click(screen.getByRole('button', { name: /add company/i }));
 
@@ -44,7 +54,7 @@ describe('CompanyForm', () => {
       logoUrl: 'https://acme.com/logo.png',
     };
 
-    render(<CompanyForm company={company} onSuccess={onSuccess} onCancel={onCancel} />);
+    render(<CompanyForm company={company} onSuccess={onSuccess} onCancel={onCancel} />, { wrapper: Wrapper });
 
     expect(screen.getByDisplayValue('Acme Inc')).toBeInTheDocument();
     expect(screen.getByDisplayValue('San Francisco')).toBeInTheDocument();
@@ -53,7 +63,7 @@ describe('CompanyForm', () => {
   });
 
   it('calls onCancel when Cancel clicked', () => {
-    render(<CompanyForm onSuccess={onSuccess} onCancel={onCancel} />);
+    render(<CompanyForm onSuccess={onSuccess} onCancel={onCancel} />, { wrapper: Wrapper });
 
     fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
 

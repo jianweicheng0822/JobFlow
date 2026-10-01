@@ -239,6 +239,11 @@ const en = {
   interviewDateRequired: 'Interview date is required',
   interviewType: 'Interview Type',
   interviewNotesPlaceholder: 'Any notes about this interview...',
+  enableReminder: 'Enable email reminder',
+  remindBefore: 'Remind me before',
+  oneHour: '1 hour',
+  sixHours: '6 hours',
+  twentyFourHours: '24 hours',
 
   // Gmail Import Modal
   gmailScanResults: 'Gmail Scan Results',

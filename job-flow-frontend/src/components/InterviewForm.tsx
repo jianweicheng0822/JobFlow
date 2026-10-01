@@ -39,6 +39,8 @@ export default function InterviewForm({ interview, onSuccess, onCancel }: Interv
   );
   const [interviewType, setInterviewType] = useState<InterviewType>(interview?.interviewType ?? 'VIDEO');
   const [notes, setNotes] = useState(interview?.notes ?? '');
+  const [reminderEnabled, setReminderEnabled] = useState(interview?.reminderEnabled ?? false);
+  const [reminderHoursBefore, setReminderHoursBefore] = useState(interview?.reminderHoursBefore ?? 24);
 
   useEffect(() => {
     getApplications().then((res) => setApplications(res.data));
@@ -63,6 +65,8 @@ export default function InterviewForm({ interview, onSuccess, onCancel }: Interv
         interviewDate,
         interviewType,
         notes: notes.trim() || undefined,
+        reminderEnabled,
+        reminderHoursBefore: reminderEnabled ? reminderHoursBefore : undefined,
       };
 
       if (isEdit) {
@@ -136,6 +140,32 @@ export default function InterviewForm({ interview, onSuccess, onCancel }: Interv
           placeholder={t.interviewNotesPlaceholder}
         />
       </div>
+
+      <div className="app-form-field">
+        <label className="app-form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input
+            type="checkbox"
+            checked={reminderEnabled}
+            onChange={(e) => setReminderEnabled(e.target.checked)}
+          />
+          {t.enableReminder || 'Enable email reminder'}
+        </label>
+      </div>
+
+      {reminderEnabled && (
+        <div className="app-form-field">
+          <label className="app-form-label">{t.remindBefore || 'Remind me before'}</label>
+          <select
+            className="app-form-select"
+            value={reminderHoursBefore}
+            onChange={(e) => setReminderHoursBefore(Number(e.target.value))}
+          >
+            <option value={1}>{t.oneHour || '1 hour'}</option>
+            <option value={6}>{t.sixHours || '6 hours'}</option>
+            <option value={24}>{t.twentyFourHours || '24 hours'}</option>
+          </select>
+        </div>
+      )}
 
       {errors.form && <span className="app-form-error">{errors.form}</span>}
 

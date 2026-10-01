@@ -28,6 +28,7 @@ export interface JobApplicationDTO {
   appliedDate: string | null; // ISO date string
   lastAction: string | null;
   notes: string | null;
+  starred: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -40,6 +41,10 @@ export interface InterviewDTO {
   interviewDate: string; // ISO datetime string
   interviewType: InterviewType;
   notes: string | null;
+  reminderEnabled: boolean;
+  reminderHoursBefore: number;
+  reminderSent: boolean;
+  daysUntil: number;
 }
 
 export interface DashboardStatsDTO {
@@ -48,6 +53,8 @@ export interface DashboardStatsDTO {
   interviews: number;
   offers: number;
   rejections: number;
+  interviewRate: number;
+  offerRate: number;
 }
 
 export interface ApplicationActivityDTO {
@@ -92,6 +99,8 @@ export interface CreateInterviewRequest {
   interviewDate: string; // ISO datetime string
   interviewType: InterviewType;
   notes?: string;
+  reminderEnabled?: boolean;
+  reminderHoursBefore?: number;
 }
 
 export interface CreateCompanyRequest {

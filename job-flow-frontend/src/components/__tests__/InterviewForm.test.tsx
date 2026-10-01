@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import InterviewForm from '../InterviewForm';
+import { LanguageProvider } from '../../context/LanguageContext';
 import type { InterviewDTO, JobApplicationDTO } from '../../api/types';
 
 // Mock API modules
@@ -26,6 +27,10 @@ vi.mock('../../api/interviews', () => ({
   updateInterview: vi.fn().mockResolvedValue({ data: {} }),
 }));
 
+function Wrapper({ children }: { children: React.ReactNode }) {
+  return <LanguageProvider>{children}</LanguageProvider>;
+}
+
 describe('InterviewForm', () => {
   const onSuccess = vi.fn();
   const onCancel = vi.fn();
@@ -35,7 +40,7 @@ describe('InterviewForm', () => {
   });
 
   it('renders all form fields', async () => {
-    render(<InterviewForm onSuccess={onSuccess} onCancel={onCancel} />);
+    render(<InterviewForm onSuccess={onSuccess} onCancel={onCancel} />, { wrapper: Wrapper });
 
     expect(screen.getByText('Job Application')).toBeInTheDocument();
     expect(screen.getByText('Interview Date')).toBeInTheDocument();
@@ -44,7 +49,7 @@ describe('InterviewForm', () => {
   });
 
   it('shows validation errors when submitting empty required fields', async () => {
-    render(<InterviewForm onSuccess={onSuccess} onCancel={onCancel} />);
+    render(<InterviewForm onSuccess={onSuccess} onCancel={onCancel} />, { wrapper: Wrapper });
 
     fireEvent.click(screen.getByRole('button', { name: /schedule interview/i }));
 
@@ -62,16 +67,20 @@ describe('InterviewForm', () => {
       interviewDate: '2030-06-15T10:00:00',
       interviewType: 'PHONE',
       notes: 'Prep algorithms',
+      reminderEnabled: false,
+      reminderHoursBefore: 24,
+      reminderSent: false,
+      daysUntil: 999,
     };
 
-    render(<InterviewForm interview={interview} onSuccess={onSuccess} onCancel={onCancel} />);
+    render(<InterviewForm interview={interview} onSuccess={onSuccess} onCancel={onCancel} />, { wrapper: Wrapper });
 
     expect(screen.getByDisplayValue('2030-06-15T10:00')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Prep algorithms')).toBeInTheDocument();
   });
 
   it('calls onCancel when Cancel clicked', () => {
-    render(<InterviewForm onSuccess={onSuccess} onCancel={onCancel} />);
+    render(<InterviewForm onSuccess={onSuccess} onCancel={onCancel} />, { wrapper: Wrapper });
 
     fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
 
@@ -79,7 +88,7 @@ describe('InterviewForm', () => {
   });
 
   it('shows "Schedule Interview" in create mode, "Save Changes" in edit mode', () => {
-    const { unmount } = render(<InterviewForm onSuccess={onSuccess} onCancel={onCancel} />);
+    const { unmount } = render(<InterviewForm onSuccess={onSuccess} onCancel={onCancel} />, { wrapper: Wrapper });
     expect(screen.getByRole('button', { name: /schedule interview/i })).toBeInTheDocument();
     unmount();
 
@@ -91,9 +100,13 @@ describe('InterviewForm', () => {
       interviewDate: '2030-06-15T10:00:00',
       interviewType: 'PHONE',
       notes: null,
+      reminderEnabled: false,
+      reminderHoursBefore: 24,
+      reminderSent: false,
+      daysUntil: 999,
     };
 
-    render(<InterviewForm interview={interview} onSuccess={onSuccess} onCancel={onCancel} />);
+    render(<InterviewForm interview={interview} onSuccess={onSuccess} onCancel={onCancel} />, { wrapper: Wrapper });
     expect(screen.getByRole('button', { name: /save changes/i })).toBeInTheDocument();
   });
 });

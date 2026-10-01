@@ -239,6 +239,11 @@ const zh = {
   interviewDateRequired: '请选择面试日期',
   interviewType: '面试类型',
   interviewNotesPlaceholder: '添加面试备注...',
+  enableReminder: '启用邮件提醒',
+  remindBefore: '提前提醒',
+  oneHour: '1 小时',
+  sixHours: '6 小时',
+  twentyFourHours: '24 小时',
 
   // Gmail Import Modal
   gmailScanResults: 'Gmail 扫描结果',

@@ -1,6 +1,8 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ApplicationForm from '../ApplicationForm';
+import { ToastProvider } from '../../context/ToastContext';
+import { LanguageProvider } from '../../context/LanguageContext';
 import type { JobApplicationDTO } from '../../api/types';
 
 // Mock API modules
@@ -17,6 +19,14 @@ vi.mock('../../api/applications', () => ({
   updateApplication: vi.fn().mockResolvedValue({ data: {} }),
 }));
 
+function Wrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <LanguageProvider>
+      <ToastProvider>{children}</ToastProvider>
+    </LanguageProvider>
+  );
+}
+
 describe('ApplicationForm', () => {
   const onSuccess = vi.fn();
   const onCancel = vi.fn();
@@ -26,7 +36,7 @@ describe('ApplicationForm', () => {
   });
 
   it('renders all form fields', () => {
-    render(<ApplicationForm onSuccess={onSuccess} onCancel={onCancel} />);
+    render(<ApplicationForm onSuccess={onSuccess} onCancel={onCancel} />, { wrapper: Wrapper });
 
     expect(screen.getByText('Position Title')).toBeInTheDocument();
     expect(screen.getByText('Company')).toBeInTheDocument();
@@ -38,7 +48,7 @@ describe('ApplicationForm', () => {
   });
 
   it('shows validation errors for empty required fields', () => {
-    render(<ApplicationForm onSuccess={onSuccess} onCancel={onCancel} />);
+    render(<ApplicationForm onSuccess={onSuccess} onCancel={onCancel} />, { wrapper: Wrapper });
 
     fireEvent.click(screen.getByRole('button', { name: /create application/i }));
 
@@ -58,11 +68,12 @@ describe('ApplicationForm', () => {
       appliedDate: '2030-01-15',
       lastAction: null,
       notes: 'Great opportunity',
+      starred: false,
       createdAt: '2030-01-15T00:00:00',
       updatedAt: '2030-01-15T00:00:00',
     };
 
-    render(<ApplicationForm application={application} onSuccess={onSuccess} onCancel={onCancel} />);
+    render(<ApplicationForm application={application} onSuccess={onSuccess} onCancel={onCancel} />, { wrapper: Wrapper });
 
     expect(screen.getByDisplayValue('Frontend Dev')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Acme')).toBeInTheDocument();

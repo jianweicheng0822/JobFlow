@@ -69,7 +69,7 @@ function formatInterviewTime(dateStr: string): string {
 }
 
 function buildPipelineColumns(applications: JobApplicationDTO[], t: Record<string, string>): PipelineColumn[] {
-  const stages: ApplicationStatus[] = ['APPLIED', 'PHONE_SCREEN', 'INTERVIEW', 'OFFER', 'REJECTED']
+  const stages: ApplicationStatus[] = ['APPLIED', 'IN_REVIEW', 'PHONE_SCREEN', 'INTERVIEW', 'OFFER', 'REJECTED']
 
   return stages.map((status) => {
     const matching = applications.filter((app) => app.status === status)

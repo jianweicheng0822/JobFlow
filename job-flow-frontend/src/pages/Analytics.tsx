@@ -97,8 +97,10 @@ export default function Analytics() {
     { label: t.offers, value: String(stats?.offers ?? 0), trend: 'up' as const },
   ]
 
+  const knownSum = (stats?.inReview ?? 0) + (stats?.interviews ?? 0) + (stats?.offers ?? 0) + (stats?.rejections ?? 0)
+  const appliedAndPhoneScreen = (stats?.totalApplications ?? 0) - knownSum
   const statusData = [
-    { name: t.statusApplied, value: (stats?.totalApplications ?? 0) - (stats?.inReview ?? 0) - (stats?.interviews ?? 0) - (stats?.offers ?? 0) - (stats?.rejections ?? 0), color: '#4f6ef7' },
+    { name: t.statusApplied, value: appliedAndPhoneScreen, color: '#4f6ef7' },
     { name: t.statusInReview, value: stats?.inReview ?? 0, color: '#f59e0b' },
     { name: t.statusInterview, value: stats?.interviews ?? 0, color: '#10b981' },
     { name: t.statusOffer, value: stats?.offers ?? 0, color: '#8b5cf6' },
