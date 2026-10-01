@@ -143,6 +143,9 @@ export default function SettingsPage() {
       const dataUrl = reader.result as string
       localStorage.setItem(AVATAR_STORAGE_KEY, dataUrl)
       setAvatar(dataUrl)
+      if (user) {
+        updateUser({ ...user, avatarUrl: dataUrl })
+      }
     }
     reader.readAsDataURL(file)
   }

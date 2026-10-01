@@ -24,7 +24,7 @@ function getGreeting(t: { goodMorning: string; goodAfternoon: string; goodEvenin
 }
 
 export default function TopBar() {
-  const { user, logout } = useAuth()
+  const { user, logout, updateUser } = useAuth()
   const { t } = useLanguage()
   const navigate = useNavigate()
 
@@ -49,6 +49,9 @@ export default function TopBar() {
       const dataUrl = reader.result as string
       localStorage.setItem(AVATAR_STORAGE_KEY, dataUrl)
       setAvatar(dataUrl)
+      if (user) {
+        updateUser({ ...user, avatarUrl: dataUrl })
+      }
     }
     reader.readAsDataURL(file)
   }
