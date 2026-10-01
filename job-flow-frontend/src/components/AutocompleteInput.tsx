@@ -8,6 +8,8 @@ interface AutocompleteInputProps {
   className?: string;
 }
 
+const MAX_VISIBLE = 8;
+
 export default function AutocompleteInput({
   value,
   onChange,
@@ -33,12 +35,15 @@ export default function AutocompleteInput({
     ? suggestions.filter((s) =>
         s.toLowerCase().includes(value.toLowerCase())
       )
-    : [];
+    : suggestions;
+
+  const visible = filtered.slice(0, MAX_VISIBLE);
 
   return (
-    <div ref={wrapperRef} style={{ position: 'relative' }}>
+    <div ref={wrapperRef} style={{ position: 'relative', width: '100%' }}>
       <input
         className={className}
+        style={{ width: '100%', boxSizing: 'border-box' }}
         type="text"
         value={value}
         onChange={(e) => {
@@ -49,9 +54,9 @@ export default function AutocompleteInput({
         placeholder={placeholder}
         autoComplete="off"
       />
-      {showDropdown && filtered.length > 0 && (
+      {showDropdown && visible.length > 0 && (
         <div className="autocomplete-dropdown">
-          {filtered.map((item) => (
+          {visible.map((item) => (
             <div
               key={item}
               className="autocomplete-dropdown-item"

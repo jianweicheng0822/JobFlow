@@ -1,25 +1,24 @@
 import { useState, useEffect } from 'react'
 import { useLanguage } from '../context/LanguageContext'
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
   BarChart, Bar,
 } from 'recharts'
-import { LayoutDashboard, TrendingUp, PieChart as PieIcon, BarChart3 } from 'lucide-react'
+import { LayoutDashboard, PieChart as PieIcon, BarChart3 } from 'lucide-react'
 import './Analytics.css'
-import { getStats, getActivity, getApplications } from '../api/applications'
-import type { DashboardStatsDTO, ApplicationActivityDTO, JobApplicationDTO } from '../api/types'
+import { getStats, getApplications } from '../api/applications'
+import type { DashboardStatsDTO, JobApplicationDTO } from '../api/types'
 
-type AnalyticsTab = 'overview' | 'trends' | 'status' | 'company'
+type AnalyticsTab = 'overview' | 'status' | 'company'
 
 const TAB_ICONS: Record<AnalyticsTab, typeof LayoutDashboard> = {
   overview: LayoutDashboard,
-  trends: TrendingUp,
   status: PieIcon,
   company: BarChart3,
 }
 
-const TAB_KEYS: AnalyticsTab[] = ['overview', 'trends', 'status', 'company']
+const TAB_KEYS: AnalyticsTab[] = ['overview', 'status', 'company']
 
 function buildCompanyData(apps: JobApplicationDTO[]) {
   const counts: Record<string, number> = {}
@@ -41,7 +40,6 @@ const tooltipStyle = {
 
 const TAB_LABEL_KEYS: Record<AnalyticsTab, string> = {
   overview: 'overview',
-  trends: 'trends',
   status: 'statusDistribution',
   company: 'company',
 }
@@ -50,7 +48,6 @@ export default function Analytics() {
   const { t } = useLanguage()
   const [activeTab, setActiveTab] = useState<AnalyticsTab>('overview')
   const [stats, setStats] = useState<DashboardStatsDTO | null>(null)
-  const [activityData, setActivityData] = useState<ApplicationActivityDTO[]>([])
   const [companyData, setCompanyData] = useState<{ company: string; count: number }[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -58,13 +55,11 @@ export default function Analytics() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [statsRes, activityRes, appsRes] = await Promise.all([
+        const [statsRes, appsRes] = await Promise.all([
           getStats(),
-          getActivity(),
           getApplications(),
         ])
         setStats(statsRes.data)
-        setActivityData(activityRes.data)
         setCompanyData(buildCompanyData(appsRes.data))
       } catch (err) {
         console.error('Failed to load analytics:', err)
@@ -107,11 +102,6 @@ export default function Analytics() {
     { name: t.statusRejected, value: stats?.rejections ?? 0, color: '#ef4444' },
   ].filter((d) => d.value > 0)
 
-  const trendData = activityData.map((d) => ({
-    month: d.month.charAt(0) + d.month.slice(1).toLowerCase(),
-    applications: d.count,
-  }))
-
   return (
     <div className="analytics-page">
       <h1 className="analytics-page-title">{t.analytics}</h1>
@@ -149,31 +139,6 @@ export default function Analytics() {
                   </span>
                 </div>
               ))}
-            </div>
-          )}
-
-          {/* Trends Tab */}
-          {activeTab === 'trends' && (
-            <div className="analytics-chart-card">
-              <h2 className="analytics-chart-title">{t.applicationTrend}</h2>
-              <div className="analytics-chart-wrapper">
-                <ResponsiveContainer width="100%" height={320}>
-                  <LineChart data={trendData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                    <XAxis dataKey="month" tick={{ fontSize: 12, fill: 'var(--text-muted)' }} />
-                    <YAxis tick={{ fontSize: 12, fill: 'var(--text-muted)' }} />
-                    <Tooltip contentStyle={tooltipStyle} />
-                    <Line
-                      type="monotone"
-                      dataKey="applications"
-                      stroke="#4f6ef7"
-                      strokeWidth={2}
-                      dot={{ r: 4, fill: '#4f6ef7' }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
             </div>
           )}
 
