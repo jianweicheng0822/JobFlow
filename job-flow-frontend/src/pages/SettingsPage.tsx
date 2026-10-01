@@ -159,10 +159,11 @@ export default function SettingsPage() {
         jobTitle: jobTitle.trim() || undefined,
         bio: bio.trim() || undefined,
       })
+      const localAvatar = localStorage.getItem(AVATAR_STORAGE_KEY)
       updateUser({
         name: res.data.name,
         email: res.data.email,
-        avatarUrl: res.data.avatarUrl,
+        avatarUrl: res.data.avatarUrl || localAvatar,
         jobTitle: res.data.jobTitle,
         bio: res.data.bio,
         hasPassword: res.data.hasPassword,
