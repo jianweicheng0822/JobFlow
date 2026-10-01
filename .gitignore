@@ -34,6 +34,9 @@ build/
 ### Mac OS ###
 .DS_Store
 
+### Environment variables ###
+.env
+
 ### Node (frontend) ###
 node_modules/
 

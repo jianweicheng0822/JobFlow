@@ -6,10 +6,10 @@ spring:
     name: jobflow
 
   datasource:
-    url: jdbc:mysql://localhost:3306/jobflow?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    url: jdbc:mysql://${DB_HOST:localhost}:3306/jobflow?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     driver-class-name: com.mysql.cj.jdbc.Driver
-    username: root
-    password: aa715443
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
 
   jpa:
     hibernate:
@@ -65,5 +65,5 @@ spring:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:myDefaultSuperSecretKeyThatIsAtLeast256BitsLongForHS256Algorithm}
+    secret: ${JWT_SECRET}
     expiration-ms: 86400000
