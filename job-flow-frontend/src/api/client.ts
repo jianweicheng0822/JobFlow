@@ -23,7 +23,7 @@ client.interceptors.request.use((config) => {
 
   const url = config.url || ''
   const method = (config.method || 'get').toLowerCase()
-  const data = resolveMock(url, method)
+  const data = resolveMock(url, method, config.data, config.params)
 
   if (data !== undefined) {
     // Cancel the real request and return mock data via adapter

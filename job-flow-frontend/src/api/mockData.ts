@@ -4,6 +4,7 @@ import type {
   DashboardStatsDTO,
   ApplicationActivityDTO,
   InterviewDTO,
+  ApplicationStatus,
 } from './types';
 
 // Factory functions that return fresh seed data every time
@@ -148,12 +149,42 @@ export function resetMockData(): void {
 }
 
 // Resolve mock API calls by URL pattern
-export function resolveMock(url: string, method: string): unknown | undefined {
+export function resolveMock(url: string, method: string, body?: unknown, params?: Record<string, unknown>): unknown | undefined {
   if (method === 'get') {
     if (url === '/applications/stats') return stats;
     if (url === '/applications/recent') return applications.slice(0, 5);
     if (url === '/applications/activity') return activity;
-    if (url === '/applications') return applications;
+    if (url === '/applications') {
+      const statusFilter = params?.status as string | undefined;
+      if (statusFilter) return applications.filter(a => a.status === statusFilter);
+      return applications;
+    }
+    if (url === '/applications/page') {
+      const page = Number(params?.page ?? 0);
+      const size = Number(params?.size ?? 20);
+      const status = params?.status as string | undefined;
+      const keyword = (params?.keyword as string)?.toLowerCase();
+      let filtered = applications;
+      if (status) filtered = filtered.filter(a => a.status === status);
+      if (keyword) filtered = filtered.filter(a =>
+        a.positionTitle.toLowerCase().includes(keyword) || a.company.name.toLowerCase().includes(keyword)
+      );
+      const start = page * size;
+      return {
+        content: filtered.slice(start, start + size),
+        totalElements: filtered.length,
+        totalPages: Math.ceil(filtered.length / size),
+        number: page,
+        size,
+      };
+    }
+    if (url === '/applications/export') {
+      const csv = ['Position,Company,Location,Status,Applied Date,Salary']
+        .concat(applications.map(a =>
+          `"${a.positionTitle}","${a.company.name}","${a.location || ''}","${a.status}","${a.appliedDate || ''}","${a.salary || ''}"`
+        )).join('\n');
+      return new Blob([csv], { type: 'text/csv' });
+    }
     if (url.match(/^\/applications\/\d+$/)) {
       const id = Number(url.split('/').pop());
       return applications.find(a => a.id === id);
@@ -170,58 +201,147 @@ export function resolveMock(url: string, method: string): unknown | undefined {
 
   // ===== Application CRUD =====
   if (method === 'post' && url === '/applications') {
+    const payload = (typeof body === 'string' ? JSON.parse(body) : body) as Record<string, unknown> | undefined;
+    const companyId = payload?.companyId as number | undefined;
+    const companyName = (payload?.companyName as string) || 'New Company';
+    const matchedCompany = companyId ? companies.find(c => c.id === companyId) : undefined;
+    const company: CompanyDTO = matchedCompany ?? { id: Date.now(), name: companyName, logoUrl: null, location: null, website: null };
+    if (!matchedCompany) companies.push(company);
+
+    const now = new Date().toISOString();
     const newApp: JobApplicationDTO = {
-      ...applications[0],
       id: Date.now(),
-      company: { id: Date.now(), name: 'New Company', logoUrl: null, location: null, website: null },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      positionTitle: (payload?.positionTitle as string) || 'Untitled',
+      company,
+      location: (payload?.location as string) || null,
+      salary: (payload?.salary as string) || null,
+      status: (payload?.status as ApplicationStatus) || 'APPLIED',
+      appliedDate: (payload?.appliedDate as string) || now.slice(0, 10),
+      lastAction: 'Applied',
+      notes: (payload?.notes as string) || null,
+      createdAt: now,
+      updatedAt: now,
+      starred: false,
     };
     applications.unshift(newApp);
-    stats.totalApplications = applications.length;
+    stats = computeStats(applications);
     return newApp;
   }
   if (method === 'put' && url.match(/^\/applications\/\d+$/)) {
-    return applications[0];
+    const id = Number(url.split('/').pop());
+    const idx = applications.findIndex(a => a.id === id);
+    if (idx === -1) return applications[0];
+    const payload = (typeof body === 'string' ? JSON.parse(body) : body) as Record<string, unknown> | undefined;
+    const companyId = payload?.companyId as number | undefined;
+    const companyName = (payload?.companyName as string) || applications[idx].company.name;
+    const matchedCompany = companyId ? companies.find(c => c.id === companyId) : undefined;
+    const company: CompanyDTO = matchedCompany ?? { ...applications[idx].company, name: companyName };
+
+    applications[idx] = {
+      ...applications[idx],
+      positionTitle: (payload?.positionTitle as string) || applications[idx].positionTitle,
+      company,
+      location: (payload?.location as string) ?? applications[idx].location,
+      salary: (payload?.salary as string) ?? applications[idx].salary,
+      status: (payload?.status as ApplicationStatus) || applications[idx].status,
+      appliedDate: (payload?.appliedDate as string) || applications[idx].appliedDate,
+      notes: (payload?.notes as string) ?? applications[idx].notes,
+      updatedAt: new Date().toISOString(),
+    };
+    stats = computeStats(applications);
+    return applications[idx];
+  }
+
+  // ===== Application PATCH (status / star) =====
+  if (method === 'patch' && url.match(/^\/applications\/\d+\/status$/)) {
+    const id = Number(url.split('/')[2]);
+    const idx = applications.findIndex(a => a.id === id);
+    if (idx === -1) return applications[0];
+    const newStatus = (params?.status as ApplicationStatus) || applications[idx].status;
+    applications[idx] = { ...applications[idx], status: newStatus, updatedAt: new Date().toISOString() };
+    stats = computeStats(applications);
+    return applications[idx];
+  }
+  if (method === 'patch' && url.match(/^\/applications\/\d+\/star$/)) {
+    const id = Number(url.split('/')[2]);
+    const idx = applications.findIndex(a => a.id === id);
+    if (idx === -1) return applications[0];
+    applications[idx] = { ...applications[idx], starred: !applications[idx].starred, updatedAt: new Date().toISOString() };
+    return applications[idx];
   }
 
   // ===== Interview CRUD =====
   if (method === 'post' && url === '/interviews') {
+    const payload = (typeof body === 'string' ? JSON.parse(body) : body) as Record<string, unknown> | undefined;
+    const appId = payload?.jobApplicationId as number | undefined;
+    const linkedApp = appId ? applications.find(a => a.id === appId) : undefined;
+    const interviewDate = (payload?.interviewDate as string) || new Date().toISOString();
+    const now = new Date();
+    const daysUntil = Math.max(0, Math.round((new Date(interviewDate).getTime() - now.getTime()) / 86400000));
+
     const newInterview: InterviewDTO = {
       id: Date.now(),
-      jobApplicationId: 1,
-      positionTitle: 'New Interview',
-      companyName: 'Company',
-      interviewDate: new Date().toISOString(),
-      interviewType: 'VIDEO',
-      notes: null,
-      reminderEnabled: false, reminderHoursBefore: 24, reminderSent: false, daysUntil: 7,
+      jobApplicationId: appId || 1,
+      positionTitle: linkedApp?.positionTitle || (payload?.positionTitle as string) || 'New Interview',
+      companyName: linkedApp?.company.name || (payload?.companyName as string) || 'Company',
+      interviewDate,
+      interviewType: (payload?.interviewType as string) || 'VIDEO',
+      notes: (payload?.notes as string) || null,
+      reminderEnabled: (payload?.reminderEnabled as boolean) ?? false,
+      reminderHoursBefore: (payload?.reminderHoursBefore as number) ?? 24,
+      reminderSent: false,
+      daysUntil,
     };
     interviews.unshift(newInterview);
     return newInterview;
   }
   if (method === 'put' && url.match(/^\/interviews\/\d+$/)) {
     const id = Number(url.split('/').pop());
-    const found = interviews.find(i => i.id === id);
-    return found || interviews[0];
+    const idx = interviews.findIndex(i => i.id === id);
+    if (idx === -1) return interviews[0];
+    const payload = (typeof body === 'string' ? JSON.parse(body) : body) as Record<string, unknown> | undefined;
+    const interviewDate = (payload?.interviewDate as string) || interviews[idx].interviewDate;
+    const now = new Date();
+    const daysUntil = Math.max(0, Math.round((new Date(interviewDate).getTime() - now.getTime()) / 86400000));
+
+    interviews[idx] = {
+      ...interviews[idx],
+      interviewDate,
+      interviewType: (payload?.interviewType as string) || interviews[idx].interviewType,
+      notes: (payload?.notes as string) ?? interviews[idx].notes,
+      reminderEnabled: (payload?.reminderEnabled as boolean) ?? interviews[idx].reminderEnabled,
+      reminderHoursBefore: (payload?.reminderHoursBefore as number) ?? interviews[idx].reminderHoursBefore,
+      daysUntil,
+    };
+    return interviews[idx];
   }
 
   // ===== Company CRUD =====
   if (method === 'post' && url === '/companies') {
+    const payload = (typeof body === 'string' ? JSON.parse(body) : body) as Record<string, unknown> | undefined;
     const newCompany: CompanyDTO = {
       id: Date.now(),
-      name: 'New Company',
-      logoUrl: null,
-      location: null,
-      website: null,
+      name: (payload?.name as string) || 'New Company',
+      logoUrl: (payload?.logoUrl as string) || null,
+      location: (payload?.location as string) || null,
+      website: (payload?.website as string) || null,
     };
     companies.push(newCompany);
     return newCompany;
   }
   if (method === 'put' && url.match(/^\/companies\/\d+$/)) {
     const id = Number(url.split('/').pop());
-    const found = companies.find(c => c.id === id);
-    return found || companies[0];
+    const idx = companies.findIndex(c => c.id === id);
+    if (idx === -1) return companies[0];
+    const payload = (typeof body === 'string' ? JSON.parse(body) : body) as Record<string, unknown> | undefined;
+    companies[idx] = {
+      ...companies[idx],
+      name: (payload?.name as string) || companies[idx].name,
+      logoUrl: (payload?.logoUrl as string) ?? companies[idx].logoUrl,
+      location: (payload?.location as string) ?? companies[idx].location,
+      website: (payload?.website as string) ?? companies[idx].website,
+    };
+    return companies[idx];
   }
 
   // ===== Profile & Password =====
@@ -232,7 +352,18 @@ export function resolveMock(url: string, method: string): unknown | undefined {
     return {};
   }
 
-  // ===== Generic delete =====
+  // ===== Generic delete & batch delete =====
+  if (method === 'delete' && url === '/applications/batch') {
+    const ids = (typeof body === 'string' ? JSON.parse(body) : body) as number[] | undefined;
+    if (ids) {
+      ids.forEach(id => {
+        const idx = applications.findIndex(a => a.id === id);
+        if (idx !== -1) applications.splice(idx, 1);
+      });
+      stats = computeStats(applications);
+    }
+    return {};
+  }
   if (method === 'delete') {
     if (url.match(/^\/interviews\/\d+$/)) {
       const id = Number(url.split('/').pop());
@@ -249,7 +380,7 @@ export function resolveMock(url: string, method: string): unknown | undefined {
       const idx = applications.findIndex(a => a.id === id);
       if (idx !== -1) {
         applications.splice(idx, 1);
-        stats.totalApplications = applications.length;
+        stats = computeStats(applications);
       }
     }
     return {};
