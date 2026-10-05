@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { useLanguage } from '../context/LanguageContext'
 import { getErrorMessage } from '../api/client'
+import { isDemoMode } from '../api/mockData'
 import * as authApi from '../api/auth'
 import * as gmailApi from '../api/gmail'
 import GmailImportModal from '../components/GmailImportModal'
@@ -34,7 +35,6 @@ export default function SettingsPage() {
 
   // Profile fields
   const [fullName, setFullName] = useState(user?.name || '')
-  const [email, setEmail] = useState(user?.email || '')
   const [jobTitle, setJobTitle] = useState(user?.jobTitle || '')
   const [bio, setBio] = useState(user?.bio || '')
   const [profileLoading, setProfileLoading] = useState(false)
@@ -73,7 +73,6 @@ export default function SettingsPage() {
   useEffect(() => {
     if (user) {
       setFullName(user.name || '')
-      setEmail(user.email || '')
       setJobTitle(user.jobTitle || '')
       setBio(user.bio || '')
     }
@@ -155,7 +154,6 @@ export default function SettingsPage() {
     try {
       const res = await authApi.updateProfile({
         name: fullName.trim(),
-        email: email.trim() || undefined,
         jobTitle: jobTitle.trim() || undefined,
         bio: bio.trim() || undefined,
       })
@@ -179,7 +177,6 @@ export default function SettingsPage() {
 
   function handleCancelProfile() {
     setFullName(user?.name || '')
-    setEmail(user?.email || '')
     setJobTitle(user?.jobTitle || '')
     setBio(user?.bio || '')
   }
@@ -280,25 +277,14 @@ export default function SettingsPage() {
           </div>
 
           <div className="settings-form">
-            <div className="settings-field-row">
-              <div className="settings-field">
-                <label className="settings-label">{t.fullName}</label>
-                <input
-                  type="text"
-                  className="settings-input"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                />
-              </div>
-              <div className="settings-field">
-                <label className="settings-label">{t.email}</label>
-                <input
-                  type="email"
-                  className="settings-input"
-                  value={email}
-                  disabled
-                />
-              </div>
+            <div className="settings-field">
+              <label className="settings-label">{t.fullName}</label>
+              <input
+                type="text"
+                className="settings-input"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+              />
             </div>
             <div className="settings-actions">
               <button className="settings-btn-secondary" onClick={handleCancelProfile}>{t.cancel}</button>
@@ -313,57 +299,65 @@ export default function SettingsPage() {
       {/* Account Tab */}
       {activeTab === 'account' && (
         <div className="settings-section">
-          {!needsCurrentPassword && (
+          {isDemoMode() ? (
             <div className="settings-msg settings-msg--info">
-              {t.oauthPasswordHint}
+              {t.demoModeNotAvailable}
             </div>
+          ) : (
+            <>
+              {!needsCurrentPassword && (
+                <div className="settings-msg settings-msg--info">
+                  {t.oauthPasswordHint}
+                </div>
+              )}
+              <div className="settings-form">
+                {needsCurrentPassword && (
+                  <div className="settings-field">
+                    <label className="settings-label">{t.currentPassword}</label>
+                    <input
+                      type="password"
+                      className="settings-input"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder={t.currentPasswordPlaceholder}
+                    />
+                  </div>
+                )}
+                <div className="settings-field-row">
+                  <div className="settings-field">
+                    <label className="settings-label">{t.newPassword}</label>
+                    <input
+                      type="password"
+                      className="settings-input"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder={t.newPasswordPlaceholder}
+                    />
+                  </div>
+                  <div className="settings-field">
+                    <label className="settings-label">{t.confirmPassword}</label>
+                    <input
+                      type="password"
+                      className="settings-input"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder={t.confirmNewPasswordPlaceholder}
+                    />
+                  </div>
+                </div>
+                {passwordMsg && (
+                  <div className={`settings-msg settings-msg--${passwordMsg.type}`}>
+                    {passwordMsg.text}
+                  </div>
+                )}
+                <div className="settings-actions">
+                  <button className="settings-btn-primary" onClick={handleChangePassword} disabled={passwordLoading}>
+                    {passwordLoading ? t.updating : t.updatePassword}
+                  </button>
+                </div>
+              </div>
+            </>
           )}
-          <div className="settings-form">
-            {needsCurrentPassword && (
-              <div className="settings-field">
-                <label className="settings-label">{t.currentPassword}</label>
-                <input
-                  type="password"
-                  className="settings-input"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder={t.currentPasswordPlaceholder}
-                />
-              </div>
-            )}
-            <div className="settings-field-row">
-              <div className="settings-field">
-                <label className="settings-label">{t.newPassword}</label>
-                <input
-                  type="password"
-                  className="settings-input"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder={t.newPasswordPlaceholder}
-                />
-              </div>
-              <div className="settings-field">
-                <label className="settings-label">{t.confirmPassword}</label>
-                <input
-                  type="password"
-                  className="settings-input"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder={t.confirmNewPasswordPlaceholder}
-                />
-              </div>
-            </div>
-            {passwordMsg && (
-              <div className={`settings-msg settings-msg--${passwordMsg.type}`}>
-                {passwordMsg.text}
-              </div>
-            )}
-            <div className="settings-actions">
-              <button className="settings-btn-primary" onClick={handleChangePassword} disabled={passwordLoading}>
-                {passwordLoading ? t.updating : t.updatePassword}
-              </button>
-            </div>
-          </div>
         </div>
       )}
 
@@ -421,49 +415,57 @@ export default function SettingsPage() {
       {activeTab === 'integrations' && (
         <div className="settings-section">
           <h3 className="settings-section-title">{t.gmailIntegration}</h3>
-          <div className="settings-integration-card">
-            <div className="settings-integration-info">
-              <div className="settings-integration-icon">
-                <svg viewBox="0 0 24 24" width="28" height="28">
-                  <path fill="#EA4335" d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/>
-                </svg>
-              </div>
-              <div>
-                <span className="settings-integration-name">{t.gmail}</span>
-                <span className="settings-toggle-desc">
-                  {gmailStatus?.gmailConnected
-                    ? t.gmailConnected
-                    : t.gmailDisconnected}
-                </span>
-              </div>
+          {isDemoMode() ? (
+            <div className="settings-msg settings-msg--info">
+              {t.demoModeNotAvailable}
             </div>
-            <div className="settings-integration-actions">
-              {gmailStatus?.gmailConnected ? (
-                <>
-                  <span className="settings-integration-badge settings-integration-badge--connected">{t.connected}</span>
-                  <button
-                    className="settings-btn-primary"
-                    onClick={handleScanGmail}
-                    disabled={gmailLoading}
-                  >
-                    {gmailLoading ? t.scanning : t.scanGmail}
-                  </button>
-                </>
-              ) : (
-                <button
-                  className="settings-btn-primary"
-                  onClick={handleLinkGmail}
-                  disabled={gmailLinkLoading}
-                >
-                  {gmailLinkLoading ? t.connecting : t.connectGoogleAccount}
-                </button>
+          ) : (
+            <>
+              <div className="settings-integration-card">
+                <div className="settings-integration-info">
+                  <div className="settings-integration-icon">
+                    <svg viewBox="0 0 24 24" width="28" height="28">
+                      <path fill="#EA4335" d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <span className="settings-integration-name">{t.gmail}</span>
+                    <span className="settings-toggle-desc">
+                      {gmailStatus?.gmailConnected
+                        ? t.gmailConnected
+                        : t.gmailDisconnected}
+                    </span>
+                  </div>
+                </div>
+                <div className="settings-integration-actions">
+                  {gmailStatus?.gmailConnected ? (
+                    <>
+                      <span className="settings-integration-badge settings-integration-badge--connected">{t.connected}</span>
+                      <button
+                        className="settings-btn-primary"
+                        onClick={handleScanGmail}
+                        disabled={gmailLoading}
+                      >
+                        {gmailLoading ? t.scanning : t.scanGmail}
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="settings-btn-primary"
+                      onClick={handleLinkGmail}
+                      disabled={gmailLinkLoading}
+                    >
+                      {gmailLinkLoading ? t.connecting : t.connectGoogleAccount}
+                    </button>
+                  )}
+                </div>
+              </div>
+              {scanError && (
+                <div className="settings-msg settings-msg--error" style={{ marginTop: 12 }}>
+                  {scanError}
+                </div>
               )}
-            </div>
-          </div>
-          {scanError && (
-            <div className="settings-msg settings-msg--error" style={{ marginTop: 12 }}>
-              {scanError}
-            </div>
+            </>
           )}
         </div>
       )}

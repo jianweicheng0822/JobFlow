@@ -258,6 +258,9 @@ const en = {
   importing: 'Importing...',
   importFailed: 'Import failed. Please try again.',
 
+  // Demo mode
+  demoModeNotAvailable: 'This feature is not available in demo mode.',
+
   // OAuth Callback
   signingYouIn: 'Signing you in...',
 };

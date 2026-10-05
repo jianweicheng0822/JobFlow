@@ -258,6 +258,9 @@ const zh = {
   importing: '导入中...',
   importFailed: '导入失败，请重试。',
 
+  // Demo mode
+  demoModeNotAvailable: '此功能在 Demo 模式下不可用。',
+
   // OAuth Callback
   signingYouIn: '正在登录...',
 };
