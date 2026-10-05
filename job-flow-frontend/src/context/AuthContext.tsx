@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import type { ReactNode } from 'react'
 import * as authApi from '../api/auth'
+import { resetMockData } from '../api/mockData'
 import type { AuthResponse, LoginRequest, RegisterRequest } from '../api/auth'
 
 interface AuthUser {
@@ -61,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const tryDemo = useCallback(() => {
+    resetMockData()
     localStorage.setItem('jobflow-token', 'demo-token')
     setUser({ name: 'Demo User', email: 'demo@jobflow.com', avatarUrl: null, jobTitle: null, bio: null, hasPassword: true, gmailConnected: false })
   }, [])
