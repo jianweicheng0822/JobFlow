@@ -5,6 +5,7 @@ import type {
   ApplicationActivityDTO,
   InterviewDTO,
   ApplicationStatus,
+  InterviewType,
 } from './types';
 
 // Factory functions that return fresh seed data every time
@@ -50,7 +51,7 @@ function createSeedApplications(companies: CompanyDTO[]): JobApplicationDTO[] {
       id: 5, positionTitle: 'Senior Frontend Engineer', company: companies[4],
       location: 'Cupertino, CA', salary: '$170,000', status: 'INTERVIEW',
       appliedDate: '2026-06-28', lastAction: 'Interview Scheduled', notes: 'Onsite round 2',
-      createdAt: '2026-06-28T10:00:00Z', updatedAt: '2026-07-25T16:00:00Z', starred: false,
+      createdAt: '2026-06-28T10:00:00Z', updatedAt: '2026-07-25T16:00:00Z', starred: true,
     },
     {
       id: 6, positionTitle: 'Full Stack Developer', company: companies[5],
@@ -68,7 +69,7 @@ function createSeedApplications(companies: CompanyDTO[]): JobApplicationDTO[] {
       id: 8, positionTitle: 'Data Analyst', company: companies[0],
       location: 'Seattle, WA', salary: '$125,000', status: 'IN_REVIEW',
       appliedDate: '2026-07-12', lastAction: 'Resume reviewed', notes: null,
-      createdAt: '2026-07-12T10:00:00Z', updatedAt: '2026-07-21T11:00:00Z', starred: false,
+      createdAt: '2026-07-12T10:00:00Z', updatedAt: '2026-07-21T11:00:00Z', starred: true,
     },
     {
       id: 9, positionTitle: 'DevOps Engineer', company: companies[3],
@@ -292,7 +293,7 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
       positionTitle: linkedApp?.positionTitle || (payload?.positionTitle as string) || 'New Interview',
       companyName: linkedApp?.company.name || (payload?.companyName as string) || 'Company',
       interviewDate,
-      interviewType: (payload?.interviewType as string) || 'VIDEO',
+      interviewType: (payload?.interviewType as InterviewType | undefined) || 'VIDEO',
       notes: (payload?.notes as string) || null,
       reminderEnabled: (payload?.reminderEnabled as boolean) ?? false,
       reminderHoursBefore: (payload?.reminderHoursBefore as number) ?? 24,
@@ -314,7 +315,7 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
     interviews[idx] = {
       ...interviews[idx],
       interviewDate,
-      interviewType: (payload?.interviewType as string) || interviews[idx].interviewType,
+      interviewType: (payload?.interviewType as InterviewType | undefined) || interviews[idx].interviewType,
       notes: (payload?.notes as string) ?? interviews[idx].notes,
       reminderEnabled: (payload?.reminderEnabled as boolean) ?? interviews[idx].reminderEnabled,
       reminderHoursBefore: (payload?.reminderHoursBefore as number) ?? interviews[idx].reminderHoursBefore,
