@@ -10,6 +10,13 @@ import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.core.MethodParameter;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.mock.http.MockHttpInputMessage;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import com.jobflow.model.ApplicationStatus;
 
 import java.util.Map;
 
@@ -72,8 +79,8 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getBody()).containsEntry("status", 400);
         assertThat(response.getBody()).containsEntry("error", "Validation Error");
         String message = (String) response.getBody().get("message");
-        assertThat(message).contains("email: must not be blank");
-        assertThat(message).contains("name: must not be null");
+        // Messages are shown as-is, without the "field: " prefix
+        assertThat(message).isEqualTo("must not be blank; must not be null");
     }
 
     // --- DataIntegrityViolationException ---
@@ -101,16 +108,76 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(response.getBody()).containsEntry("status", 500);
         assertThat(response.getBody()).containsEntry("error", "Internal Server Error");
-        assertThat(response.getBody()).containsEntry("message", "Something went wrong");
+        // Internal details stay in the log, not in the response
+        assertThat(response.getBody()).containsEntry("message", "Unexpected server error. Please try again later.");
     }
 
     @Test
-    void handleGeneral_nullMessage_returnsUnexpectedError() {
+    void handleGeneral_nullMessage_stillReturnsGenericMessage() {
         Exception ex = new RuntimeException((String) null);
 
         ResponseEntity<Map<String, Object>> response = handler.handleGeneral(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-        assertThat(response.getBody()).containsEntry("message", "Unexpected error");
+        assertThat(response.getBody()).containsEntry("message", "Unexpected server error. Please try again later.");
+    }
+
+    // --- Bad input that never reaches our code ---
+
+    @Test
+    void handleUnreadableBody_invalidEnum_namesFieldAndValue() {
+        InvalidFormatException cause = InvalidFormatException.from(null, "bad enum", "NOT_A_STATUS", ApplicationStatus.class);
+        cause.prependPath(new Object(), "status");
+        HttpMessageNotReadableException ex = new HttpMessageNotReadableException(
+                "JSON parse error", cause, new MockHttpInputMessage(new byte[0]));
+
+        ResponseEntity<Map<String, Object>> response = handler.handleUnreadableBody(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).containsEntry("message", "Invalid value 'NOT_A_STATUS' for 'status'");
+    }
+
+    @Test
+    void handleUnreadableBody_malformedJson_returnsGenericBadRequest() {
+        HttpMessageNotReadableException ex = new HttpMessageNotReadableException(
+                "JSON parse error", new JsonParseException(null, "Unexpected character"), new MockHttpInputMessage(new byte[0]));
+
+        ResponseEntity<Map<String, Object>> response = handler.handleUnreadableBody(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).containsEntry("message", "Request body is not valid JSON");
+        // No class names or parser internals leak out
+        assertThat(response.getBody().get("message").toString()).doesNotContain("com.").doesNotContain("Unexpected character");
+    }
+
+    @Test
+    void handleTypeMismatch_returns400WithParamName() throws Exception {
+        MethodParameter param = new MethodParameter(
+                this.getClass().getDeclaredMethod("handleTypeMismatch_returns400WithParamName"), -1);
+        MethodArgumentTypeMismatchException ex = new MethodArgumentTypeMismatchException(
+                "BOGUS", ApplicationStatus.class, "status", param, new IllegalArgumentException("No enum constant"));
+
+        ResponseEntity<Map<String, Object>> response = handler.handleTypeMismatch(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).containsEntry("message", "Invalid value 'BOGUS' for 'status'");
+    }
+
+    @Test
+    void handleMissingParam_returns400WithParamName() {
+        MissingServletRequestParameterException ex = new MissingServletRequestParameterException("status", "ApplicationStatus");
+
+        ResponseEntity<Map<String, Object>> response = handler.handleMissingParam(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).containsEntry("message", "Missing required parameter 'status'");
+    }
+
+    @Test
+    void handleBadRequest_nullMessage_doesNotBlowUp() {
+        ResponseEntity<Map<String, Object>> response = handler.handleBadRequest(new IllegalArgumentException());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).containsEntry("message", "Bad Request");
     }
 }
