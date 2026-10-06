@@ -8,6 +8,7 @@ import ApplicationForm from '../components/ApplicationForm'
 import { useToast } from '../context/ToastContext'
 import { useLanguage } from '../context/LanguageContext'
 import { getErrorMessage } from '../api/client'
+import { sortStarredFirst } from '../utils/sortStarredFirst'
 
 // ===== Helpers =====
 const STATUS_COLORS: Record<ApplicationStatus, string> = {
@@ -226,7 +227,8 @@ export default function Jobs() {
   const locations = useMemo(() => [...new Set(applications.map((a) => a.location).filter(Boolean) as string[])], [applications])
 
   const filteredJobs = useMemo(() => {
-    return applications.filter((app) => {
+    // Starred jobs float to the top, before paging, so they always land on page 1
+    return sortStarredFirst(applications).filter((app) => {
       const q = search.toLowerCase()
       const matchesSearch = !q || app.positionTitle.toLowerCase().includes(q) || app.company.name.toLowerCase().includes(q)
       const matchesCompany = !companyFilter || app.company.name === companyFilter
@@ -248,10 +250,11 @@ export default function Jobs() {
 
   const activeCount = applications.filter((a) => !['OFFER', 'REJECTED'].includes(a.status)).length
   const closedCount = applications.filter((a) => ['OFFER', 'REJECTED'].includes(a.status)).length
+  const savedCount = applications.filter((a) => a.starred).length
 
   const jobsStatCards = [
     { label: t.activeApplications, value: activeCount, icon: 'active' as const, trend: 'up' as const },
-    { label: t.savedJobs, value: 0, icon: 'saved' as const, trend: 'up' as const },
+    { label: t.savedJobs, value: savedCount, icon: 'saved' as const, trend: 'up' as const },
     { label: t.closed, value: closedCount, icon: 'closed' as const, trend: 'down' as const },
   ]
 
