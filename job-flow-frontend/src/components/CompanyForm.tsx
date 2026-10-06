@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { createCompany, updateCompany } from '../api/companies';
+import { getErrorMessage } from '../api/client';
 import type { CompanyDTO, CreateCompanyRequest } from '../api/types';
 import { useLanguage } from '../context/LanguageContext';
 import AutocompleteInput from './AutocompleteInput';
@@ -53,7 +54,8 @@ export default function CompanyForm({ company, onSuccess, onCancel }: CompanyFor
       onSuccess();
     } catch (err) {
       console.error('Failed to save company:', err);
-      setErrors({ form: t.saveFailed });
+      // Show the backend's reason, e.g. "A company named 'Acme' already exists"
+      setErrors({ form: getErrorMessage(err, t.saveFailed) });
     } finally {
       setLoading(false);
     }

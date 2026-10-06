@@ -1,9 +1,11 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import { AxiosError, type AxiosResponse } from 'axios';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import CompanyForm from '../CompanyForm';
 import { ToastProvider } from '../../context/ToastProvider';
 import { LanguageProvider } from '../../context/LanguageProvider';
 import type { CompanyDTO } from '../../api/types';
+import { createCompany } from '../../api/companies';
 
 // Mock API modules
 vi.mock('../../api/companies', () => ({
@@ -68,5 +70,18 @@ describe('CompanyForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
 
     expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the backend's message when the name is already taken", async () => {
+    const response = { data: { message: "A company named 'Acme' already exists" }, status: 400 } as AxiosResponse;
+    vi.mocked(createCompany).mockRejectedValueOnce(
+      new AxiosError('Request failed', 'ERR_BAD_REQUEST', undefined, undefined, response));
+
+    render(<CompanyForm onSuccess={onSuccess} onCancel={onCancel} />, { wrapper: Wrapper });
+    fireEvent.change(screen.getByPlaceholderText('e.g. Google'), { target: { value: 'Acme' } });
+    fireEvent.click(screen.getByRole('button', { name: /add company/i }));
+
+    expect(await screen.findByText("A company named 'Acme' already exists")).toBeInTheDocument();
+    expect(onSuccess).not.toHaveBeenCalled();
   });
 });
