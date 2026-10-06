@@ -44,5 +44,5 @@ node_modules/
 Gemini_Generated_Image_*.png
 job-flow-frontend/design/
 
-### Claude Code (per-machine settings) ###
-**/.claude/settings.local.json
+### Claude Code (local tooling) ###
+.claude/
