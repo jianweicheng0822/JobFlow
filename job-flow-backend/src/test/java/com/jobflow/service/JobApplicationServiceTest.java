@@ -222,7 +222,7 @@ class JobApplicationServiceTest {
         request.setAppliedDate(LocalDate.of(2026, 9, 15));
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(companyRepository.findById(10L)).thenReturn(Optional.of(testCompany));
+        when(companyRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(testCompany));
         when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> {
             JobApplication saved = inv.getArgument(0);
             saved.setId(101L);
@@ -302,7 +302,7 @@ class JobApplicationServiceTest {
         request.setCompanyId(999L);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(companyRepository.findById(999L)).thenReturn(Optional.empty());
+        when(companyRepository.findByIdAndUserId(999L, 1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> jobApplicationService.create(1L, request))
                 .isInstanceOf(NotFoundException.class)
@@ -330,7 +330,7 @@ class JobApplicationServiceTest {
         // status and appliedDate are null -> should default
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(companyRepository.findById(10L)).thenReturn(Optional.of(testCompany));
+        when(companyRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(testCompany));
         when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> {
             JobApplication saved = inv.getArgument(0);
             saved.setId(104L);
@@ -374,7 +374,7 @@ class JobApplicationServiceTest {
         request.setCompanyId(20L);
 
         when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
-        when(companyRepository.findById(20L)).thenReturn(Optional.of(newCompany));
+        when(companyRepository.findByIdAndUserId(20L, 1L)).thenReturn(Optional.of(newCompany));
         when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
         when(companyService.toDTO(newCompany)).thenReturn(newCompanyDTO);
 
