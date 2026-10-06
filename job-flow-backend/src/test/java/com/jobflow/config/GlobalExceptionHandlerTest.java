@@ -1,5 +1,6 @@
 package com.jobflow.config;
 
+import com.jobflow.exception.ExternalServiceException;
 import com.jobflow.exception.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -179,5 +180,19 @@ class GlobalExceptionHandlerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).containsEntry("message", "Bad Request");
+    }
+
+    // --- ExternalServiceException ---
+
+    @Test
+    void handleExternalService_returns502WithFriendlyMessage() {
+        ExternalServiceException ex = new ExternalServiceException(
+                "Couldn't reach Gmail. Please try again in a moment.", new RuntimeException("Google internals"));
+
+        ResponseEntity<Map<String, Object>> response = handler.handleExternalService(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_GATEWAY);
+        assertThat(response.getBody()).containsEntry("status", 502);
+        assertThat(response.getBody()).containsEntry("message", "Couldn't reach Gmail. Please try again in a moment.");
     }
 }

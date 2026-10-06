@@ -18,6 +18,7 @@ import com.jobflow.repository.CompanyRepository;
 import com.jobflow.repository.EmailImportLogRepository;
 import com.jobflow.repository.JobApplicationRepository;
 import com.jobflow.repository.UserRepository;
+import com.jobflow.exception.ExternalServiceException;
 import com.jobflow.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,6 +57,7 @@ public class GmailService {
             "\"your application to\" OR \"your application for\" OR " +
             "\"your application has been\" OR \"you applied to\" OR " +
             "\"application for the position\") newer_than:90d";
+    private static final String GMAIL_UNAVAILABLE = "Couldn't reach Gmail. Please try again in a moment.";
 
     // LinkedIn-specific patterns: "You applied to [Position] at [Company]"
     private static final List<Pattern> LINKEDIN_PATTERNS = List.of(
@@ -95,11 +97,16 @@ public class GmailService {
             Pattern.compile("\\bat\\s+(.+?)(?:\\s*[-–|!.]|\\s+has\\b|$)", Pattern.CASE_INSENSITIVE);
 
     public List<GmailImportPreviewDTO> scanEmails(Long userId) {
+        return scanEmails(userId, false);
+    }
+
+    // alreadyRetried makes sure we refresh the token and retry at most once
+    private List<GmailImportPreviewDTO> scanEmails(Long userId, boolean alreadyRetried) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
         if (!user.isGmailConnected() || user.getGoogleAccessToken() == null) {
-            throw new RuntimeException("Gmail is not connected. Please log in with Google first.");
+            throw new IllegalArgumentException("Gmail is not connected. Please log in with Google first.");
         }
 
         try {
@@ -138,15 +145,19 @@ public class GmailService {
             return previews;
         } catch (com.google.api.client.googleapis.json.GoogleJsonResponseException e) {
             if (e.getStatusCode() == 401) {
-                // Token expired, try refreshing
+                if (alreadyRetried) {
+                    // A fresh token was still rejected, e.g. access was revoked on Google's side
+                    throw new IllegalArgumentException("Gmail access was rejected. Please re-link your Google account.");
+                }
+                // Token expired, refresh and retry once
                 refreshAccessToken(user);
-                return scanEmails(userId); // retry once
+                return scanEmails(userId, true);
             }
             log.error("Gmail API error during scan", e);
-            throw new RuntimeException("Failed to scan Gmail: " + e.getDetails().getMessage());
+            throw new ExternalServiceException(GMAIL_UNAVAILABLE, e);
         } catch (Exception e) {
             log.error("Failed to scan Gmail", e);
-            throw new RuntimeException("Failed to scan Gmail: " + e.getMessage());
+            throw new ExternalServiceException(GMAIL_UNAVAILABLE, e);
         }
     }
 
@@ -200,7 +211,8 @@ public class GmailService {
                 .build();
     }
 
-    private Gmail buildGmailClient(User user) throws Exception {
+    // Package-private so tests can swap in a fake client
+    Gmail buildGmailClient(User user) throws Exception {
         GoogleCredentials credentials = GoogleCredentials.create(
                 new AccessToken(user.getGoogleAccessToken(), null));
 
@@ -212,9 +224,10 @@ public class GmailService {
                 .build();
     }
 
-    private void refreshAccessToken(User user) {
+    // Package-private so tests can stub the call to Google
+    void refreshAccessToken(User user) {
         if (user.getGoogleRefreshToken() == null) {
-            throw new RuntimeException("No refresh token available. Please re-link your Google account.");
+            throw new IllegalArgumentException("No refresh token available. Please re-link your Google account.");
         }
 
         try {
@@ -233,7 +246,7 @@ public class GmailService {
             log.error("Failed to refresh Google access token", e);
             user.setGmailConnected(false);
             userRepository.save(user);
-            throw new RuntimeException("Failed to refresh Google access token. Please re-link your Google account.");
+            throw new IllegalArgumentException("Failed to refresh Google access token. Please re-link your Google account.");
         }
     }
 

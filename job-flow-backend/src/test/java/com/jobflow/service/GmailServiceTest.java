@@ -3,6 +3,11 @@ package com.jobflow.service;
 import com.jobflow.dto.GmailImportConfirmRequest;
 import com.jobflow.dto.GmailImportPreviewDTO;
 import com.jobflow.dto.GmailImportResultDTO;
+import com.google.api.client.googleapis.json.GoogleJsonResponseException;
+import com.google.api.client.http.HttpHeaders;
+import com.google.api.client.http.HttpResponseException;
+import com.google.api.services.gmail.Gmail;
+import com.jobflow.exception.ExternalServiceException;
 import com.jobflow.exception.NotFoundException;
 import com.jobflow.model.*;
 import com.jobflow.repository.CompanyRepository;
@@ -17,6 +22,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -27,6 +33,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -77,7 +85,7 @@ class GmailServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
         assertThatThrownBy(() -> gmailService.scanEmails(1L))
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Gmail is not connected");
     }
 
@@ -87,7 +95,7 @@ class GmailServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
         assertThatThrownBy(() -> gmailService.scanEmails(1L))
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Gmail is not connected");
     }
 
@@ -498,5 +506,73 @@ class GmailServiceTest {
                     new Class[]{String.class, Long.class}, null, 0L);
             assertThat(result).isEqualTo(LocalDate.now());
         }
+    }
+
+    // ============================
+    // scanEmails - Gmail API failures
+    // ============================
+
+    private static GoogleJsonResponseException googleError(int status) {
+        return new GoogleJsonResponseException(
+                new HttpResponseException.Builder(status, "Google says no: secret internal detail", new HttpHeaders()), null);
+    }
+
+    // Spy so we can hand scanEmails a fake Gmail client
+    private GmailService serviceWithGmail(Gmail gmail) throws Exception {
+        GmailService spyService = spy(gmailService);
+        doReturn(gmail).when(spyService).buildGmailClient(any());
+        return spyService;
+    }
+
+    @Test
+    void scanEmails_tokenStillRejectedAfterRefresh_retriesOnlyOnce() throws Exception {
+        Gmail gmail = mock(Gmail.class, RETURNS_DEEP_STUBS);
+        when(gmail.users().messages().list("me").setQ(anyString()).setMaxResults(anyLong()).execute())
+                .thenThrow(googleError(401));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        GmailService service = serviceWithGmail(gmail);
+        doNothing().when(service).refreshAccessToken(any());
+
+        assertThatThrownBy(() -> service.scanEmails(1L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("re-link your Google account");
+
+        // One refresh, two attempts total, then we give up instead of looping
+        verify(service, times(1)).refreshAccessToken(any());
+        verify(service, times(2)).buildGmailClient(any());
+    }
+
+    @Test
+    void scanEmails_gmailApiError_throwsExternalServiceWithoutGoogleDetails() throws Exception {
+        Gmail gmail = mock(Gmail.class, RETURNS_DEEP_STUBS);
+        when(gmail.users().messages().list("me").setQ(anyString()).setMaxResults(anyLong()).execute())
+                .thenThrow(googleError(500));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        GmailService service = serviceWithGmail(gmail);
+
+        assertThatThrownBy(() -> service.scanEmails(1L))
+                .isInstanceOf(ExternalServiceException.class)
+                .hasMessage("Couldn't reach Gmail. Please try again in a moment.");
+        verify(service, never()).refreshAccessToken(any());
+    }
+
+    @Test
+    void scanEmails_networkError_throwsExternalService() throws Exception {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        GmailService service = spy(gmailService);
+        doThrow(new IOException("connection reset")).when(service).buildGmailClient(any());
+
+        assertThatThrownBy(() -> service.scanEmails(1L))
+                .isInstanceOf(ExternalServiceException.class)
+                .hasMessage("Couldn't reach Gmail. Please try again in a moment.");
+    }
+
+    @Test
+    void refreshAccessToken_noRefreshToken_asksUserToRelink() {
+        testUser.setGoogleRefreshToken(null);
+
+        assertThatThrownBy(() -> gmailService.refreshAccessToken(testUser))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("re-link your Google account");
     }
 }

@@ -2,6 +2,7 @@ package com.jobflow.config;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import com.jobflow.exception.ExternalServiceException;
 import com.jobflow.exception.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -67,6 +68,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleMissingParam(MissingServletRequestParameterException ex) {
         return body(HttpStatus.BAD_REQUEST, "Bad Request",
                 "Missing required parameter '" + ex.getParameterName() + "'");
+    }
+
+    // Gmail and friends: not the user's fault and not ours, so 502 with a retry hint
+    @ExceptionHandler(ExternalServiceException.class)
+    public ResponseEntity<Map<String, Object>> handleExternalService(ExternalServiceException ex) {
+        log.warn("External service failed: {}", ex.getMessage(), ex.getCause());
+        return body(HttpStatus.BAD_GATEWAY, "Bad Gateway", ex.getMessage());
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
