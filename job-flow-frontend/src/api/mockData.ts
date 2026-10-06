@@ -202,6 +202,8 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
     if (url === '/interviews') return [...interviews];
     if (url === '/interviews/upcoming') return [...interviews];
     if (url === '/auth/me') return { token: null, name: 'Demo User', email: 'demo@jobflow.com', avatarUrl: null, jobTitle: null, bio: null, hasPassword: true };
+    if (url === '/gmail/status') return { gmailConnected: false, provider: '' };
+    if (url === '/gmail/link') return { authUrl: '' };
   }
 
   // ===== Application CRUD =====
