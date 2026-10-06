@@ -72,7 +72,11 @@ class RateLimitInterceptorTest {
 
         assertThat(result).isFalse();
         assertThat(response.getStatus()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
-        assertThat(response.getContentAsString()).contains("Rate limit exceeded");
+        // Same JSON shape as other errors, so the frontend can show "message"
+        assertThat(response.getContentAsString())
+                .contains("\"status\":429")
+                .contains("\"message\":\"Too many requests. Please wait ");
+        assertThat(Integer.parseInt(response.getHeader("Retry-After"))).isBetween(1, 60);
     }
 
     @Test
@@ -110,20 +114,23 @@ class RateLimitInterceptorTest {
     }
 
     @Test
-    void xForwardedFor_usesFirstIp() throws Exception {
-        request.setRemoteAddr("127.0.0.1");
-        request.addHeader("X-Forwarded-For", "203.0.113.50, 70.41.3.18");
+    void xForwardedForHeader_cannotChangeTheBucket() throws Exception {
+        // Tomcat's RemoteIpValve applies X-Forwarded-For for trusted proxies before we
+        // get here; the header itself must never pick the bucket, or clients could rotate it
+        for (int i = 0; i < 60; i++) {
+            MockHttpServletRequest spoofed = new MockHttpServletRequest();
+            spoofed.setRemoteAddr("10.0.0.9");
+            spoofed.addHeader("X-Forwarded-For", "203.0.113." + i);
+            interceptor.preHandle(spoofed, new MockHttpServletResponse(), new Object());
+        }
 
-        interceptor.preHandle(request, response, new Object());
-
-        // Second request from same forwarded IP
+        MockHttpServletRequest spoofed = new MockHttpServletRequest();
+        spoofed.setRemoteAddr("10.0.0.9");
+        spoofed.addHeader("X-Forwarded-For", "198.51.100.77");
         response = new MockHttpServletResponse();
-        MockHttpServletRequest request2 = new MockHttpServletRequest();
-        request2.setRemoteAddr("127.0.0.1");
-        request2.addHeader("X-Forwarded-For", "203.0.113.50, 70.41.3.18");
-        interceptor.preHandle(request2, response, new Object());
 
-        assertThat(response.getHeader("X-RateLimit-Remaining")).isEqualTo("58");
+        assertThat(interceptor.preHandle(spoofed, response, new Object())).isFalse();
+        assertThat(response.getStatus()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
     }
 
     @Test
@@ -143,5 +150,36 @@ class RateLimitInterceptorTest {
             interceptor.preHandle(request, response, new Object());
         }
         assertThat(response.getHeader("X-RateLimit-Remaining")).isEqualTo("0");
+    }
+
+    @Test
+    void evictExpiredBuckets_dropsOnlyFinishedWindows() throws Exception {
+        request.setRemoteAddr("10.0.0.20");
+        interceptor.preHandle(request, response, new Object());
+        MockHttpServletRequest other = new MockHttpServletRequest();
+        other.setRemoteAddr("10.0.0.21");
+        interceptor.preHandle(other, new MockHttpServletResponse(), new Object());
+        assertThat(interceptor.bucketCount()).isEqualTo(2);
+
+        // Still inside the window: nothing goes
+        interceptor.evictExpiredBuckets(System.currentTimeMillis() + 30_000);
+        assertThat(interceptor.bucketCount()).isEqualTo(2);
+
+        // Window over: both go
+        interceptor.evictExpiredBuckets(System.currentTimeMillis() + 61_000);
+        assertThat(interceptor.bucketCount()).isZero();
+    }
+
+    @Test
+    void afterEviction_clientStartsAFreshWindow() throws Exception {
+        request.setRemoteAddr("10.0.0.22");
+        for (int i = 0; i < 61; i++) {
+            interceptor.preHandle(request, new MockHttpServletResponse(), new Object());
+        }
+        interceptor.evictExpiredBuckets(System.currentTimeMillis() + 61_000);
+
+        response = new MockHttpServletResponse();
+        assertThat(interceptor.preHandle(request, response, new Object())).isTrue();
+        assertThat(response.getHeader("X-RateLimit-Remaining")).isEqualTo("59");
     }
 }

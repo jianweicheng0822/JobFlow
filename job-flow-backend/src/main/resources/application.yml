@@ -1,5 +1,13 @@
 server:
   port: 8080
+  # Let Tomcat turn X-Forwarded-For/Proto into the real client IP and scheme, but only
+  # for requests coming from a trusted proxy. TRUSTED_PROXIES is a regex of proxy IPs
+  # (e.g. the Docker network nginx runs on). Empty = trust nobody, so clients can't
+  # spoof their IP with that header, which the rate limiter relies on.
+  forward-headers-strategy: native
+  tomcat:
+    remoteip:
+      internal-proxies: ${TRUSTED_PROXIES:}
 
 spring:
   application:
