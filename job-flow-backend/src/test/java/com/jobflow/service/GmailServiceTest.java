@@ -33,6 +33,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -649,5 +651,67 @@ class GmailServiceTest {
         assertThatThrownBy(() -> service.scanEmails(1L))
                 .isInstanceOf(ExternalServiceException.class);
         assertThat(testUser.isGmailConnected()).isTrue();
+    }
+
+    // ============================
+    // importApplications - messy input from email subjects
+    // ============================
+
+    @Test
+    void importApplications_longTitleAndCompany_areTruncatedNotRejected() {
+        String longTitle = "Senior Engineer " + "x".repeat(400);
+        String longCompany = "Mega Corp " + "y".repeat(400);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(emailImportLogRepository.existsByUserIdAndGmailMessageId(1L, "msg1")).thenReturn(false);
+        when(companyService.findOrCreateByName(eq(testUser), anyString()))
+                .thenAnswer(inv -> Company.builder().id(10L).name(inv.getArgument(1)).build());
+        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        GmailImportConfirmRequest request = new GmailImportConfirmRequest();
+        request.setItems(List.of(new GmailImportConfirmRequest.ImportItem("msg1", longCompany, longTitle, null)));
+
+        GmailImportResultDTO result = gmailService.importApplications(1L, request);
+
+        assertThat(result.getImportedCount()).isEqualTo(1);
+        verify(companyService).findOrCreateByName(testUser, longCompany.substring(0, 255));
+        verify(jobApplicationRepository).save(argThat(app ->
+                app.getPositionTitle().equals(longTitle.substring(0, 255))));
+    }
+
+    @Test
+    void importApplications_blankTitleAndCompany_getDefaults() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(emailImportLogRepository.existsByUserIdAndGmailMessageId(1L, "msg1")).thenReturn(false);
+        Company unknown = Company.builder().id(12L).name("Unknown").build();
+        when(companyService.findOrCreateByName(testUser, "Unknown")).thenReturn(unknown);
+        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        GmailImportConfirmRequest request = new GmailImportConfirmRequest();
+        request.setItems(List.of(new GmailImportConfirmRequest.ImportItem("msg1", "   ", "  ", null)));
+
+        gmailService.importApplications(1L, request);
+
+        verify(jobApplicationRepository).save(argThat(app -> app.getPositionTitle().equals("Unknown Position")));
+    }
+
+    @Test
+    void importApplications_sameEmailTwiceInOneRequest_importsItOnce() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(emailImportLogRepository.existsByUserIdAndGmailMessageId(1L, "msg1")).thenReturn(false);
+        Company company = Company.builder().id(10L).name("Google").build();
+        when(companyService.findOrCreateByName(testUser, "Google")).thenReturn(company);
+        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        GmailImportConfirmRequest request = new GmailImportConfirmRequest();
+        request.setItems(List.of(
+                new GmailImportConfirmRequest.ImportItem("msg1", "Google", "SWE", null),
+                new GmailImportConfirmRequest.ImportItem("msg1", "Google", "SWE", null)));
+
+        GmailImportResultDTO result = gmailService.importApplications(1L, request);
+
+        // The second copy would hit the (user, message) unique key and roll back the whole batch
+        assertThat(result.getImportedCount()).isEqualTo(1);
+        assertThat(result.getSkippedCount()).isEqualTo(1);
+        verify(emailImportLogRepository, times(1)).save(any(EmailImportLog.class));
     }
 }

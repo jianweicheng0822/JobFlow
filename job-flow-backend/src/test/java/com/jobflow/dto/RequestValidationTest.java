@@ -131,4 +131,27 @@ class RequestValidationTest {
 
         assertThat(messages(request)).contains("Notes must be at most 5000 characters");
     }
+
+    // --- GmailImportConfirmRequest ---
+
+    @Test
+    void gmailImport_missingItems_fails() {
+        assertThat(messages(new GmailImportConfirmRequest())).contains("No emails selected to import");
+    }
+
+    @Test
+    void gmailImport_itemWithoutMessageId_fails() {
+        GmailImportConfirmRequest request = new GmailImportConfirmRequest();
+        request.setItems(java.util.List.of(new GmailImportConfirmRequest.ImportItem(" ", "Acme", "Role", null)));
+
+        assertThat(messages(request)).contains("Each email to import needs a gmailMessageId");
+    }
+
+    @Test
+    void gmailImport_longTitleIsLeftForTheServiceToTruncate() {
+        GmailImportConfirmRequest request = new GmailImportConfirmRequest();
+        request.setItems(java.util.List.of(new GmailImportConfirmRequest.ImportItem("msg1", "Acme", "x".repeat(600), null)));
+
+        assertThat(messages(request)).isEmpty();
+    }
 }

@@ -1,6 +1,7 @@
 package com.jobflow.controller;
 
 import com.jobflow.dto.GmailImportConfirmRequest;
+import jakarta.validation.Valid;
 import com.jobflow.dto.GmailImportPreviewDTO;
 import com.jobflow.dto.GmailImportResultDTO;
 import com.jobflow.model.User;
@@ -126,7 +127,7 @@ public class GmailController {
     }
 
     @PostMapping("/import")
-    public GmailImportResultDTO importApplications(@RequestBody GmailImportConfirmRequest request,
+    public GmailImportResultDTO importApplications(@Valid @RequestBody GmailImportConfirmRequest request,
                                                    Authentication authentication) {
         return gmailService.importApplications(getUserId(authentication), request);
     }

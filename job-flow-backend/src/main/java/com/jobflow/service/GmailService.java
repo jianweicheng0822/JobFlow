@@ -35,6 +35,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static com.jobflow.util.TextUtils.blankToNull;
+import static com.jobflow.util.TextUtils.truncate;
 
 @Service
 @RequiredArgsConstructor
@@ -171,22 +172,25 @@ public class GmailService {
 
         int imported = 0;
         int skipped = 0;
+        Set<String> seenInThisRequest = new HashSet<>();
 
         for (GmailImportConfirmRequest.ImportItem item : request.getItems()) {
-            // Skip duplicates
-            if (emailImportLogRepository.existsByUserIdAndGmailMessageId(userId, item.getGmailMessageId())) {
+            // Skip emails imported before, or listed twice in this request
+            if (!seenInThisRequest.add(item.getGmailMessageId())
+                    || emailImportLogRepository.existsByUserIdAndGmailMessageId(userId, item.getGmailMessageId())) {
                 skipped++;
                 continue;
             }
 
-            // Find or create company scoped to user
-            String companyName = Optional.ofNullable(blankToNull(item.getCompanyName())).orElse("Unknown");
+            // Subjects can be long or edited to blank; clean them up rather than failing the whole batch
+            String companyName = importText(item.getCompanyName(), "Unknown");
+            String positionTitle = importText(item.getPositionTitle(), "Unknown Position");
             Company company = companyService.findOrCreateByName(user, companyName);
 
             // Create job application
             JobApplication app = JobApplication.builder()
                     .user(user)
-                    .positionTitle(item.getPositionTitle() != null ? item.getPositionTitle() : "Unknown Position")
+                    .positionTitle(positionTitle)
                     .company(company)
                     .status(ApplicationStatus.APPLIED)
                     .appliedDate(item.getAppliedDate() != null ? item.getAppliedDate() : LocalDate.now())
@@ -209,6 +213,13 @@ public class GmailService {
                 .importedCount(imported)
                 .skippedCount(skipped)
                 .build();
+    }
+
+    // Trimmed, blank -> fallback, and capped at the 255-char column size
+    private static String importText(String value, String fallback) {
+        return Optional.ofNullable(blankToNull(value))
+                .map(text -> truncate(text, 255))
+                .orElse(fallback);
     }
 
     // Package-private so tests can swap in a fake client
