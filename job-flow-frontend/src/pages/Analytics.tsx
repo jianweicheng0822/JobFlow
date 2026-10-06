@@ -9,6 +9,7 @@ import { LayoutDashboard, PieChart as PieIcon, BarChart3 } from 'lucide-react'
 import './Analytics.css'
 import { getStats, getApplications } from '../api/applications'
 import type { DashboardStatsDTO, JobApplicationDTO } from '../api/types'
+import { buildStatusDistribution } from '../utils/statusDistribution'
 
 type AnalyticsTab = 'overview' | 'status' | 'company'
 
@@ -49,6 +50,7 @@ export default function Analytics() {
   const [activeTab, setActiveTab] = useState<AnalyticsTab>('overview')
   const [stats, setStats] = useState<DashboardStatsDTO | null>(null)
   const [companyData, setCompanyData] = useState<{ company: string; count: number }[]>([])
+  const [applications, setApplications] = useState<JobApplicationDTO[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -61,6 +63,7 @@ export default function Analytics() {
         ])
         setStats(statsRes.data)
         setCompanyData(buildCompanyData(appsRes.data))
+        setApplications(appsRes.data)
       } catch (err) {
         console.error('Failed to load analytics:', err)
         setError(t.backendError)
@@ -92,15 +95,7 @@ export default function Analytics() {
     { label: t.offers, value: String(stats?.offers ?? 0), trend: 'up' as const },
   ]
 
-  const knownSum = (stats?.inReview ?? 0) + (stats?.interviews ?? 0) + (stats?.offers ?? 0) + (stats?.rejections ?? 0)
-  const appliedAndPhoneScreen = (stats?.totalApplications ?? 0) - knownSum
-  const statusData = [
-    { name: t.statusApplied, value: appliedAndPhoneScreen, color: '#4f6ef7' },
-    { name: t.statusInReview, value: stats?.inReview ?? 0, color: '#f59e0b' },
-    { name: t.statusInterview, value: stats?.interviews ?? 0, color: '#10b981' },
-    { name: t.statusOffer, value: stats?.offers ?? 0, color: '#8b5cf6' },
-    { name: t.statusRejected, value: stats?.rejections ?? 0, color: '#ef4444' },
-  ].filter((d) => d.value > 0)
+  const statusData = buildStatusDistribution(applications, t)
 
   return (
     <div className="analytics-page">
