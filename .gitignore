@@ -43,3 +43,6 @@ node_modules/
 ### Design assets (local reference only) ###
 Gemini_Generated_Image_*.png
 job-flow-frontend/design/
+
+### Claude Code (per-machine settings) ###
+**/.claude/settings.local.json
