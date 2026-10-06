@@ -88,13 +88,15 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
 
     setLoading(true);
     try {
+      // Optional text fields are always sent: on edit, "" is how the user clears
+      // a field (undefined would mean "leave it as is"). The backend stores "" as null.
       const data: Record<string, unknown> = {
         positionTitle: positionTitle.trim(),
-        location: location.trim() || undefined,
-        salary: salary.trim() || undefined,
+        location: location.trim(),
+        salary: salary.trim(),
         status,
         appliedDate: appliedDate || undefined,
-        notes: notes.trim() || undefined,
+        notes: notes.trim(),
       };
 
       // Use companyId if an existing company was selected, otherwise use companyName

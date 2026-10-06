@@ -154,6 +154,13 @@ function cascadeDeleteInterviewsByAppIds(appIds: Set<number>): void {
   interviews = interviews.filter(i => !appIds.has(i.jobApplicationId));
 }
 
+// Mirrors the backend's partial update: missing = keep, blank = clear (null)
+function keepOrClear(value: unknown, current: string | null): string | null {
+  if (value === undefined || value === null) return current;
+  const trimmed = String(value).trim();
+  return trimmed === '' ? null : trimmed;
+}
+
 // Mirrors the backend: a real status change becomes "Moved to Phone Screen", otherwise keep what's there
 // formatLastAction.ts parses this wording for translation, keep them in sync
 function lastActionAfter(app: JobApplicationDTO, newStatus: ApplicationStatus): string | null {
@@ -262,12 +269,12 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
       ...applications[idx],
       positionTitle: (payload?.positionTitle as string) || applications[idx].positionTitle,
       company,
-      location: (payload?.location as string) ?? applications[idx].location,
-      salary: (payload?.salary as string) ?? applications[idx].salary,
+      location: keepOrClear(payload?.location, applications[idx].location),
+      salary: keepOrClear(payload?.salary, applications[idx].salary),
       status: newStatus,
       lastAction,
       appliedDate: (payload?.appliedDate as string) || applications[idx].appliedDate,
-      notes: (payload?.notes as string) ?? applications[idx].notes,
+      notes: keepOrClear(payload?.notes, applications[idx].notes),
       updatedAt: new Date().toISOString(),
     };
     stats = computeStats(applications);
@@ -335,7 +342,7 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
       ...interviews[idx],
       interviewDate,
       interviewType: (payload?.interviewType as InterviewType | undefined) || interviews[idx].interviewType,
-      notes: (payload?.notes as string) ?? interviews[idx].notes,
+      notes: keepOrClear(payload?.notes, interviews[idx].notes),
       reminderEnabled: (payload?.reminderEnabled as boolean) ?? interviews[idx].reminderEnabled,
       reminderHoursBefore: (payload?.reminderHoursBefore as number) ?? interviews[idx].reminderHoursBefore,
       daysUntil,

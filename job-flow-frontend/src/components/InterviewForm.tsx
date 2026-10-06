@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { getApplications } from '../api/applications';
 import { createInterview, updateInterview } from '../api/interviews';
+import { getErrorMessage } from '../api/client';
 import type {
   JobApplicationDTO,
   InterviewDTO,
@@ -64,7 +65,8 @@ export default function InterviewForm({ interview, onSuccess, onCancel }: Interv
         jobApplicationId: jobApplicationId as number,
         interviewDate,
         interviewType,
-        notes: notes.trim() || undefined,
+        // "" clears the notes on edit; undefined would keep the old value
+        notes: notes.trim(),
         reminderEnabled,
         reminderHoursBefore: reminderEnabled ? reminderHoursBefore : undefined,
       };
@@ -77,7 +79,8 @@ export default function InterviewForm({ interview, onSuccess, onCancel }: Interv
       onSuccess();
     } catch (err) {
       console.error('Failed to save interview:', err);
-      setErrors({ form: t.saveFailed });
+      // Show the backend's reason (e.g. "Interview date is required") when there is one
+      setErrors({ form: getErrorMessage(err, t.saveFailed) });
     } finally {
       setLoading(false);
     }

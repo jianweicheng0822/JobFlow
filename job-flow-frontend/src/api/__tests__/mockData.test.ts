@@ -151,6 +151,21 @@ describe('status changes update lastAction', () => {
   });
 });
 
+describe('PUT partial update', () => {
+  // Seed app 1 has location 'Seattle, WA' and salary '$145,000'
+  it('clears an optional field sent as a blank string', () => {
+    const result = resolveMock('/applications/1', 'put', { location: '  ' }) as JobApplicationDTO;
+    expect(result.location).toBeNull();
+    expect(result.salary).toBe('$145,000');
+  });
+
+  it('keeps fields that are not sent', () => {
+    const result = resolveMock('/applications/1', 'put', { notes: 'hello' }) as JobApplicationDTO;
+    expect(result.location).toBe('Seattle, WA');
+    expect(result.notes).toBe('hello');
+  });
+});
+
 describe('isDemoMode', () => {
   it('returns true when token is demo-token', () => {
     localStorage.setItem('jobflow-token', 'demo-token');
