@@ -268,6 +268,22 @@ const zh = {
 
   // OAuth Callback
   signingYouIn: '正在登录...',
+
+  // Last action (Dashboard "Recently Updated"); see utils/formatLastAction.ts
+  movedTo: '状态更新为「{status}」',
+  actionApplied: '已投递',
+  actionApplicationSubmitted: '已提交申请',
+  actionUnderReview: '审核中',
+  actionResumeReviewed: '简历已审阅',
+  actionRecruiterContacted: '招聘方已联系',
+  actionPhoneScreenScheduled: '已安排电话筛选',
+  actionPhoneScreenCompleted: '电话筛选已完成',
+  actionInterviewScheduled: '已安排面试',
+  actionTechnicalInterview: '技术面试',
+  actionOfferReceived: '已收到录用通知',
+  actionRejected: '已被拒绝',
+  actionRejectedAfterInterview: '面试后被拒',
+  actionRejectedAfterFinalRound: '终面后被拒',
 };
 
 export default zh;

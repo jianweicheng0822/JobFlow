@@ -268,6 +268,22 @@ const en = {
 
   // OAuth Callback
   signingYouIn: 'Signing you in...',
+
+  // Last action (Dashboard "Recently Updated"); see utils/formatLastAction.ts
+  movedTo: 'Moved to {status}',
+  actionApplied: 'Applied',
+  actionApplicationSubmitted: 'Application Submitted',
+  actionUnderReview: 'Under Review',
+  actionResumeReviewed: 'Resume reviewed',
+  actionRecruiterContacted: 'Recruiter contacted',
+  actionPhoneScreenScheduled: 'Phone Screen Scheduled',
+  actionPhoneScreenCompleted: 'Phone Screen Completed',
+  actionInterviewScheduled: 'Interview Scheduled',
+  actionTechnicalInterview: 'Technical Interview',
+  actionOfferReceived: 'Offer Received',
+  actionRejected: 'Rejected',
+  actionRejectedAfterInterview: 'Rejected after interview',
+  actionRejectedAfterFinalRound: 'Rejected after final round',
 };
 
 export default en;
