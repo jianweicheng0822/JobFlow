@@ -155,6 +155,7 @@ function cascadeDeleteInterviewsByAppIds(appIds: Set<number>): void {
 }
 
 // Mirrors the backend: a real status change becomes "Moved to Phone Screen", otherwise keep what's there
+// formatLastAction.ts parses this wording for translation, keep them in sync
 function lastActionAfter(app: JobApplicationDTO, newStatus: ApplicationStatus): string | null {
   if (app.status === newStatus) return app.lastAction;
   const label = newStatus

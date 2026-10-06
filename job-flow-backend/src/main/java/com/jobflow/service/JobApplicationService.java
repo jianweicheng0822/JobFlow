@@ -152,6 +152,7 @@ public class JobApplicationService {
     }
 
     // Sets the new status and, only if it actually changed, records it as the last action
+    // The frontend translates this text for display (utils/formatLastAction.ts), so keep the "Moved to ..." wording in sync
     private void changeStatus(JobApplication app, ApplicationStatus status) {
         if (app.getStatus() == status) return;
         app.setStatus(status);

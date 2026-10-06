@@ -6,6 +6,7 @@ import { getStats, getApplications, getRecentApplications } from '../api/applica
 import { getUpcomingInterviews } from '../api/interviews'
 import type { DashboardStatsDTO, JobApplicationDTO, InterviewDTO, ApplicationStatus } from '../api/types'
 import { sortStarredFirst } from '../utils/sortStarredFirst'
+import { formatLastAction } from '../utils/formatLastAction'
 
 // ===== Types =====
 interface PipelineCard {
@@ -329,7 +330,7 @@ export default function Dashboard() {
                           </div>
                         </td>
                         <td>{app.location || ''}</td>
-                        <td>{app.lastAction || ''}</td>
+                        <td>{formatLastAction(app.lastAction, t)}</td>
                         <td>
                           <span
                             className="recent-status-badge"
