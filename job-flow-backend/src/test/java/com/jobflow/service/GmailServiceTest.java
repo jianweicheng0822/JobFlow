@@ -7,6 +7,7 @@ import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponseException;
 import com.google.api.services.gmail.Gmail;
+import com.google.auth.oauth2.AccessToken;
 import com.jobflow.exception.ExternalServiceException;
 import com.jobflow.exception.NotFoundException;
 import com.jobflow.model.*;
@@ -572,5 +573,81 @@ class GmailServiceTest {
         assertThatThrownBy(() -> gmailService.refreshAccessToken(testUser))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("re-link your Google account");
+    }
+
+    // ============================
+    // refreshAccessToken - when to unlink Gmail
+    // ============================
+
+    private static IOException tokenEndpointError(int status, String body) {
+        HttpResponseException http = new HttpResponseException.Builder(status, "error", new HttpHeaders())
+                .setContent(body).build();
+        // Mirrors the auth library, which wraps the HTTP error in an IOException
+        return new IOException("Error getting access token for service account", http);
+    }
+
+    @Test
+    void refreshAccessToken_success_storesNewTokenAndStaysConnected() throws Exception {
+        GmailService service = spy(gmailService);
+        doReturn(new AccessToken("fresh-token", null)).when(service).fetchNewAccessToken("fake-refresh");
+
+        service.refreshAccessToken(testUser);
+
+        assertThat(testUser.getGoogleAccessToken()).isEqualTo("fresh-token");
+        assertThat(testUser.isGmailConnected()).isTrue();
+        verify(userRepository).save(testUser);
+    }
+
+    @Test
+    void refreshAccessToken_invalidGrant_unlinksAndAsksToRelink() throws Exception {
+        GmailService service = spy(gmailService);
+        doThrow(tokenEndpointError(400, "{\"error\":\"invalid_grant\"}")).when(service).fetchNewAccessToken(anyString());
+
+        assertThatThrownBy(() -> service.refreshAccessToken(testUser))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("re-link your Google account");
+
+        assertThat(testUser.isGmailConnected()).isFalse();
+        verify(userRepository).save(testUser);
+    }
+
+    @Test
+    void refreshAccessToken_networkError_keepsGmailLinked() throws Exception {
+        GmailService service = spy(gmailService);
+        doThrow(new IOException("Connection timed out")).when(service).fetchNewAccessToken(anyString());
+
+        assertThatThrownBy(() -> service.refreshAccessToken(testUser))
+                .isInstanceOf(ExternalServiceException.class)
+                .hasMessage("Couldn't reach Gmail. Please try again in a moment.");
+
+        // A blip must not force the user to re-link
+        assertThat(testUser.isGmailConnected()).isTrue();
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void refreshAccessToken_googleOutage_keepsGmailLinked() throws Exception {
+        GmailService service = spy(gmailService);
+        doThrow(tokenEndpointError(503, "Service Unavailable")).when(service).fetchNewAccessToken(anyString());
+
+        assertThatThrownBy(() -> service.refreshAccessToken(testUser))
+                .isInstanceOf(ExternalServiceException.class);
+
+        assertThat(testUser.isGmailConnected()).isTrue();
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void scanEmails_refreshHitsNetworkError_returns502AndStaysLinked() throws Exception {
+        Gmail gmail = mock(Gmail.class, RETURNS_DEEP_STUBS);
+        when(gmail.users().messages().list("me").setQ(anyString()).setMaxResults(anyLong()).execute())
+                .thenThrow(googleError(401));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        GmailService service = serviceWithGmail(gmail);
+        doThrow(new IOException("Connection reset")).when(service).fetchNewAccessToken(anyString());
+
+        assertThatThrownBy(() -> service.scanEmails(1L))
+                .isInstanceOf(ExternalServiceException.class);
+        assertThat(testUser.isGmailConnected()).isTrue();
     }
 }

@@ -1,6 +1,7 @@
 package com.jobflow.service;
 
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.model.ListMessagesResponse;
@@ -25,6 +26,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -228,24 +230,47 @@ public class GmailService {
             throw new IllegalArgumentException("No refresh token available. Please re-link your Google account.");
         }
 
+        AccessToken newToken;
         try {
-            UserCredentials credentials = UserCredentials.newBuilder()
-                    .setClientId(googleClientId)
-                    .setClientSecret(googleClientSecret)
-                    .setRefreshToken(user.getGoogleRefreshToken())
-                    .build();
-
-            credentials.refresh();
-            AccessToken newToken = credentials.getAccessToken();
-
-            user.setGoogleAccessToken(newToken.getTokenValue());
-            userRepository.save(user);
+            newToken = fetchNewAccessToken(user.getGoogleRefreshToken());
         } catch (Exception e) {
-            log.error("Failed to refresh Google access token", e);
-            user.setGmailConnected(false);
-            userRepository.save(user);
-            throw new IllegalArgumentException("Failed to refresh Google access token. Please re-link your Google account.");
+            if (isTokenRejected(e)) {
+                // Google refused the refresh token itself (revoked, expired...): only re-linking fixes that
+                log.warn("Google rejected the refresh token for user {}", user.getId(), e);
+                user.setGmailConnected(false);
+                userRepository.save(user);
+                throw new IllegalArgumentException("Failed to refresh Google access token. Please re-link your Google account.");
+            }
+            // Network blip or a Google outage: keep the link so the next try can just work
+            log.error("Couldn't reach Google to refresh the access token", e);
+            throw new ExternalServiceException(GMAIL_UNAVAILABLE, e);
         }
+
+        user.setGoogleAccessToken(newToken.getTokenValue());
+        userRepository.save(user);
+    }
+
+    // Package-private so tests can stub the call to Google's token endpoint
+    AccessToken fetchNewAccessToken(String refreshToken) throws IOException {
+        UserCredentials credentials = UserCredentials.newBuilder()
+                .setClientId(googleClientId)
+                .setClientSecret(googleClientSecret)
+                .setRefreshToken(refreshToken)
+                .build();
+        credentials.refresh();
+        return credentials.getAccessToken();
+    }
+
+    // A 400/401 from the token endpoint (e.g. invalid_grant) means the refresh token is no good.
+    // Anything else (timeouts, 5xx) is temporary and shouldn't unlink the account.
+    static boolean isTokenRejected(Throwable error) {
+        for (Throwable t = error; t != null; t = t.getCause() == t ? null : t.getCause()) {
+            if (t instanceof HttpResponseException hre) {
+                int status = hre.getStatusCode();
+                return status == 400 || status == 401;
+            }
+        }
+        return false;
     }
 
     private GmailImportPreviewDTO parseMessage(String messageId, Message message) {
