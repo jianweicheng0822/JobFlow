@@ -310,6 +310,14 @@
   font-weight: 600;
 }
 
+/* Small marker for starred applications on cards and table rows */
+.dashboard-star-icon {
+  color: #f59e0b;
+  margin-right: 4px;
+  vertical-align: -1px;
+  flex-shrink: 0;
+}
+
 .recent-company {
   display: flex;
   align-items: center;

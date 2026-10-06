@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import { Star } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
 import './Dashboard.css'
 import { getStats, getApplications, getRecentApplications } from '../api/applications'
 import { getUpcomingInterviews } from '../api/interviews'
 import type { DashboardStatsDTO, JobApplicationDTO, InterviewDTO, ApplicationStatus } from '../api/types'
+import { sortStarredFirst } from '../utils/sortStarredFirst'
 
 // ===== Types =====
 interface PipelineCard {
@@ -13,6 +15,7 @@ interface PipelineCard {
   location: string
   salary: string
   date: string
+  starred: boolean
   tag?: string
 }
 
@@ -72,7 +75,7 @@ function buildPipelineColumns(applications: JobApplicationDTO[], t: Record<strin
   const stages: ApplicationStatus[] = ['APPLIED', 'IN_REVIEW', 'PHONE_SCREEN', 'INTERVIEW', 'OFFER', 'REJECTED']
 
   return stages.map((status) => {
-    const matching = applications.filter((app) => app.status === status)
+    const matching = sortStarredFirst(applications.filter((app) => app.status === status))
     const labelKey = STATUS_LABEL_KEYS[status]
 
     return {
@@ -86,6 +89,7 @@ function buildPipelineColumns(applications: JobApplicationDTO[], t: Record<strin
         location: app.location || '',
         salary: app.salary || '',
         date: formatDate(app.appliedDate),
+        starred: app.starred,
       })),
     }
   })
@@ -185,7 +189,8 @@ export default function Dashboard() {
         ])
         setStats(statsRes.data)
         setPipelineColumns(buildPipelineColumns(appsRes.data, t))
-        setRecentApps(recentRes.data)
+        // Keep the "recently updated" set from the API, just bump starred ones up
+        setRecentApps(sortStarredFirst(recentRes.data))
         setInterviews(interviewsRes.data)
       } catch (err) {
         console.error('Failed to load dashboard data:', err)
@@ -265,7 +270,10 @@ export default function Dashboard() {
                   <div className="pipeline-column-body">
                     {col.cards.map((card) => (
                       <div className="pipeline-card" key={card.id}>
-                        <div className="pipeline-card-title">{card.title}</div>
+                        <div className="pipeline-card-title">
+                          {card.starred && <Star className="dashboard-star-icon" size={12} fill="currentColor" aria-label={t.starApplication} />}
+                          {card.title}
+                        </div>
                         <div className="pipeline-card-company">{card.company}</div>
                         <div className="pipeline-card-meta">
                           <span>📍 {card.location}</span>
@@ -305,7 +313,10 @@ export default function Dashboard() {
                     const companyColor = getCompanyColor(app.company.name)
                     return (
                       <tr key={app.id}>
-                        <td className="recent-position">{app.positionTitle}</td>
+                        <td className="recent-position">
+                          {app.starred && <Star className="dashboard-star-icon" size={12} fill="currentColor" aria-label={t.starApplication} />}
+                          {app.positionTitle}
+                        </td>
                         <td>
                           <div className="recent-company">
                             <span
