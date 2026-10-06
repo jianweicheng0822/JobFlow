@@ -93,7 +93,7 @@ export default function SettingsPage() {
       showToast(`${t.googleLinkFailed} (${error})`, 'error')
       window.history.replaceState({}, '', window.location.pathname)
     }
-  }, [showToast])
+  }, [showToast, t])
 
   // Fetch Gmail connection status when integrations tab is active
   useEffect(() => {

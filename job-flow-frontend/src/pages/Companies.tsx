@@ -57,7 +57,8 @@ export default function Companies() {
   const [, setApplications] = useState<JobApplicationDTO[]>([])
   const [companyViews, setCompanyViews] = useState<CompanyView[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // Just a flag; the message is picked at render time so it follows the current language
+  const [loadFailed, setLoadFailed] = useState(false)
 
   const [search, setSearch] = useState('')
   const [locationFilter, setLocationFilter] = useState('')
@@ -80,10 +81,10 @@ export default function Companies() {
       setCompanies(companiesRes.data)
       setApplications(appsRes.data)
       setCompanyViews(buildCompanyViews(companiesRes.data, appsRes.data))
-      setError(null)
+      setLoadFailed(false)
     } catch (err) {
       console.error('Failed to load companies:', err)
-      setError(t.backendError)
+      setLoadFailed(true)
     } finally {
       setLoading(false)
     }
@@ -147,8 +148,8 @@ export default function Companies() {
     return <div className="companies-page"><div className="companies-loading">{t.loading}</div></div>
   }
 
-  if (error) {
-    return <div className="companies-page"><div className="companies-error">{error}</div></div>
+  if (loadFailed) {
+    return <div className="companies-page"><div className="companies-error">{t.backendError}</div></div>
   }
 
   return (

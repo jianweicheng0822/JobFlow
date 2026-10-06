@@ -70,7 +70,8 @@ export default function Interviews() {
   const { t } = useLanguage()
   const [interviews, setInterviews] = useState<InterviewDTO[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // Just a flag; the message is picked at render time so it follows the current language
+  const [loadFailed, setLoadFailed] = useState(false)
 
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
@@ -87,10 +88,10 @@ export default function Interviews() {
       setLoading(true)
       const res = await getInterviews()
       setInterviews(res.data)
-      setError(null)
+      setLoadFailed(false)
     } catch (err) {
       console.error('Failed to load interviews:', err)
-      setError(t.backendError)
+      setLoadFailed(true)
     } finally {
       setLoading(false)
     }
@@ -175,8 +176,8 @@ export default function Interviews() {
     return <div className="interviews-page"><div className="interviews-loading">{t.loading}</div></div>
   }
 
-  if (error) {
-    return <div className="interviews-page"><div className="interviews-error">{error}</div></div>
+  if (loadFailed) {
+    return <div className="interviews-page"><div className="interviews-error">{t.backendError}</div></div>
   }
 
   return (

@@ -130,7 +130,8 @@ function JobsTrendLine({ direction }: { direction: 'up' | 'down' }) {
 export default function Jobs() {
   const [applications, setApplications] = useState<JobApplicationDTO[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // Just a flag; the message is picked at render time so it follows the current language
+  const [loadFailed, setLoadFailed] = useState(false)
 
   const [search, setSearch] = useState('')
   const [companyFilter, setCompanyFilter] = useState('')
@@ -154,10 +155,10 @@ export default function Jobs() {
       setLoading(true)
       const res = await getApplications()
       setApplications(res.data)
-      setError(null)
+      setLoadFailed(false)
     } catch (err) {
       console.error('Failed to load jobs:', err)
-      setError(t.backendError)
+      setLoadFailed(true)
     } finally {
       setLoading(false)
     }
@@ -269,8 +270,8 @@ export default function Jobs() {
     return <div className="jobs-page"><div className="jobs-loading">{t.loading}</div></div>
   }
 
-  if (error) {
-    return <div className="jobs-page"><div className="jobs-error">{error}</div></div>
+  if (loadFailed) {
+    return <div className="jobs-page"><div className="jobs-error">{t.backendError}</div></div>
   }
 
   return (
