@@ -135,8 +135,9 @@ public class JobApplicationService {
         if (request.getPositionTitle() != null) app.setPositionTitle(request.getPositionTitle());
         if (request.getLocation() != null) app.setLocation(request.getLocation());
         if (request.getSalary() != null) app.setSalary(request.getSalary());
-        if (request.getStatus() != null) app.setStatus(request.getStatus());
+        if (request.getStatus() != null) changeStatus(app, request.getStatus());
         if (request.getAppliedDate() != null) app.setAppliedDate(request.getAppliedDate());
+        // Runs after changeStatus on purpose, so an explicit lastAction wins over the auto one
         if (request.getLastAction() != null) app.setLastAction(request.getLastAction());
         if (request.getNotes() != null) app.setNotes(request.getNotes());
 
@@ -146,8 +147,25 @@ public class JobApplicationService {
     public JobApplicationDTO updateStatus(Long userId, Long id, ApplicationStatus status) {
         JobApplication app = jobApplicationRepository.findByIdAndUserId(id, userId)
             .orElseThrow(() -> new NotFoundException("Job application not found: " + id));
-        app.setStatus(status);
+        changeStatus(app, status);
         return toDTO(jobApplicationRepository.save(app));
+    }
+
+    // Sets the new status and, only if it actually changed, records it as the last action
+    private void changeStatus(JobApplication app, ApplicationStatus status) {
+        if (app.getStatus() == status) return;
+        app.setStatus(status);
+        app.setLastAction("Moved to " + statusLabel(status));
+    }
+
+    // PHONE_SCREEN -> "Phone Screen"
+    private static String statusLabel(ApplicationStatus status) {
+        StringBuilder sb = new StringBuilder();
+        for (String word : status.name().split("_")) {
+            if (sb.length() > 0) sb.append(' ');
+            sb.append(word.charAt(0)).append(word.substring(1).toLowerCase());
+        }
+        return sb.toString();
     }
 
     @Transactional

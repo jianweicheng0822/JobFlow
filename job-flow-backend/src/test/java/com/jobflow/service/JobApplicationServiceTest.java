@@ -363,6 +363,37 @@ class JobApplicationServiceTest {
         assertThat(result.getPositionTitle()).isEqualTo("Senior Engineer");
         assertThat(result.getLocation()).isEqualTo("SF");
         assertThat(result.getStatus()).isEqualTo(ApplicationStatus.INTERVIEW);
+        assertThat(result.getLastAction()).isEqualTo("Moved to Interview");
+    }
+
+    @Test
+    void update_explicitLastAction_winsOverAutoOne() {
+        UpdateJobApplicationRequest request = new UpdateJobApplicationRequest();
+        request.setStatus(ApplicationStatus.INTERVIEW);
+        request.setLastAction("Onsite booked");
+
+        when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
+        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(companyService.toDTO(testCompany)).thenReturn(testCompanyDTO);
+
+        JobApplicationDTO result = jobApplicationService.update(1L, 100L, request);
+
+        assertThat(result.getLastAction()).isEqualTo("Onsite booked");
+    }
+
+    @Test
+    void update_sameStatus_keepsLastAction() {
+        UpdateJobApplicationRequest request = new UpdateJobApplicationRequest();
+        request.setStatus(ApplicationStatus.APPLIED);
+        request.setNotes("Followed up");
+
+        when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
+        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(companyService.toDTO(testCompany)).thenReturn(testCompanyDTO);
+
+        JobApplicationDTO result = jobApplicationService.update(1L, 100L, request);
+
+        assertThat(result.getLastAction()).isEqualTo("Applied online");
     }
 
     @Test
@@ -405,6 +436,30 @@ class JobApplicationServiceTest {
         JobApplicationDTO result = jobApplicationService.updateStatus(1L, 100L, ApplicationStatus.OFFER);
 
         assertThat(result.getStatus()).isEqualTo(ApplicationStatus.OFFER);
+        assertThat(result.getLastAction()).isEqualTo("Moved to Offer");
+    }
+
+    @Test
+    void updateStatus_multiWordStatus_getsReadableLabel() {
+        when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
+        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(companyService.toDTO(testCompany)).thenReturn(testCompanyDTO);
+
+        JobApplicationDTO result = jobApplicationService.updateStatus(1L, 100L, ApplicationStatus.PHONE_SCREEN);
+
+        assertThat(result.getLastAction()).isEqualTo("Moved to Phone Screen");
+    }
+
+    @Test
+    void updateStatus_sameStatus_keepsLastAction() {
+        when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
+        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(companyService.toDTO(testCompany)).thenReturn(testCompanyDTO);
+
+        JobApplicationDTO result = jobApplicationService.updateStatus(1L, 100L, ApplicationStatus.APPLIED);
+
+        assertThat(result.getStatus()).isEqualTo(ApplicationStatus.APPLIED);
+        assertThat(result.getLastAction()).isEqualTo("Applied online");
     }
 
     @Test
