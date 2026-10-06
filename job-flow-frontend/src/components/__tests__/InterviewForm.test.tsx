@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import InterviewForm from '../InterviewForm';
-import { LanguageProvider } from '../../context/LanguageContext';
+import { LanguageProvider } from '../../context/LanguageProvider';
 import type { InterviewDTO, JobApplicationDTO } from '../../api/types';
 
 // Mock API modules

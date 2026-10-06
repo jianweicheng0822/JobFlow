@@ -1,30 +1,9 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import type { ReactNode } from 'react'
 import * as authApi from '../api/auth'
 import { resetMockData } from '../api/mockData'
 import type { AuthResponse, LoginRequest, RegisterRequest } from '../api/auth'
-
-interface AuthUser {
-  name: string
-  email: string
-  avatarUrl: string | null
-  jobTitle: string | null
-  bio: string | null
-  hasPassword: boolean
-  gmailConnected: boolean
-}
-
-interface AuthContextType {
-  user: AuthUser | null
-  loading: boolean
-  login: (data: LoginRequest) => Promise<void>
-  register: (data: RegisterRequest) => Promise<void>
-  logout: () => void
-  tryDemo: () => void
-  updateUser: (user: AuthUser) => void
-}
-
-const AuthContext = createContext<AuthContextType | null>(null)
+import { AuthContext, type AuthUser } from './AuthContext'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
@@ -76,12 +55,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   )
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
-  return ctx
 }
 
 function toUser(data: AuthResponse): AuthUser {

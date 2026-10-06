@@ -1,8 +1,8 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Jobs from '../Jobs';
-import { ToastProvider } from '../../context/ToastContext';
-import { LanguageProvider } from '../../context/LanguageContext';
+import { ToastProvider } from '../../context/ToastProvider';
+import { LanguageProvider } from '../../context/LanguageProvider';
 import { getApplications, toggleStar } from '../../api/applications';
 import type { JobApplicationDTO } from '../../api/types';
 

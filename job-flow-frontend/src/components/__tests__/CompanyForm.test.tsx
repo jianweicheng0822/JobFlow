@@ -1,8 +1,8 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import CompanyForm from '../CompanyForm';
-import { ToastProvider } from '../../context/ToastContext';
-import { LanguageProvider } from '../../context/LanguageContext';
+import { ToastProvider } from '../../context/ToastProvider';
+import { LanguageProvider } from '../../context/LanguageProvider';
 import type { CompanyDTO } from '../../api/types';
 
 // Mock API modules
