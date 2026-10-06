@@ -154,6 +154,16 @@ function cascadeDeleteInterviewsByAppIds(appIds: Set<number>): void {
   interviews = interviews.filter(i => !appIds.has(i.jobApplicationId));
 }
 
+// Mirrors the backend: a real status change becomes "Moved to Phone Screen", otherwise keep what's there
+function lastActionAfter(app: JobApplicationDTO, newStatus: ApplicationStatus): string | null {
+  if (app.status === newStatus) return app.lastAction;
+  const label = newStatus
+    .split('_')
+    .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+    .join(' ');
+  return `Moved to ${label}`;
+}
+
 // Resolve mock API calls by URL pattern
 export function resolveMock(url: string, method: string, body?: unknown, params?: Record<string, unknown>): unknown | undefined {
   if (method === 'get') {
@@ -244,6 +254,8 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
     const companyName = (payload?.companyName as string) || applications[idx].company.name;
     const matchedCompany = companyId ? companies.find(c => c.id === companyId) : undefined;
     const company: CompanyDTO = matchedCompany ?? { ...applications[idx].company, name: companyName };
+    const newStatus = (payload?.status as ApplicationStatus) || applications[idx].status;
+    const lastAction = (payload?.lastAction as string) ?? lastActionAfter(applications[idx], newStatus);
 
     applications[idx] = {
       ...applications[idx],
@@ -251,7 +263,8 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
       company,
       location: (payload?.location as string) ?? applications[idx].location,
       salary: (payload?.salary as string) ?? applications[idx].salary,
-      status: (payload?.status as ApplicationStatus) || applications[idx].status,
+      status: newStatus,
+      lastAction,
       appliedDate: (payload?.appliedDate as string) || applications[idx].appliedDate,
       notes: (payload?.notes as string) ?? applications[idx].notes,
       updatedAt: new Date().toISOString(),
@@ -266,7 +279,12 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
     const idx = applications.findIndex(a => a.id === id);
     if (idx === -1) return applications[0];
     const newStatus = (params?.status as ApplicationStatus) || applications[idx].status;
-    applications[idx] = { ...applications[idx], status: newStatus, updatedAt: new Date().toISOString() };
+    applications[idx] = {
+      ...applications[idx],
+      status: newStatus,
+      lastAction: lastActionAfter(applications[idx], newStatus),
+      updatedAt: new Date().toISOString(),
+    };
     stats = computeStats(applications);
     return applications[idx];
   }

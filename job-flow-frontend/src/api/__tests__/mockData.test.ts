@@ -127,6 +127,30 @@ describe('resolveMock DELETE endpoints', () => {
   });
 });
 
+describe('status changes update lastAction', () => {
+  // Seed app 1 is APPLIED with lastAction "Applied"
+  it('PATCH /status sets a readable lastAction when the status changes', () => {
+    const result = resolveMock('/applications/1/status', 'patch', undefined, { status: 'PHONE_SCREEN' }) as JobApplicationDTO;
+    expect(result.status).toBe('PHONE_SCREEN');
+    expect(result.lastAction).toBe('Moved to Phone Screen');
+  });
+
+  it('PATCH /status keeps lastAction when the status is the same', () => {
+    const result = resolveMock('/applications/1/status', 'patch', undefined, { status: 'APPLIED' }) as JobApplicationDTO;
+    expect(result.lastAction).toBe('Applied');
+  });
+
+  it('PUT updates lastAction when the form changes the status', () => {
+    const result = resolveMock('/applications/1', 'put', { status: 'OFFER' }) as JobApplicationDTO;
+    expect(result.lastAction).toBe('Moved to Offer');
+  });
+
+  it('PUT keeps an explicit lastAction over the auto one', () => {
+    const result = resolveMock('/applications/1', 'put', { status: 'OFFER', lastAction: 'Signed!' }) as JobApplicationDTO;
+    expect(result.lastAction).toBe('Signed!');
+  });
+});
+
 describe('isDemoMode', () => {
   it('returns true when token is demo-token', () => {
     localStorage.setItem('jobflow-token', 'demo-token');

@@ -60,15 +60,19 @@ export function deleteBatch(ids: number[]) {
   return client.delete('/applications/batch', { data: ids });
 }
 
+// Status and star changes update the UI optimistically, so give up after 10s
+// and let the caller roll back instead of leaving a fake state on screen
+const QUICK_UPDATE_TIMEOUT_MS = 10_000;
+
 export function updateStatus(id: number, status: ApplicationStatus) {
-  return client.patch<JobApplicationDTO>(`/applications/${id}/status`, null, { params: { status } });
+  return client.patch<JobApplicationDTO>(`/applications/${id}/status`, null, {
+    params: { status },
+    timeout: QUICK_UPDATE_TIMEOUT_MS,
+  });
 }
 
-// The star UI updates optimistically, so give up after 10s and let the caller roll back
-const STAR_TIMEOUT_MS = 10_000;
-
 export function toggleStar(id: number) {
-  return client.patch<JobApplicationDTO>(`/applications/${id}/star`, null, { timeout: STAR_TIMEOUT_MS });
+  return client.patch<JobApplicationDTO>(`/applications/${id}/star`, null, { timeout: QUICK_UPDATE_TIMEOUT_MS });
 }
 
 export function exportCsv() {
