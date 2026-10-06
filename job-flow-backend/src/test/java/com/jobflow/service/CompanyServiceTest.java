@@ -20,9 +20,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.PlatformTransactionManager;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -43,6 +48,10 @@ class CompanyServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    // A mock is enough: TransactionTemplate just runs the callback around it
+    @Mock
+    private PlatformTransactionManager transactionManager;
 
     @InjectMocks
     private CompanyService companyService;
@@ -101,7 +110,7 @@ class CompanyServiceTest {
         request.setLogoUrl("https://newco.com/logo.png");
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(companyRepository.save(any(Company.class)))
+        when(companyRepository.saveAndFlush(any(Company.class)))
                 .thenAnswer(invocation -> {
                     Company saved = invocation.getArgument(0);
                     saved.setId(5L);
@@ -116,13 +125,13 @@ class CompanyServiceTest {
         assertThat(result.getWebsite()).isEqualTo("https://newco.com");
         assertThat(result.getLogoUrl()).isEqualTo("https://newco.com/logo.png");
 
-        verify(companyRepository).save(any(Company.class));
+        verify(companyRepository).saveAndFlush(any(Company.class));
     }
 
     @Test
     void update_modifiesFields() {
         when(companyRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(testCompany));
-        when(companyRepository.save(any(Company.class)))
+        when(companyRepository.saveAndFlush(any(Company.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         CreateCompanyRequest request = new CreateCompanyRequest();
@@ -184,12 +193,118 @@ class CompanyServiceTest {
         request.setWebsite("");
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(companyRepository.save(any(Company.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(companyRepository.saveAndFlush(any(Company.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         CompanyDTO result = companyService.create(1L, request);
 
         assertThat(result.getName()).isEqualTo("NewCo");
         assertThat(result.getLocation()).isNull();
         assertThat(result.getWebsite()).isNull();
+    }
+
+    // --- findOrCreateByName ---
+
+    @Test
+    void findOrCreateByName_existing_returnsItWithoutInserting() {
+        when(companyRepository.findByNameIgnoreCaseAndUserId("Acme Inc", 1L)).thenReturn(Optional.of(testCompany));
+
+        Company result = companyService.findOrCreateByName(testUser, "Acme Inc");
+
+        assertThat(result).isSameAs(testCompany);
+        verify(companyRepository, never()).saveAndFlush(any(Company.class));
+    }
+
+    @Test
+    void findOrCreateByName_missing_createsItForThisUser() {
+        when(companyRepository.findByNameIgnoreCaseAndUserId("Initech", 1L)).thenReturn(Optional.empty());
+        when(companyRepository.saveAndFlush(any(Company.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Company result = companyService.findOrCreateByName(testUser, "Initech");
+
+        assertThat(result.getName()).isEqualTo("Initech");
+        assertThat(result.getUser()).isSameAs(testUser);
+    }
+
+    @Test
+    void findOrCreateByName_lostTheRace_returnsTheWinnersCompany() {
+        Company winner = Company.builder().id(77L).name("Initech").user(testUser).build();
+        // Not there on the first look, our insert hits the unique constraint, then the re-check finds it
+        when(companyRepository.findByNameIgnoreCaseAndUserId("Initech", 1L))
+                .thenReturn(Optional.empty(), Optional.of(winner));
+        when(companyRepository.saveAndFlush(any(Company.class)))
+                .thenThrow(new DataIntegrityViolationException("Duplicate entry"));
+
+        Company result = companyService.findOrCreateByName(testUser, "Initech");
+
+        assertThat(result).isSameAs(winner);
+        // Both looks ran in their own new transaction
+        verify(transactionManager, times(2)).getTransaction(any());
+    }
+
+    @Test
+    void findOrCreateByName_constraintErrorButStillMissing_rethrows() {
+        DataIntegrityViolationException original = new DataIntegrityViolationException("something else");
+        when(companyRepository.findByNameIgnoreCaseAndUserId("Initech", 1L)).thenReturn(Optional.empty());
+        when(companyRepository.saveAndFlush(any(Company.class))).thenThrow(original);
+
+        assertThatThrownBy(() -> companyService.findOrCreateByName(testUser, "Initech")).isSameAs(original);
+    }
+
+    // --- duplicate names on the Companies page ---
+
+    @Test
+    void create_duplicateName_throwsFriendlyError() {
+        CreateCompanyRequest request = new CreateCompanyRequest();
+        request.setName("acme inc");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(companyRepository.findByNameIgnoreCaseAndUserId("acme inc", 1L)).thenReturn(Optional.of(testCompany));
+
+        assertThatThrownBy(() -> companyService.create(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("A company named 'acme inc' already exists");
+        verify(companyRepository, never()).saveAndFlush(any(Company.class));
+    }
+
+    @Test
+    void create_duplicateSavedInBetween_throwsFriendlyError() {
+        CreateCompanyRequest request = new CreateCompanyRequest();
+        request.setName("Racy Co");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(companyRepository.findByNameIgnoreCaseAndUserId("Racy Co", 1L)).thenReturn(Optional.empty());
+        when(companyRepository.saveAndFlush(any(Company.class))).thenThrow(new DataIntegrityViolationException("Duplicate entry"));
+
+        assertThatThrownBy(() -> companyService.create(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("A company named 'Racy Co' already exists");
+    }
+
+    @Test
+    void update_renameToOwnNameDifferentCase_isAllowed() {
+        CreateCompanyRequest request = new CreateCompanyRequest();
+        request.setName("ACME INC");
+
+        when(companyRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(testCompany));
+        when(companyRepository.findByNameIgnoreCaseAndUserId("ACME INC", 1L)).thenReturn(Optional.of(testCompany));
+        when(companyRepository.saveAndFlush(any(Company.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CompanyDTO result = companyService.update(1L, 1L, request);
+
+        assertThat(result.getName()).isEqualTo("ACME INC");
+    }
+
+    @Test
+    void update_renameToAnotherCompanysName_throwsFriendlyError() {
+        Company other = Company.builder().id(2L).name("Globex").build();
+        CreateCompanyRequest request = new CreateCompanyRequest();
+        request.setName("Globex");
+
+        when(companyRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(testCompany));
+        when(companyRepository.findByNameIgnoreCaseAndUserId("Globex", 1L)).thenReturn(Optional.of(other));
+
+        assertThatThrownBy(() -> companyService.update(1L, 1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("A company named 'Globex' already exists");
     }
 }

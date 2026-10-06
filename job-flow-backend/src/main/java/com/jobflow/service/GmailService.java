@@ -14,7 +14,6 @@ import com.jobflow.dto.GmailImportConfirmRequest;
 import com.jobflow.dto.GmailImportPreviewDTO;
 import com.jobflow.dto.GmailImportResultDTO;
 import com.jobflow.model.*;
-import com.jobflow.repository.CompanyRepository;
 import com.jobflow.repository.EmailImportLogRepository;
 import com.jobflow.repository.JobApplicationRepository;
 import com.jobflow.repository.UserRepository;
@@ -33,13 +32,15 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.jobflow.util.TextUtils.blankToNull;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class GmailService {
 
     private final UserRepository userRepository;
-    private final CompanyRepository companyRepository;
+    private final CompanyService companyService;
     private final JobApplicationRepository jobApplicationRepository;
     private final EmailImportLogRepository emailImportLogRepository;
 
@@ -177,11 +178,8 @@ public class GmailService {
             }
 
             // Find or create company scoped to user
-            String companyName = item.getCompanyName() != null ? item.getCompanyName().trim() : "Unknown";
-            Company company = companyRepository.findByNameIgnoreCaseAndUserId(companyName, userId)
-                    .orElseGet(() -> companyRepository.save(
-                            Company.builder().name(companyName).user(user).build()
-                    ));
+            String companyName = Optional.ofNullable(blankToNull(item.getCompanyName())).orElse("Unknown");
+            Company company = companyService.findOrCreateByName(user, companyName);
 
             // Create job application
             JobApplication app = JobApplication.builder()

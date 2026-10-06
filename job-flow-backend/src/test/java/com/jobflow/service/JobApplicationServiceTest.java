@@ -247,8 +247,7 @@ class JobApplicationServiceTest {
         CompanyDTO newCompanyDTO = CompanyDTO.builder().id(20L).name("NewCorp").build();
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(companyRepository.findByNameIgnoreCaseAndUserId("NewCorp", 1L)).thenReturn(Optional.empty());
-        when(companyRepository.save(any(Company.class))).thenReturn(newCompany);
+        when(companyService.findOrCreateByName(testUser, "NewCorp")).thenReturn(newCompany);
         when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> {
             JobApplication saved = inv.getArgument(0);
             saved.setId(102L);
@@ -259,7 +258,7 @@ class JobApplicationServiceTest {
         JobApplicationDTO result = jobApplicationService.create(1L, request);
 
         assertThat(result.getId()).isEqualTo(102L);
-        verify(companyRepository).save(any(Company.class));
+        verify(companyService).findOrCreateByName(testUser, "NewCorp");
     }
 
     @Test
@@ -269,7 +268,7 @@ class JobApplicationServiceTest {
         request.setCompanyName("TestCorp");
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(companyRepository.findByNameIgnoreCaseAndUserId("TestCorp", 1L)).thenReturn(Optional.of(testCompany));
+        when(companyService.findOrCreateByName(testUser, "TestCorp")).thenReturn(testCompany);
         when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> {
             JobApplication saved = inv.getArgument(0);
             saved.setId(103L);
@@ -281,6 +280,7 @@ class JobApplicationServiceTest {
 
         assertThat(result.getId()).isEqualTo(103L);
         verify(companyRepository, never()).save(any(Company.class));
+        verify(companyRepository, never()).saveAndFlush(any(Company.class));
     }
 
     @Test
@@ -746,14 +746,13 @@ class JobApplicationServiceTest {
         request.setCompanyName("  globex ");
 
         when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
-        when(companyRepository.findByNameIgnoreCaseAndUserId("globex", 1L)).thenReturn(Optional.of(existing));
+        when(companyService.findOrCreateByName(testUser, "globex")).thenReturn(existing);
         when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
         when(companyService.toDTO(existing)).thenReturn(existingDTO);
 
         JobApplicationDTO result = jobApplicationService.update(1L, 100L, request);
 
         assertThat(result.getCompany().getId()).isEqualTo(30L);
-        verify(companyRepository, never()).save(any(Company.class));
     }
 
     @Test
@@ -762,8 +761,8 @@ class JobApplicationServiceTest {
         request.setCompanyName("Brand New Co");
 
         when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
-        when(companyRepository.findByNameIgnoreCaseAndUserId("Brand New Co", 1L)).thenReturn(Optional.empty());
-        when(companyRepository.save(any(Company.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(companyService.findOrCreateByName(testUser, "Brand New Co"))
+                .thenReturn(Company.builder().id(40L).name("Brand New Co").user(testUser).build());
         when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
         when(companyService.toDTO(any(Company.class))).thenAnswer(inv -> {
             Company c = inv.getArgument(0);
@@ -773,7 +772,8 @@ class JobApplicationServiceTest {
         JobApplicationDTO result = jobApplicationService.update(1L, 100L, request);
 
         assertThat(result.getCompany().getName()).isEqualTo("Brand New Co");
-        verify(companyRepository).save(argThat(c -> c.getName().equals("Brand New Co") && c.getUser() == testUser));
+        // Looked up/created for the application's owner, not some other user
+        verify(companyService).findOrCreateByName(testUser, "Brand New Co");
     }
 
     @Test
@@ -803,6 +803,6 @@ class JobApplicationServiceTest {
         JobApplicationDTO result = jobApplicationService.update(1L, 100L, request);
 
         assertThat(result.getCompany().getId()).isEqualTo(20L);
-        verify(companyRepository, never()).findByNameIgnoreCaseAndUserId(anyString(), anyLong());
+        verify(companyService, never()).findOrCreateByName(any(), anyString());
     }
 }
