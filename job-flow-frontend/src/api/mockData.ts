@@ -148,16 +148,21 @@ export function resetMockData(): void {
   stats = computeStats(applications);
 }
 
+// Helper: remove interviews linked to a set of application ids
+function cascadeDeleteInterviewsByAppIds(appIds: Set<number>): void {
+  interviews = interviews.filter(i => !appIds.has(i.jobApplicationId));
+}
+
 // Resolve mock API calls by URL pattern
 export function resolveMock(url: string, method: string, body?: unknown, params?: Record<string, unknown>): unknown | undefined {
   if (method === 'get') {
-    if (url === '/applications/stats') return stats;
-    if (url === '/applications/recent') return applications.slice(0, 5);
-    if (url === '/applications/activity') return activity;
+    if (url === '/applications/stats') return { ...stats };
+    if (url === '/applications/recent') return [...applications].slice(0, 5);
+    if (url === '/applications/activity') return [...activity];
     if (url === '/applications') {
       const statusFilter = params?.status as string | undefined;
       if (statusFilter) return applications.filter(a => a.status === statusFilter);
-      return applications;
+      return [...applications];
     }
     if (url === '/applications/page') {
       const page = Number(params?.page ?? 0);
@@ -189,13 +194,13 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
       const id = Number(url.split('/').pop());
       return applications.find(a => a.id === id);
     }
-    if (url === '/companies') return companies;
+    if (url === '/companies') return [...companies];
     if (url.match(/^\/companies\/\d+$/)) {
       const id = Number(url.split('/').pop());
       return companies.find(c => c.id === id);
     }
-    if (url === '/interviews') return interviews;
-    if (url === '/interviews/upcoming') return interviews;
+    if (url === '/interviews') return [...interviews];
+    if (url === '/interviews/upcoming') return [...interviews];
     if (url === '/auth/me') return { token: null, name: 'Demo User', email: 'demo@jobflow.com', avatarUrl: null, jobTitle: null, bio: null, hasPassword: true };
   }
 
@@ -356,10 +361,9 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
   if (method === 'delete' && url === '/applications/batch') {
     const ids = (typeof body === 'string' ? JSON.parse(body) : body) as number[] | undefined;
     if (ids) {
-      ids.forEach(id => {
-        const idx = applications.findIndex(a => a.id === id);
-        if (idx !== -1) applications.splice(idx, 1);
-      });
+      const idSet = new Set(ids);
+      cascadeDeleteInterviewsByAppIds(idSet);
+      applications = applications.filter(a => !idSet.has(a.id));
       stats = computeStats(applications);
     }
     return {};
@@ -367,21 +371,23 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
   if (method === 'delete') {
     if (url.match(/^\/interviews\/\d+$/)) {
       const id = Number(url.split('/').pop());
-      const idx = interviews.findIndex(i => i.id === id);
-      if (idx !== -1) interviews.splice(idx, 1);
+      interviews = interviews.filter(i => i.id !== id);
     }
     if (url.match(/^\/companies\/\d+$/)) {
       const id = Number(url.split('/').pop());
-      const idx = companies.findIndex(c => c.id === id);
-      if (idx !== -1) companies.splice(idx, 1);
+      // Cascade: find applications belonging to this company, then their interviews
+      const affectedAppIds = new Set(applications.filter(a => a.company.id === id).map(a => a.id));
+      cascadeDeleteInterviewsByAppIds(affectedAppIds);
+      applications = applications.filter(a => a.company.id !== id);
+      companies = companies.filter(c => c.id !== id);
+      stats = computeStats(applications);
     }
     if (url.match(/^\/applications\/\d+$/)) {
       const id = Number(url.split('/').pop());
-      const idx = applications.findIndex(a => a.id === id);
-      if (idx !== -1) {
-        applications.splice(idx, 1);
-        stats = computeStats(applications);
-      }
+      // Cascade: remove interviews linked to this application
+      cascadeDeleteInterviewsByAppIds(new Set([id]));
+      applications = applications.filter(a => a.id !== id);
+      stats = computeStats(applications);
     }
     return {};
   }
