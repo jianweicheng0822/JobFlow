@@ -125,6 +125,11 @@ public class JobApplicationService {
             throw new IllegalArgumentException("Company is required");
         }
 
+        return findOrCreateCompany(user, name);
+    }
+
+    // Reuse the user's company with this name (case-insensitive) or create it
+    private Company findOrCreateCompany(User user, String name) {
         return companyRepository.findByNameIgnoreCaseAndUserId(name, user.getId())
             .orElseGet(() -> companyRepository.save(
                 Company.builder().name(name).user(user).build()
@@ -139,6 +144,11 @@ public class JobApplicationService {
             Company company = companyRepository.findByIdAndUserId(request.getCompanyId(), userId)
                 .orElseThrow(() -> new NotFoundException("Company not found: " + request.getCompanyId()));
             app.setCompany(company);
+        } else if (request.getCompanyName() != null) {
+            // Typed a company name instead of picking one from the list
+            String companyName = blankToNull(request.getCompanyName());
+            if (companyName == null) throw new IllegalArgumentException("Company name cannot be blank");
+            app.setCompany(findOrCreateCompany(app.getUser(), companyName));
         }
         // null = leave as is; for optional fields, a blank value clears them
         if (request.getPositionTitle() != null) {

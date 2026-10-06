@@ -735,4 +735,74 @@ class JobApplicationServiceTest {
         assertThat(result.getLocation()).isNull();
         assertThat(result.getSalary()).isEqualTo("100k");
     }
+
+    // --- update: changing company by name ---
+
+    @Test
+    void update_withExistingCompanyName_reusesCompany() {
+        Company existing = Company.builder().id(30L).name("Globex").build();
+        CompanyDTO existingDTO = CompanyDTO.builder().id(30L).name("Globex").build();
+        UpdateJobApplicationRequest request = new UpdateJobApplicationRequest();
+        request.setCompanyName("  globex ");
+
+        when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
+        when(companyRepository.findByNameIgnoreCaseAndUserId("globex", 1L)).thenReturn(Optional.of(existing));
+        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(companyService.toDTO(existing)).thenReturn(existingDTO);
+
+        JobApplicationDTO result = jobApplicationService.update(1L, 100L, request);
+
+        assertThat(result.getCompany().getId()).isEqualTo(30L);
+        verify(companyRepository, never()).save(any(Company.class));
+    }
+
+    @Test
+    void update_withNewCompanyName_createsCompanyForThisUser() {
+        UpdateJobApplicationRequest request = new UpdateJobApplicationRequest();
+        request.setCompanyName("Brand New Co");
+
+        when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
+        when(companyRepository.findByNameIgnoreCaseAndUserId("Brand New Co", 1L)).thenReturn(Optional.empty());
+        when(companyRepository.save(any(Company.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(companyService.toDTO(any(Company.class))).thenAnswer(inv -> {
+            Company c = inv.getArgument(0);
+            return CompanyDTO.builder().name(c.getName()).build();
+        });
+
+        JobApplicationDTO result = jobApplicationService.update(1L, 100L, request);
+
+        assertThat(result.getCompany().getName()).isEqualTo("Brand New Co");
+        verify(companyRepository).save(argThat(c -> c.getName().equals("Brand New Co") && c.getUser() == testUser));
+    }
+
+    @Test
+    void update_blankCompanyName_throwsException() {
+        UpdateJobApplicationRequest request = new UpdateJobApplicationRequest();
+        request.setCompanyName("   ");
+
+        when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
+
+        assertThatThrownBy(() -> jobApplicationService.update(1L, 100L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Company name cannot be blank");
+    }
+
+    @Test
+    void update_companyIdWinsOverCompanyName() {
+        Company byId = Company.builder().id(20L).name("OtherCorp").build();
+        UpdateJobApplicationRequest request = new UpdateJobApplicationRequest();
+        request.setCompanyId(20L);
+        request.setCompanyName("Ignored Co");
+
+        when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
+        when(companyRepository.findByIdAndUserId(20L, 1L)).thenReturn(Optional.of(byId));
+        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(companyService.toDTO(byId)).thenReturn(CompanyDTO.builder().id(20L).name("OtherCorp").build());
+
+        JobApplicationDTO result = jobApplicationService.update(1L, 100L, request);
+
+        assertThat(result.getCompany().getId()).isEqualTo(20L);
+        verify(companyRepository, never()).findByNameIgnoreCaseAndUserId(anyString(), anyLong());
+    }
 }

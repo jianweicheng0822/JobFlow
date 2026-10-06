@@ -15,7 +15,12 @@ public class UpdateJobApplicationRequest {
     @Size(max = 255, message = "Position title must be at most 255 characters")
     private String positionTitle;
 
+    // companyId wins if both are sent; companyName finds or creates the user's company
     private Long companyId;
+
+    @Pattern(regexp = "(?s).*\\S.*", message = "Company name cannot be blank")
+    @Size(max = 255, message = "Company name must be at most 255 characters")
+    private String companyName;
 
     @Size(max = 255, message = "Location must be at most 255 characters")
     private String location;

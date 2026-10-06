@@ -94,6 +94,14 @@ class RequestValidationTest {
         assertThat(messages(request)).isEmpty();
     }
 
+    @Test
+    void updateApplication_blankCompanyName_fails() {
+        UpdateJobApplicationRequest request = new UpdateJobApplicationRequest();
+        request.setCompanyName("   ");
+
+        assertThat(messages(request)).contains("Company name cannot be blank");
+    }
+
     // --- CreateCompanyRequest ---
 
     @Test

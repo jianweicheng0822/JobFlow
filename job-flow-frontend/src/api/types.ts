@@ -86,6 +86,7 @@ export interface CreateJobApplicationRequest {
 export interface UpdateJobApplicationRequest {
   positionTitle?: string;
   companyId?: number;
+  companyName?: string; // used when no companyId: finds or creates the company
   location?: string;
   salary?: string;
   status?: ApplicationStatus;
