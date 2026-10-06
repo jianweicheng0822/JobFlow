@@ -1,5 +1,6 @@
 package com.jobflow.controller;
 
+import jakarta.validation.Valid;
 import com.jobflow.dto.CompanyDTO;
 import com.jobflow.dto.CreateCompanyRequest;
 import com.jobflow.model.User;
@@ -33,12 +34,12 @@ public class CompanyController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CompanyDTO create(@RequestBody CreateCompanyRequest request, Authentication authentication) {
+    public CompanyDTO create(@Valid @RequestBody CreateCompanyRequest request, Authentication authentication) {
         return companyService.create(getUserId(authentication), request);
     }
 
     @PutMapping("/{id}")
-    public CompanyDTO update(@PathVariable Long id, @RequestBody CreateCompanyRequest request,
+    public CompanyDTO update(@PathVariable Long id, @Valid @RequestBody CreateCompanyRequest request,
                              Authentication authentication) {
         return companyService.update(getUserId(authentication), id, request);
     }

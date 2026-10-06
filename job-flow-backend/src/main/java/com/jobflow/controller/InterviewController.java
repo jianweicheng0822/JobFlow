@@ -1,5 +1,6 @@
 package com.jobflow.controller;
 
+import jakarta.validation.Valid;
 import com.jobflow.dto.CreateInterviewRequest;
 import com.jobflow.dto.InterviewDTO;
 import com.jobflow.model.User;
@@ -38,14 +39,14 @@ public class InterviewController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public InterviewDTO create(@RequestBody CreateInterviewRequest request,
+    public InterviewDTO create(@Valid @RequestBody CreateInterviewRequest request,
                                Authentication authentication) {
         return interviewService.create(getUserId(authentication), request);
     }
 
     @PutMapping("/{id}")
     public InterviewDTO update(@PathVariable Long id,
-                               @RequestBody CreateInterviewRequest request,
+                               @Valid @RequestBody CreateInterviewRequest request,
                                Authentication authentication) {
         return interviewService.update(getUserId(authentication), id, request);
     }

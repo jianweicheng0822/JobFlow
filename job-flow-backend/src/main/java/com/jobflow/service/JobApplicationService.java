@@ -23,6 +23,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.jobflow.util.TextUtils.blankToNull;
+
 @Service
 @RequiredArgsConstructor
 public class JobApplicationService {
@@ -89,18 +91,24 @@ public class JobApplicationService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new NotFoundException("User not found"));
 
+        // The controller validates this too; repeated here for callers that skip it
+        String positionTitle = blankToNull(request.getPositionTitle());
+        if (positionTitle == null) {
+            throw new IllegalArgumentException("Position title is required");
+        }
+
         Company company = resolveCompany(user, request);
 
         JobApplication app = JobApplication.builder()
             .user(user)
-            .positionTitle(request.getPositionTitle())
+            .positionTitle(positionTitle)
             .company(company)
-            .location(request.getLocation())
-            .salary(request.getSalary())
+            .location(blankToNull(request.getLocation()))
+            .salary(blankToNull(request.getSalary()))
             .status(request.getStatus() != null ? request.getStatus() : ApplicationStatus.APPLIED)
             .appliedDate(request.getAppliedDate() != null ? request.getAppliedDate() : LocalDate.now())
-            .lastAction(request.getLastAction())
-            .notes(request.getNotes())
+            .lastAction(blankToNull(request.getLastAction()))
+            .notes(blankToNull(request.getNotes()))
             .build();
         return toDTO(jobApplicationRepository.save(app));
     }
@@ -112,14 +120,14 @@ public class JobApplicationService {
                 .orElseThrow(() -> new NotFoundException("Company not found: " + request.getCompanyId()));
         }
 
-        String name = request.getCompanyName();
-        if (name == null || name.isBlank()) {
-            throw new RuntimeException("Either companyId or companyName is required");
+        String name = blankToNull(request.getCompanyName());
+        if (name == null) {
+            throw new IllegalArgumentException("Company is required");
         }
 
-        return companyRepository.findByNameIgnoreCaseAndUserId(name.trim(), user.getId())
+        return companyRepository.findByNameIgnoreCaseAndUserId(name, user.getId())
             .orElseGet(() -> companyRepository.save(
-                Company.builder().name(name.trim()).user(user).build()
+                Company.builder().name(name).user(user).build()
             ));
     }
 
@@ -132,14 +140,20 @@ public class JobApplicationService {
                 .orElseThrow(() -> new NotFoundException("Company not found: " + request.getCompanyId()));
             app.setCompany(company);
         }
-        if (request.getPositionTitle() != null) app.setPositionTitle(request.getPositionTitle());
-        if (request.getLocation() != null) app.setLocation(request.getLocation());
-        if (request.getSalary() != null) app.setSalary(request.getSalary());
+        // null = leave as is; for optional fields, a blank value clears them
+        if (request.getPositionTitle() != null) {
+            String positionTitle = blankToNull(request.getPositionTitle());
+            if (positionTitle == null) throw new IllegalArgumentException("Position title cannot be blank");
+            app.setPositionTitle(positionTitle);
+        }
+        if (request.getLocation() != null) app.setLocation(blankToNull(request.getLocation()));
+        if (request.getSalary() != null) app.setSalary(blankToNull(request.getSalary()));
         if (request.getStatus() != null) changeStatus(app, request.getStatus());
         if (request.getAppliedDate() != null) app.setAppliedDate(request.getAppliedDate());
         // Runs after changeStatus on purpose, so an explicit lastAction wins over the auto one
-        if (request.getLastAction() != null) app.setLastAction(request.getLastAction());
-        if (request.getNotes() != null) app.setNotes(request.getNotes());
+        String lastAction = blankToNull(request.getLastAction());
+        if (lastAction != null) app.setLastAction(lastAction);
+        if (request.getNotes() != null) app.setNotes(blankToNull(request.getNotes()));
 
         return toDTO(jobApplicationRepository.save(app));
     }

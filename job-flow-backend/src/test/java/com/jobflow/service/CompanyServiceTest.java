@@ -149,4 +149,47 @@ class CompanyServiceTest {
 
         verify(companyRepository).deleteById(1L);
     }
+
+    // --- input validation ---
+
+    @Test
+    void create_blankName_throwsException() {
+        CreateCompanyRequest request = new CreateCompanyRequest();
+        request.setName("   ");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+
+        assertThatThrownBy(() -> companyService.create(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Company name is required");
+    }
+
+    @Test
+    void update_blankName_throwsException() {
+        CreateCompanyRequest request = new CreateCompanyRequest();
+        request.setName("");
+
+        when(companyRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(testCompany));
+
+        assertThatThrownBy(() -> companyService.update(1L, 1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Company name is required");
+    }
+
+    @Test
+    void create_trimsNameAndStoresBlankOptionalsAsNull() {
+        CreateCompanyRequest request = new CreateCompanyRequest();
+        request.setName("  NewCo  ");
+        request.setLocation("  ");
+        request.setWebsite("");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(companyRepository.save(any(Company.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CompanyDTO result = companyService.create(1L, request);
+
+        assertThat(result.getName()).isEqualTo("NewCo");
+        assertThat(result.getLocation()).isNull();
+        assertThat(result.getWebsite()).isNull();
+    }
 }

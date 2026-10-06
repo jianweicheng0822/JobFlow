@@ -16,6 +16,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Set;
 
+import static com.jobflow.util.TextUtils.blankToNull;
+
 @Service
 @RequiredArgsConstructor
 public class InterviewService {
@@ -44,6 +46,16 @@ public class InterviewService {
     }
 
     public InterviewDTO create(Long userId, CreateInterviewRequest request) {
+        // Required on create only; update is partial so these can be null there
+        if (request.getJobApplicationId() == null) {
+            throw new IllegalArgumentException("Job application is required");
+        }
+        if (request.getInterviewDate() == null) {
+            throw new IllegalArgumentException("Interview date is required");
+        }
+        if (request.getInterviewType() == null) {
+            throw new IllegalArgumentException("Interview type is required");
+        }
         if (request.getReminderHoursBefore() != null) {
             validateReminderHours(request.getReminderHoursBefore());
         }
@@ -55,7 +67,7 @@ public class InterviewService {
             .jobApplication(app)
             .interviewDate(request.getInterviewDate())
             .interviewType(request.getInterviewType())
-            .notes(request.getNotes())
+            .notes(blankToNull(request.getNotes()))
             .reminderEnabled(request.getReminderEnabled() != null && request.getReminderEnabled())
             .reminderHoursBefore(request.getReminderHoursBefore() != null ? request.getReminderHoursBefore() : 24)
             .build();
@@ -79,7 +91,7 @@ public class InterviewService {
             interview.setInterviewDate(request.getInterviewDate());
         }
         if (request.getInterviewType() != null) interview.setInterviewType(request.getInterviewType());
-        if (request.getNotes() != null) interview.setNotes(request.getNotes());
+        if (request.getNotes() != null) interview.setNotes(blankToNull(request.getNotes()));
         if (request.getReminderEnabled() != null) {
             if (request.getReminderEnabled() != interview.isReminderEnabled()) {
                 shouldResetReminder = true;

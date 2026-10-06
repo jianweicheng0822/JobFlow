@@ -16,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import static com.jobflow.util.TextUtils.blankToNull;
+
 @Service
 @RequiredArgsConstructor
 public class CompanyService {
@@ -43,10 +45,10 @@ public class CompanyService {
             .orElseThrow(() -> new NotFoundException("User not found"));
 
         Company company = Company.builder()
-            .name(request.getName())
-            .logoUrl(request.getLogoUrl())
-            .location(request.getLocation())
-            .website(request.getWebsite())
+            .name(requireName(request.getName()))
+            .logoUrl(blankToNull(request.getLogoUrl()))
+            .location(blankToNull(request.getLocation()))
+            .website(blankToNull(request.getWebsite()))
             .user(user)
             .build();
         return toDTO(companyRepository.save(company));
@@ -55,11 +57,18 @@ public class CompanyService {
     public CompanyDTO update(Long userId, Long id, CreateCompanyRequest request) {
         Company company = companyRepository.findByIdAndUserId(id, userId)
             .orElseThrow(() -> new NotFoundException("Company not found: " + id));
-        company.setName(request.getName());
-        company.setLogoUrl(request.getLogoUrl());
-        company.setLocation(request.getLocation());
-        company.setWebsite(request.getWebsite());
+        company.setName(requireName(request.getName()));
+        company.setLogoUrl(blankToNull(request.getLogoUrl()));
+        company.setLocation(blankToNull(request.getLocation()));
+        company.setWebsite(blankToNull(request.getWebsite()));
         return toDTO(companyRepository.save(company));
+    }
+
+    // The controller validates this too; repeated here for callers that skip it
+    private static String requireName(String name) {
+        String trimmed = blankToNull(name);
+        if (trimmed == null) throw new IllegalArgumentException("Company name is required");
+        return trimmed;
     }
 
     @Transactional

@@ -1,5 +1,6 @@
 package com.jobflow.controller;
 
+import jakarta.validation.Valid;
 import com.jobflow.dto.*;
 import com.jobflow.model.ApplicationStatus;
 import com.jobflow.model.User;
@@ -53,14 +54,14 @@ public class JobApplicationController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public JobApplicationDTO create(@RequestBody CreateJobApplicationRequest request,
+    public JobApplicationDTO create(@Valid @RequestBody CreateJobApplicationRequest request,
                                     Authentication authentication) {
         return jobApplicationService.create(getUserId(authentication), request);
     }
 
     @PutMapping("/{id}")
     public JobApplicationDTO update(@PathVariable Long id,
-                                    @RequestBody UpdateJobApplicationRequest request,
+                                    @Valid @RequestBody UpdateJobApplicationRequest request,
                                     Authentication authentication) {
         return jobApplicationService.update(getUserId(authentication), id, request);
     }

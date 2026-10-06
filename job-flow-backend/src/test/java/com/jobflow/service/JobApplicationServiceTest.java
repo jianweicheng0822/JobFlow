@@ -291,8 +291,8 @@ class JobApplicationServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
         assertThatThrownBy(() -> jobApplicationService.create(1L, request))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("companyId or companyName is required");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Company is required");
     }
 
     @Test
@@ -657,5 +657,82 @@ class JobApplicationServiceTest {
 
         // Should only have header
         assertThat(csv).isEqualTo("Position,Company,Status,Location,Salary,Applied Date,Last Action,Notes\n");
+    }
+
+    // --- input validation ---
+
+    @Test
+    void create_blankPositionTitle_throwsException() {
+        CreateJobApplicationRequest request = new CreateJobApplicationRequest();
+        request.setPositionTitle("   ");
+        request.setCompanyName("Acme");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+
+        assertThatThrownBy(() -> jobApplicationService.create(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Position title is required");
+    }
+
+    @Test
+    void create_blankCompanyName_throwsException() {
+        CreateJobApplicationRequest request = new CreateJobApplicationRequest();
+        request.setPositionTitle("Engineer");
+        request.setCompanyName("   ");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+
+        assertThatThrownBy(() -> jobApplicationService.create(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Company is required");
+    }
+
+    @Test
+    void create_trimsTitleAndStoresBlankOptionalsAsNull() {
+        CreateJobApplicationRequest request = new CreateJobApplicationRequest();
+        request.setPositionTitle("  Engineer  ");
+        request.setCompanyId(10L);
+        request.setLocation("   ");
+        request.setSalary("");
+        request.setNotes("  ");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(companyRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(testCompany));
+        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(companyService.toDTO(testCompany)).thenReturn(testCompanyDTO);
+
+        JobApplicationDTO result = jobApplicationService.create(1L, request);
+
+        assertThat(result.getPositionTitle()).isEqualTo("Engineer");
+        assertThat(result.getLocation()).isNull();
+        assertThat(result.getSalary()).isNull();
+        assertThat(result.getNotes()).isNull();
+    }
+
+    @Test
+    void update_blankPositionTitle_throwsException() {
+        UpdateJobApplicationRequest request = new UpdateJobApplicationRequest();
+        request.setPositionTitle("  ");
+
+        when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
+
+        assertThatThrownBy(() -> jobApplicationService.update(1L, 100L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Position title cannot be blank");
+    }
+
+    @Test
+    void update_blankOptionalField_clearsIt() {
+        UpdateJobApplicationRequest request = new UpdateJobApplicationRequest();
+        request.setLocation("  ");
+
+        when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
+        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(companyService.toDTO(testCompany)).thenReturn(testCompanyDTO);
+
+        JobApplicationDTO result = jobApplicationService.update(1L, 100L, request);
+
+        assertThat(result.getLocation()).isNull();
+        assertThat(result.getSalary()).isEqualTo("100k");
     }
 }

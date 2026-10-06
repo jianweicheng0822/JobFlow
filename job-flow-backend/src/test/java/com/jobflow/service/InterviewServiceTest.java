@@ -184,4 +184,26 @@ class InterviewServiceTest {
 
         verify(interviewRepository, never()).delete(any());
     }
+
+    // --- input validation ---
+
+    @Test
+    void create_missingRequiredFields_throwsClearMessages() {
+        CreateInterviewRequest request = new CreateInterviewRequest();
+        assertThatThrownBy(() -> interviewService.create(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Job application is required");
+
+        request.setJobApplicationId(10L);
+        assertThatThrownBy(() -> interviewService.create(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Interview date is required");
+
+        request.setInterviewDate(LocalDateTime.of(2030, 7, 1, 14, 0));
+        assertThatThrownBy(() -> interviewService.create(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Interview type is required");
+
+        verifyNoInteractions(interviewRepository);
+    }
 }
