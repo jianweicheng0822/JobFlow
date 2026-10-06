@@ -166,6 +166,28 @@ describe('PUT partial update', () => {
   });
 });
 
+describe('GET /applications/recent', () => {
+  it('returns up to 10, most recently updated first', () => {
+    const recent = resolveMock('/applications/recent', 'get') as JobApplicationDTO[];
+    expect(recent.length).toBeLessThanOrEqual(10);
+    const times = recent.map((a) => Date.parse(a.updatedAt));
+    expect(times).toEqual([...times].sort((x, y) => y - x));
+  });
+
+  it('puts an application on top right after its status changes', () => {
+    // Seed app 10 is one of the oldest updates
+    resolveMock('/applications/10/status', 'patch', undefined, { status: 'OFFER' });
+    const recent = resolveMock('/applications/recent', 'get') as JobApplicationDTO[];
+    expect(recent[0].id).toBe(10);
+  });
+
+  it('puts an application on top right after it is starred', () => {
+    resolveMock('/applications/7/star', 'patch');
+    const recent = resolveMock('/applications/recent', 'get') as JobApplicationDTO[];
+    expect(recent[0].id).toBe(7);
+  });
+});
+
 describe('isDemoMode', () => {
   it('returns true when token is demo-token', () => {
     localStorage.setItem('jobflow-token', 'demo-token');

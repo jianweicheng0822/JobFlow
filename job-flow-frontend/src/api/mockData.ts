@@ -176,7 +176,12 @@ function lastActionAfter(app: JobApplicationDTO, newStatus: ApplicationStatus): 
 export function resolveMock(url: string, method: string, body?: unknown, params?: Record<string, unknown>): unknown | undefined {
   if (method === 'get') {
     if (url === '/applications/stats') return { ...stats };
-    if (url === '/applications/recent') return [...applications].slice(0, 5);
+    // Same as the backend: 10 most recently updated
+    if (url === '/applications/recent') {
+      return [...applications]
+        .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+        .slice(0, 10);
+    }
     if (url === '/applications/activity') return [...activity];
     if (url === '/applications') {
       const statusFilter = params?.status as string | undefined;
