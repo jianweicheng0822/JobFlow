@@ -64,8 +64,11 @@ export function updateStatus(id: number, status: ApplicationStatus) {
   return client.patch<JobApplicationDTO>(`/applications/${id}/status`, null, { params: { status } });
 }
 
+// The star UI updates optimistically, so give up after 10s and let the caller roll back
+const STAR_TIMEOUT_MS = 10_000;
+
 export function toggleStar(id: number) {
-  return client.patch<JobApplicationDTO>(`/applications/${id}/star`);
+  return client.patch<JobApplicationDTO>(`/applications/${id}/star`, null, { timeout: STAR_TIMEOUT_MS });
 }
 
 export function exportCsv() {

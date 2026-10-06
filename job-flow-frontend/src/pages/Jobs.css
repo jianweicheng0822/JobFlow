@@ -409,6 +409,21 @@
   transition: all 0.15s ease;
 }
 
+.jobs-action-btn--star {
+  color: var(--text-secondary);
+}
+
+.jobs-action-btn--star:hover:not(:disabled),
+.jobs-action-btn--starred {
+  color: #f59e0b;
+  border-color: #f59e0b;
+}
+
+.jobs-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .jobs-action-btn--edit {
   color: var(--sidebar-accent);
 }

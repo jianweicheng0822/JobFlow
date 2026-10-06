@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, Star } from 'lucide-react'
 import './Jobs.css'
-import { getApplications, deleteApplication } from '../api/applications'
+import { getApplications, deleteApplication, toggleStar } from '../api/applications'
 import type { JobApplicationDTO, ApplicationStatus } from '../api/types'
 import Modal from '../components/Modal'
 import ApplicationForm from '../components/ApplicationForm'
@@ -143,6 +143,8 @@ export default function Jobs() {
   const [editingApp, setEditingApp] = useState<JobApplicationDTO | undefined>(undefined)
   const [deleteTarget, setDeleteTarget] = useState<JobApplicationDTO | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  // Rows with a star request in flight, so we can block double clicks
+  const [starringIds, setStarringIds] = useState<Set<number>>(new Set())
   const { showToast } = useToast()
   const { t } = useLanguage()
 
@@ -194,6 +196,28 @@ export default function Jobs() {
     } finally {
       setDeleteTarget(null)
       setDeleteLoading(false)
+    }
+  }
+
+  async function handleToggleStar(app: JobApplicationDTO) {
+    if (starringIds.has(app.id)) return
+    const previousStarred = app.starred
+    setStarringIds((prev) => new Set(prev).add(app.id))
+    // Flip the star right away, then let the server response have the final say
+    setApplications((prev) => prev.map((a) => (a.id === app.id ? { ...a, starred: !previousStarred } : a)))
+    try {
+      const res = await toggleStar(app.id)
+      setApplications((prev) => prev.map((a) => (a.id === app.id ? res.data : a)))
+    } catch (err) {
+      // Failed or timed out: put the star back the way it was
+      setApplications((prev) => prev.map((a) => (a.id === app.id ? { ...a, starred: previousStarred } : a)))
+      showToast(getErrorMessage(err, t.starFailed), 'error')
+    } finally {
+      setStarringIds((prev) => {
+        const next = new Set(prev)
+        next.delete(app.id)
+        return next
+      })
     }
   }
 
@@ -384,6 +408,16 @@ export default function Jobs() {
                           </td>
                           <td>
                             <div className="jobs-actions">
+                              <button
+                                className={`jobs-action-btn jobs-action-btn--star ${app.starred ? 'jobs-action-btn--starred' : ''}`}
+                                title={app.starred ? t.unstarApplication : t.starApplication}
+                                aria-label={app.starred ? t.unstarApplication : t.starApplication}
+                                aria-pressed={app.starred}
+                                disabled={starringIds.has(app.id)}
+                                onClick={() => handleToggleStar(app)}
+                              >
+                                <Star size={14} fill={app.starred ? 'currentColor' : 'none'} />
+                              </button>
                               <button className="jobs-action-btn jobs-action-btn--edit" title={t.editApplication} onClick={() => openEdit(app)}>
                                 <Pencil size={14} />
                               </button>

@@ -79,6 +79,9 @@ const en = {
   jobsApplied: 'jobs applied',
   editApplication: 'Edit Application',
   deleteApplication: 'Delete Application',
+  starApplication: 'Star',
+  unstarApplication: 'Unstar',
+  starFailed: 'Failed to update star',
   confirmDeleteApp: 'Are you sure you want to delete {position} at {company}? This action cannot be undone.',
 
   // Companies Page
