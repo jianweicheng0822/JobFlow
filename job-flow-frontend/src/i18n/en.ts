@@ -82,6 +82,8 @@ const en = {
   starApplication: 'Star',
   unstarApplication: 'Unstar',
   starFailed: 'Failed to update star',
+  changeStatus: 'Change status',
+  statusUpdateFailed: 'Failed to update status',
   confirmDeleteApp: 'Are you sure you want to delete {position} at {company}? This action cannot be undone.',
 
   // Companies Page

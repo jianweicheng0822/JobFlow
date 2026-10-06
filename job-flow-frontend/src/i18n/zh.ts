@@ -82,6 +82,8 @@ const zh = {
   starApplication: '收藏',
   unstarApplication: '取消收藏',
   starFailed: '收藏状态更新失败',
+  changeStatus: '修改状态',
+  statusUpdateFailed: '状态更新失败',
   confirmDeleteApp: '确定要删除 {company} 的 {position} 职位吗？此操作无法撤销。',
 
   // Companies Page

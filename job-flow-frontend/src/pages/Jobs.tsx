@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { Plus, Pencil, Trash2, Star } from 'lucide-react'
 import './Jobs.css'
-import { getApplications, deleteApplication, toggleStar } from '../api/applications'
+import { getApplications, deleteApplication, toggleStar, updateStatus } from '../api/applications'
 import type { JobApplicationDTO, ApplicationStatus } from '../api/types'
 import Modal from '../components/Modal'
 import ApplicationForm from '../components/ApplicationForm'
@@ -28,6 +28,8 @@ const STATUS_LABEL_KEYS: Record<ApplicationStatus, string> = {
   OFFER: 'statusOffer',
   REJECTED: 'statusRejected',
 }
+
+const STATUS_ORDER = Object.keys(STATUS_LABEL_KEYS) as ApplicationStatus[]
 
 const COMPANY_COLORS: Record<string, string> = {
   'TechCorp Inc.': '#10b981',
@@ -145,8 +147,9 @@ export default function Jobs() {
   const [editingApp, setEditingApp] = useState<JobApplicationDTO | undefined>(undefined)
   const [deleteTarget, setDeleteTarget] = useState<JobApplicationDTO | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
-  // Rows with a star request in flight, so we can block double clicks
-  const [starringIds, setStarringIds] = useState<Set<number>>(new Set())
+  // Rows with a star/status request in flight. Shared on purpose so the two
+  // quick actions can't race each other on the same row.
+  const [pendingIds, setPendingIds] = useState<Set<number>>(new Set())
   const { showToast } = useToast()
   const { t } = useLanguage()
 
@@ -201,26 +204,45 @@ export default function Jobs() {
     }
   }
 
-  async function handleToggleStar(app: JobApplicationDTO) {
-    if (starringIds.has(app.id)) return
-    const previousStarred = app.starred
-    setStarringIds((prev) => new Set(prev).add(app.id))
-    // Flip the star right away, then let the server response have the final say
-    setApplications((prev) => prev.map((a) => (a.id === app.id ? { ...a, starred: !previousStarred } : a)))
+  function patchRow(id: number, patch: Partial<JobApplicationDTO>) {
+    setApplications((prev) => prev.map((a) => (a.id === id ? { ...a, ...patch } : a)))
+  }
+
+  // Shared flow for star and status: apply the change right away, let the server
+  // response have the final say, and only roll back the touched field on failure
+  async function runQuickUpdate(
+    app: JobApplicationDTO,
+    optimistic: Partial<JobApplicationDTO>,
+    rollback: Partial<JobApplicationDTO>,
+    request: () => Promise<{ data: JobApplicationDTO }>,
+    failMessage: string,
+  ) {
+    if (pendingIds.has(app.id)) return
+    setPendingIds((prev) => new Set(prev).add(app.id))
+    patchRow(app.id, optimistic)
     try {
-      const res = await toggleStar(app.id)
+      const res = await request()
       setApplications((prev) => prev.map((a) => (a.id === app.id ? res.data : a)))
     } catch (err) {
-      // Failed or timed out: put the star back the way it was
-      setApplications((prev) => prev.map((a) => (a.id === app.id ? { ...a, starred: previousStarred } : a)))
-      showToast(getErrorMessage(err, t.starFailed), 'error')
+      // Failed or timed out: put things back the way they were
+      patchRow(app.id, rollback)
+      showToast(getErrorMessage(err, failMessage), 'error')
     } finally {
-      setStarringIds((prev) => {
+      setPendingIds((prev) => {
         const next = new Set(prev)
         next.delete(app.id)
         return next
       })
     }
+  }
+
+  function handleToggleStar(app: JobApplicationDTO) {
+    return runQuickUpdate(app, { starred: !app.starred }, { starred: app.starred }, () => toggleStar(app.id), t.starFailed)
+  }
+
+  function handleStatusChange(app: JobApplicationDTO, status: ApplicationStatus) {
+    if (status === app.status) return
+    return runQuickUpdate(app, { status }, { status: app.status }, () => updateStatus(app.id, status), t.statusUpdateFailed)
   }
 
   const companies = useMemo(() => [...new Set(applications.map((a) => a.company.name))], [applications])
@@ -382,7 +404,6 @@ export default function Jobs() {
                   ) : (
                     pagedJobs.map((app) => {
                       const statusColor = STATUS_COLORS[app.status]
-                      const statusLabel = (t as any)[STATUS_LABEL_KEYS[app.status]]
                       const companyColor = getCompanyColor(app.company.name)
                       return (
                         <tr key={app.id}>
@@ -403,12 +424,19 @@ export default function Jobs() {
                           <td>{app.location || ''}</td>
                           <td>{formatDate(app.appliedDate)}</td>
                           <td>
-                            <span
-                              className="jobs-stage-badge"
-                              style={{ background: statusColor }}
+                            <select
+                              className="jobs-stage-badge jobs-stage-select"
+                              style={{ backgroundColor: statusColor }}
+                              value={app.status}
+                              aria-label={t.changeStatus}
+                              title={t.changeStatus}
+                              disabled={pendingIds.has(app.id)}
+                              onChange={(e) => handleStatusChange(app, e.target.value as ApplicationStatus)}
                             >
-                              {statusLabel}
-                            </span>
+                              {STATUS_ORDER.map((s) => (
+                                <option key={s} value={s}>{(t as any)[STATUS_LABEL_KEYS[s]]}</option>
+                              ))}
+                            </select>
                           </td>
                           <td>
                             <div className="jobs-actions">
@@ -417,7 +445,7 @@ export default function Jobs() {
                                 title={app.starred ? t.unstarApplication : t.starApplication}
                                 aria-label={app.starred ? t.unstarApplication : t.starApplication}
                                 aria-pressed={app.starred}
-                                disabled={starringIds.has(app.id)}
+                                disabled={pendingIds.has(app.id)}
                                 onClick={() => handleToggleStar(app)}
                               >
                                 <Star size={14} fill={app.starred ? 'currentColor' : 'none'} />
