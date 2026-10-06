@@ -636,6 +636,37 @@ class JobApplicationServiceTest {
     }
 
     @Test
+    void exportCsv_neutralizesFormulaCells() {
+        testApp.setPositionTitle("=HYPERLINK(\"http://evil.example\",\"click\")");
+        testApp.setLocation("+1 Remote");
+        testApp.setSalary("-100k");
+        testApp.setNotes("@SUM(A1:A2)");
+        when(jobApplicationRepository.findByUserIdOrderByUpdatedAtDesc(1L))
+                .thenReturn(List.of(testApp));
+
+        String csv = jobApplicationService.exportCsv(1L);
+        String row = csv.split("\n")[1];
+
+        // Leading ' keeps spreadsheets from evaluating them; quoting still applies on top
+        assertThat(row).startsWith("\"'=HYPERLINK(\"\"http://evil.example\"\",\"\"click\"\")\",");
+        assertThat(row).contains(",'+1 Remote,'-100k,");
+        assertThat(row).endsWith(",'@SUM(A1:A2)");
+    }
+
+    @Test
+    void exportCsv_leavesNormalTextAlone() {
+        testApp.setPositionTitle("C++ Engineer");
+        testApp.setSalary("$120k - $140k");
+        when(jobApplicationRepository.findByUserIdOrderByUpdatedAtDesc(1L))
+                .thenReturn(List.of(testApp));
+
+        String csv = jobApplicationService.exportCsv(1L);
+
+        // Only the first character matters
+        assertThat(csv).contains("C++ Engineer,").contains(",$120k - $140k,").doesNotContain("'");
+    }
+
+    @Test
     void exportCsv_handlesNullCompany() {
         testApp.setCompany(null);
         when(jobApplicationRepository.findByUserIdOrderByUpdatedAtDesc(1L))

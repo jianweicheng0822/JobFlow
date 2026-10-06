@@ -275,7 +275,13 @@ public class JobApplicationService {
 
     private String escapeCsv(String value) {
         if (value == null) return "";
-        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+        // Spreadsheets run cells starting with these as formulas (CSV injection), and
+        // Gmail imports put other people's text in here. A leading ' makes Excel/Sheets
+        // treat the cell as plain text.
+        if (!value.isEmpty() && "=+-@\t\r".indexOf(value.charAt(0)) >= 0) {
+            value = "'" + value;
+        }
+        if (value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r")) {
             return "\"" + value.replace("\"", "\"\"") + "\"";
         }
         return value;
