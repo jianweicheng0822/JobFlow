@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,4 +50,19 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
     long countByUserIdAndStatus(Long userId, ApplicationStatus status);
 
     long countByUserIdAndAppliedDateBetween(Long userId, LocalDate start, LocalDate end);
+
+    // Quick updates run as a single UPDATE that only touches their own columns, so
+    // concurrent clicks can't overwrite each other like load-modify-save does.
+    // Bulk updates skip @PreUpdate, hence the explicit updatedAt.
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("UPDATE JobApplication ja SET ja.starred = CASE WHEN ja.starred = true THEN false ELSE true END, " +
+           "ja.updatedAt = :now WHERE ja.id = :id AND ja.user.id = :userId")
+    int toggleStar(Long id, Long userId, LocalDateTime now);
+
+    // No-op when the status is already the same, so lastAction stays as it was
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("UPDATE JobApplication ja SET ja.status = :status, ja.lastAction = :lastAction, ja.updatedAt = :now " +
+           "WHERE ja.id = :id AND ja.user.id = :userId AND ja.status <> :status")
+    int changeStatus(Long id, Long userId, ApplicationStatus status, String lastAction, LocalDateTime now);
 }

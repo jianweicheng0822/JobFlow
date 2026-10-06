@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -160,11 +161,12 @@ public class JobApplicationService {
         return toDTO(jobApplicationRepository.save(app));
     }
 
+    // Atomic so it can't be undone by a star toggle (or another status change) racing it
+    @Transactional
     public JobApplicationDTO updateStatus(Long userId, Long id, ApplicationStatus status) {
-        JobApplication app = jobApplicationRepository.findByIdAndUserId(id, userId)
-            .orElseThrow(() -> new NotFoundException("Job application not found: " + id));
-        changeStatus(app, status);
-        return toDTO(jobApplicationRepository.save(app));
+        jobApplicationRepository.changeStatus(id, userId, status, movedTo(status), LocalDateTime.now());
+        // 0 rows can mean "same status" or "not yours/doesn't exist"; findById sorts that out
+        return findById(userId, id);
     }
 
     // Sets the new status and, only if it actually changed, records it as the last action
@@ -172,7 +174,11 @@ public class JobApplicationService {
     private void changeStatus(JobApplication app, ApplicationStatus status) {
         if (app.getStatus() == status) return;
         app.setStatus(status);
-        app.setLastAction("Moved to " + statusLabel(status));
+        app.setLastAction(movedTo(status));
+    }
+
+    private static String movedTo(ApplicationStatus status) {
+        return "Moved to " + statusLabel(status);
     }
 
     // PHONE_SCREEN -> "Phone Screen"
@@ -240,11 +246,14 @@ public class JobApplicationService {
         return activity;
     }
 
+    // Flipped in the database in one statement, so N quick clicks really are N toggles
+    @Transactional
     public JobApplicationDTO toggleStar(Long userId, Long id) {
-        JobApplication app = jobApplicationRepository.findByIdAndUserId(id, userId)
-            .orElseThrow(() -> new NotFoundException("Job application not found: " + id));
-        app.setStarred(!app.isStarred());
-        return toDTO(jobApplicationRepository.save(app));
+        int updated = jobApplicationRepository.toggleStar(id, userId, LocalDateTime.now());
+        if (updated == 0) {
+            throw new NotFoundException("Job application not found: " + id);
+        }
+        return findById(userId, id);
     }
 
     public String exportCsv(Long userId) {

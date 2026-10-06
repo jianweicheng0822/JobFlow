@@ -425,35 +425,43 @@ class JobApplicationServiceTest {
                 .hasMessageContaining("Job application not found");
     }
 
-    // --- updateStatus ---
+    // --- updateStatus (single atomic UPDATE, then a fresh read) ---
 
     @Test
-    void updateStatus_updatesAndReturnsDTO() {
+    void updateStatus_runsAtomicUpdateAndReturnsFreshRow() {
+        // What the row looks like after the UPDATE
+        testApp.setStatus(ApplicationStatus.OFFER);
+        testApp.setLastAction("Moved to Offer");
+        when(jobApplicationRepository.changeStatus(eq(100L), eq(1L), eq(ApplicationStatus.OFFER), eq("Moved to Offer"), any(LocalDateTime.class)))
+                .thenReturn(1);
         when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
-        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
         when(companyService.toDTO(testCompany)).thenReturn(testCompanyDTO);
 
         JobApplicationDTO result = jobApplicationService.updateStatus(1L, 100L, ApplicationStatus.OFFER);
 
         assertThat(result.getStatus()).isEqualTo(ApplicationStatus.OFFER);
         assertThat(result.getLastAction()).isEqualTo("Moved to Offer");
+        // No load-modify-save: that's what used to overwrite concurrent changes
+        verify(jobApplicationRepository, never()).save(any(JobApplication.class));
     }
 
     @Test
     void updateStatus_multiWordStatus_getsReadableLabel() {
         when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
-        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
         when(companyService.toDTO(testCompany)).thenReturn(testCompanyDTO);
 
-        JobApplicationDTO result = jobApplicationService.updateStatus(1L, 100L, ApplicationStatus.PHONE_SCREEN);
+        jobApplicationService.updateStatus(1L, 100L, ApplicationStatus.PHONE_SCREEN);
 
-        assertThat(result.getLastAction()).isEqualTo("Moved to Phone Screen");
+        verify(jobApplicationRepository).changeStatus(eq(100L), eq(1L), eq(ApplicationStatus.PHONE_SCREEN),
+                eq("Moved to Phone Screen"), any(LocalDateTime.class));
     }
 
     @Test
-    void updateStatus_sameStatus_keepsLastAction() {
+    void updateStatus_sameStatus_returnsRowUnchanged() {
+        // The UPDATE's "status <> :status" filter matches nothing, so lastAction is untouched
+        when(jobApplicationRepository.changeStatus(eq(100L), eq(1L), eq(ApplicationStatus.APPLIED), anyString(), any(LocalDateTime.class)))
+                .thenReturn(0);
         when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
-        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
         when(companyService.toDTO(testCompany)).thenReturn(testCompanyDTO);
 
         JobApplicationDTO result = jobApplicationService.updateStatus(1L, 100L, ApplicationStatus.APPLIED);
@@ -571,38 +579,29 @@ class JobApplicationServiceTest {
         assertThat(activity.get(0).getCount()).isEqualTo(3);
     }
 
-    // --- toggleStar ---
+    // --- toggleStar (flipped in the database, then a fresh read) ---
 
     @Test
-    void toggleStar_flipsStarred() {
-        testApp.setStarred(false);
+    void toggleStar_flipsInDatabaseAndReturnsFreshRow() {
+        testApp.setStarred(true); // state after the UPDATE
+        when(jobApplicationRepository.toggleStar(eq(100L), eq(1L), any(LocalDateTime.class))).thenReturn(1);
         when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
-        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
         when(companyService.toDTO(testCompany)).thenReturn(testCompanyDTO);
 
         JobApplicationDTO result = jobApplicationService.toggleStar(1L, 100L);
 
         assertThat(result.isStarred()).isTrue();
+        verify(jobApplicationRepository, never()).save(any(JobApplication.class));
     }
 
     @Test
-    void toggleStar_unstar() {
-        testApp.setStarred(true);
-        when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
-        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(companyService.toDTO(testCompany)).thenReturn(testCompanyDTO);
-
-        JobApplicationDTO result = jobApplicationService.toggleStar(1L, 100L);
-
-        assertThat(result.isStarred()).isFalse();
-    }
-
-    @Test
-    void toggleStar_notFound_throwsException() {
-        when(jobApplicationRepository.findByIdAndUserId(999L, 1L)).thenReturn(Optional.empty());
+    void toggleStar_notFoundOrNotOwned_throwsException() {
+        // The UPDATE is scoped by user, so someone else's id matches 0 rows
+        when(jobApplicationRepository.toggleStar(eq(999L), eq(1L), any(LocalDateTime.class))).thenReturn(0);
 
         assertThatThrownBy(() -> jobApplicationService.toggleStar(1L, 999L))
                 .isInstanceOf(NotFoundException.class);
+        verify(jobApplicationRepository, never()).findByIdAndUserId(anyLong(), anyLong());
     }
 
     // --- exportCsv ---
