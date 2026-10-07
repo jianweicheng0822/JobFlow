@@ -36,6 +36,7 @@ public class JobApplicationService {
     private final CompanyService companyService;
     private final EmailImportLogRepository emailImportLogRepository;
     private final InterviewRepository interviewRepository;
+    private final UserClock userClock;
 
     public List<JobApplicationDTO> findAll(Long userId) {
         return jobApplicationRepository.findByUserIdOrderByUpdatedAtDesc(userId).stream()
@@ -107,7 +108,8 @@ public class JobApplicationService {
             .location(blankToNull(request.getLocation()))
             .salary(blankToNull(request.getSalary()))
             .status(request.getStatus() != null ? request.getStatus() : ApplicationStatus.APPLIED)
-            .appliedDate(request.getAppliedDate() != null ? request.getAppliedDate() : LocalDate.now())
+            // Default to the user's today, not the server's
+            .appliedDate(request.getAppliedDate() != null ? request.getAppliedDate() : userClock.today(user))
             .lastAction(blankToNull(request.getLastAction()))
             .notes(blankToNull(request.getNotes()))
             .build();
@@ -234,7 +236,10 @@ public class JobApplicationService {
 
     public List<ApplicationActivityDTO> getActivity(Long userId) {
         List<ApplicationActivityDTO> activity = new ArrayList<>();
-        LocalDate now = LocalDate.now();
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new NotFoundException("User not found"));
+        // Month buckets follow the user's calendar, so "this month" flips at their midnight
+        LocalDate now = userClock.today(user);
 
         for (int i = 11; i >= 0; i--) {
             LocalDate start = now.minusMonths(i).withDayOfMonth(1);

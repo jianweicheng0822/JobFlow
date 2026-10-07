@@ -46,6 +46,7 @@ public class GmailService {
     private final CompanyService companyService;
     private final JobApplicationRepository jobApplicationRepository;
     private final EmailImportLogRepository emailImportLogRepository;
+    private final UserClock userClock;
 
     @Value("${spring.security.oauth2.client.registration.google.client-id:}")
     private String googleClientId;
@@ -140,7 +141,7 @@ public class GmailService {
                         .setMetadataHeaders(List.of("Subject", "From", "Date"))
                         .execute();
 
-                GmailImportPreviewDTO preview = parseMessage(messageId, fullMessage);
+                GmailImportPreviewDTO preview = parseMessage(messageId, fullMessage, userClock.zoneOf(user));
                 if (preview != null) {
                     previews.add(preview);
                 }
@@ -193,7 +194,7 @@ public class GmailService {
                     .positionTitle(positionTitle)
                     .company(company)
                     .status(ApplicationStatus.APPLIED)
-                    .appliedDate(item.getAppliedDate() != null ? item.getAppliedDate() : LocalDate.now())
+                    .appliedDate(item.getAppliedDate() != null ? item.getAppliedDate() : userClock.today(user))
                     .notes("Imported from Gmail")
                     .build();
             jobApplicationRepository.save(app);
@@ -284,7 +285,7 @@ public class GmailService {
         return false;
     }
 
-    private GmailImportPreviewDTO parseMessage(String messageId, Message message) {
+    private GmailImportPreviewDTO parseMessage(String messageId, Message message, ZoneId userZone) {
         Map<String, String> headers = new HashMap<>();
         if (message.getPayload() != null && message.getPayload().getHeaders() != null) {
             for (MessagePartHeader header : message.getPayload().getHeaders()) {
@@ -294,7 +295,7 @@ public class GmailService {
 
         String subject = headers.getOrDefault("subject", "");
         String from = headers.getOrDefault("from", "");
-        LocalDate appliedDate = parseDateFromHeader(null, message.getInternalDate());
+        LocalDate appliedDate = parseDateFromHeader(message.getInternalDate(), userZone);
 
         String companyName;
         String positionTitle;
@@ -467,16 +468,12 @@ public class GmailService {
         return null;
     }
 
-    /**
-     * Parses date from the email Date header, falling back to internalDate.
-     */
-    private LocalDate parseDateFromHeader(String dateStr, Long internalDateMs) {
-        // Fall back to Gmail's internal timestamp
+    // The day the email arrived, on the user's calendar (an 11pm email in Denver is
+    // already the next day in UTC)
+    private static LocalDate parseDateFromHeader(Long internalDateMs, ZoneId userZone) {
         if (internalDateMs != null && internalDateMs > 0) {
-            return Instant.ofEpochMilli(internalDateMs)
-                    .atZone(ZoneId.systemDefault())
-                    .toLocalDate();
+            return Instant.ofEpochMilli(internalDateMs).atZone(userZone).toLocalDate();
         }
-        return LocalDate.now();
+        return LocalDate.now(userZone);
     }
 }

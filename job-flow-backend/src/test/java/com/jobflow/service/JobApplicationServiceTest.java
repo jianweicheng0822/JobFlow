@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
 
@@ -40,6 +41,10 @@ class JobApplicationServiceTest {
     private EmailImportLogRepository emailImportLogRepository;
     @Mock
     private InterviewRepository interviewRepository;
+
+    // Real clock in the server's zone, so existing "today" expectations hold; tests can stub it
+    @Spy
+    private UserClock userClock = new UserClock();
 
     @InjectMocks
     private JobApplicationService jobApplicationService;
@@ -570,6 +575,7 @@ class JobApplicationServiceTest {
 
     @Test
     void getActivity_returns12Months() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(jobApplicationRepository.countByUserIdAndAppliedDateBetween(eq(1L), any(LocalDate.class), any(LocalDate.class)))
                 .thenReturn(3L);
 
@@ -834,5 +840,36 @@ class JobApplicationServiceTest {
 
         assertThat(result.getCompany().getId()).isEqualTo(20L);
         verify(companyService, never()).findOrCreateByName(any(), anyString());
+    }
+
+    // --- dates follow the user's time zone ---
+
+    @Test
+    void create_withoutDate_usesTheUsersToday() {
+        doReturn(LocalDate.of(2026, 10, 6)).when(userClock).today(testUser);
+        CreateJobApplicationRequest request = new CreateJobApplicationRequest();
+        request.setPositionTitle("Engineer");
+        request.setCompanyId(10L);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(companyRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(testCompany));
+        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(companyService.toDTO(testCompany)).thenReturn(testCompanyDTO);
+
+        assertThat(jobApplicationService.create(1L, request).getAppliedDate()).isEqualTo(LocalDate.of(2026, 10, 6));
+    }
+
+    @Test
+    void getActivity_monthsFollowTheUsersCalendar() {
+        // Oct 1 for the user, even if the server's calendar still says Sep 30
+        doReturn(LocalDate.of(2026, 10, 1)).when(userClock).today(testUser);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+
+        List<ApplicationActivityDTO> activity = jobApplicationService.getActivity(1L);
+
+        assertThat(activity).hasSize(12);
+        assertThat(activity.get(0).getMonth()).isEqualTo("NOV");
+        assertThat(activity.get(11).getMonth()).isEqualTo("OCT");
+        verify(jobApplicationRepository).countByUserIdAndAppliedDateBetween(1L, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31));
     }
 }

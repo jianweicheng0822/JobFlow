@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
@@ -50,6 +51,10 @@ class GmailServiceTest {
     private JobApplicationRepository jobApplicationRepository;
     @Mock
     private EmailImportLogRepository emailImportLogRepository;
+
+    // Real clock in the server's zone, so existing "today" expectations hold; tests can stub it
+    @Spy
+    private UserClock userClock = new UserClock();
 
     @InjectMocks
     private GmailService gmailService;
@@ -483,29 +488,31 @@ class GmailServiceTest {
         // --- parseDateFromHeader ---
 
         @Test
-        void parseDateFromHeader_validTimestamp() throws Exception {
-            // 2026-09-15 in millis (approximate)
-            long timestamp = LocalDate.of(2026, 9, 15)
-                    .atStartOfDay(ZoneId.systemDefault())
-                    .toInstant().toEpochMilli();
+        void parseDateFromHeader_usesTheUsersCalendarDay() throws Exception {
+            // Arrived 01:30 UTC Oct 7 = 7:30pm Oct 6 in Denver = 9:30am Oct 7 in Shanghai
+            long timestamp = java.time.Instant.parse("2026-10-07T01:30:00Z").toEpochMilli();
+            Class<?>[] types = {Long.class, ZoneId.class};
 
-            LocalDate result = (LocalDate) invoke("parseDateFromHeader",
-                    new Class[]{String.class, Long.class}, null, timestamp);
-            assertThat(result).isEqualTo(LocalDate.of(2026, 9, 15));
+            assertThat(invoke("parseDateFromHeader", types, timestamp, ZoneId.of("America/Denver")))
+                    .isEqualTo(LocalDate.of(2026, 10, 6));
+            assertThat(invoke("parseDateFromHeader", types, timestamp, ZoneId.of("Asia/Shanghai")))
+                    .isEqualTo(LocalDate.of(2026, 10, 7));
         }
 
         @Test
         void parseDateFromHeader_nullTimestamp_returnsToday() throws Exception {
+            ZoneId zone = ZoneId.of("Asia/Shanghai");
             LocalDate result = (LocalDate) invoke("parseDateFromHeader",
-                    new Class[]{String.class, Long.class}, null, null);
-            assertThat(result).isEqualTo(LocalDate.now());
+                    new Class[]{Long.class, ZoneId.class}, null, zone);
+            assertThat(result).isEqualTo(LocalDate.now(zone));
         }
 
         @Test
         void parseDateFromHeader_zeroTimestamp_returnsToday() throws Exception {
+            ZoneId zone = ZoneId.of("Asia/Shanghai");
             LocalDate result = (LocalDate) invoke("parseDateFromHeader",
-                    new Class[]{String.class, Long.class}, null, 0L);
-            assertThat(result).isEqualTo(LocalDate.now());
+                    new Class[]{Long.class, ZoneId.class}, 0L, zone);
+            assertThat(result).isEqualTo(LocalDate.now(zone));
         }
     }
 
@@ -713,5 +720,20 @@ class GmailServiceTest {
         assertThat(result.getImportedCount()).isEqualTo(1);
         assertThat(result.getSkippedCount()).isEqualTo(1);
         verify(emailImportLogRepository, times(1)).save(any(EmailImportLog.class));
+    }
+
+    @Test
+    void importApplications_noDate_usesTheUsersToday() {
+        doReturn(LocalDate.of(2026, 10, 6)).when(userClock).today(testUser);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(emailImportLogRepository.existsByUserIdAndGmailMessageId(1L, "msg1")).thenReturn(false);
+        when(companyService.findOrCreateByName(testUser, "Google")).thenReturn(Company.builder().id(10L).name("Google").build());
+        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        GmailImportConfirmRequest request = new GmailImportConfirmRequest();
+        request.setItems(List.of(new GmailImportConfirmRequest.ImportItem("msg1", "Google", "SWE", null)));
+        gmailService.importApplications(1L, request);
+
+        verify(jobApplicationRepository).save(argThat(app -> app.getAppliedDate().equals(LocalDate.of(2026, 10, 6))));
     }
 }

@@ -4,14 +4,15 @@ import com.jobflow.dto.CreateInterviewRequest;
 import com.jobflow.dto.InterviewDTO;
 import com.jobflow.model.Interview;
 import com.jobflow.model.JobApplication;
+import com.jobflow.model.User;
 import com.jobflow.repository.InterviewRepository;
 import com.jobflow.repository.JobApplicationRepository;
+import com.jobflow.repository.UserRepository;
 import com.jobflow.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Set;
@@ -24,6 +25,8 @@ public class InterviewService {
 
     private final InterviewRepository interviewRepository;
     private final JobApplicationRepository jobApplicationRepository;
+    private final UserRepository userRepository;
+    private final UserClock userClock;
 
     public List<InterviewDTO> findAll(Long userId) {
         return interviewRepository.findByJobApplicationUserId(userId).stream()
@@ -38,8 +41,11 @@ public class InterviewService {
     }
 
     public List<InterviewDTO> findUpcoming(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new NotFoundException("User not found"));
+        // Interview times are the user's local wall-clock time, so compare with their "now"
         return interviewRepository
-            .findByJobApplicationUserIdAndInterviewDateAfterOrderByInterviewDateAsc(userId, LocalDateTime.now())
+            .findByJobApplicationUserIdAndInterviewDateAfterOrderByInterviewDateAsc(userId, userClock.now(user))
             .stream()
             .map(this::toDTO)
             .toList();
@@ -128,7 +134,8 @@ public class InterviewService {
 
     private InterviewDTO toDTO(Interview interview) {
         JobApplication app = interview.getJobApplication();
-        long daysUntil = ChronoUnit.DAYS.between(LocalDate.now(), interview.getInterviewDate().toLocalDate());
+        LocalDate today = userClock.today(app.getUser());
+        long daysUntil = ChronoUnit.DAYS.between(today, interview.getInterviewDate().toLocalDate());
         return InterviewDTO.builder()
             .id(interview.getId())
             .jobApplicationId(app.getId())

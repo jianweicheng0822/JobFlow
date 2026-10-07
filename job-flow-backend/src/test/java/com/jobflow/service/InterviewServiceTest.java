@@ -2,16 +2,20 @@ package com.jobflow.service;
 
 import com.jobflow.dto.CreateInterviewRequest;
 import com.jobflow.dto.InterviewDTO;
+import com.jobflow.exception.NotFoundException;
 import com.jobflow.model.*;
 import com.jobflow.repository.InterviewRepository;
 import com.jobflow.repository.JobApplicationRepository;
+import com.jobflow.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +33,13 @@ class InterviewServiceTest {
 
     @Mock
     private JobApplicationRepository jobApplicationRepository;
+
+    @Mock
+    private UserRepository userRepository;
+
+    // Real clock in the server's zone, so existing "today" expectations hold; tests can stub it
+    @Spy
+    private UserClock userClock = new UserClock();
 
     @InjectMocks
     private InterviewService interviewService;
@@ -205,5 +216,38 @@ class InterviewServiceTest {
                 .hasMessage("Interview type is required");
 
         verifyNoInteractions(interviewRepository);
+    }
+
+    // --- "now" and "today" follow the user's time zone ---
+
+    @Test
+    void findUpcoming_comparesWithTheUsersNow() {
+        User user = testApp.getUser();
+        LocalDateTime usersNow = LocalDateTime.of(2026, 10, 6, 19, 30);
+        doReturn(usersNow).when(userClock).now(user);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(interviewRepository.findByJobApplicationUserIdAndInterviewDateAfterOrderByInterviewDateAsc(1L, usersNow))
+                .thenReturn(List.of(testInterview));
+
+        List<InterviewDTO> result = interviewService.findUpcoming(1L);
+
+        assertThat(result).hasSize(1);
+        verify(interviewRepository).findByJobApplicationUserIdAndInterviewDateAfterOrderByInterviewDateAsc(1L, usersNow);
+    }
+
+    @Test
+    void daysUntil_countsFromTheUsersToday() {
+        doReturn(LocalDate.of(2030, 6, 14)).when(userClock).today(testApp.getUser());
+        when(interviewRepository.findByJobApplicationUserId(1L)).thenReturn(List.of(testInterview));
+
+        // Interview is on 2030-06-15
+        assertThat(interviewService.findAll(1L).get(0).getDaysUntil()).isEqualTo(1);
+    }
+
+    @Test
+    void findUpcoming_unknownUser_throws() {
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> interviewService.findUpcoming(99L)).isInstanceOf(NotFoundException.class);
     }
 }
