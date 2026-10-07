@@ -20,6 +20,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
 import java.util.function.Supplier;
+import com.jobflow.exception.ApiException;
+import java.util.Map;
 
 import static com.jobflow.util.TextUtils.blankToNull;
 
@@ -42,13 +44,13 @@ public class CompanyService {
 
     public CompanyDTO findById(Long userId, Long id) {
         Company company = companyRepository.findByIdAndUserId(id, userId)
-            .orElseThrow(() -> new NotFoundException("Company not found: " + id));
+            .orElseThrow(() -> NotFoundException.company(id));
         return toDTO(company);
     }
 
     public CompanyDTO create(Long userId, CreateCompanyRequest request) {
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("User not found"));
+            .orElseThrow(() -> NotFoundException.user());
 
         String name = requireName(request.getName());
         rejectDuplicateName(userId, name, null);
@@ -65,7 +67,7 @@ public class CompanyService {
 
     public CompanyDTO update(Long userId, Long id, CreateCompanyRequest request) {
         Company company = companyRepository.findByIdAndUserId(id, userId)
-            .orElseThrow(() -> new NotFoundException("Company not found: " + id));
+            .orElseThrow(() -> NotFoundException.company(id));
         String name = requireName(request.getName());
         rejectDuplicateName(userId, name, id);
 
@@ -116,21 +118,22 @@ public class CompanyService {
         }
     }
 
-    private static IllegalArgumentException duplicateName(String name) {
-        return new IllegalArgumentException("A company named '" + name + "' already exists");
+    private static ApiException duplicateName(String name) {
+        return ApiException.badRequest("COMPANY_NAME_TAKEN", "A company named '" + name + "' already exists",
+                Map.of("name", name));
     }
 
     // The controller validates this too; repeated here for callers that skip it
     private static String requireName(String name) {
         String trimmed = blankToNull(name);
-        if (trimmed == null) throw new IllegalArgumentException("Company name is required");
+        if (trimmed == null) throw ApiException.badRequest("COMPANY_NAME_REQUIRED", "Company name is required");
         return trimmed;
     }
 
     @Transactional
     public void delete(Long userId, Long id) {
         companyRepository.findByIdAndUserId(id, userId)
-            .orElseThrow(() -> new NotFoundException("Company not found: " + id));
+            .orElseThrow(() -> NotFoundException.company(id));
 
         List<Long> appIds = jobApplicationRepository.findIdsByCompanyId(id);
         if (!appIds.isEmpty()) {

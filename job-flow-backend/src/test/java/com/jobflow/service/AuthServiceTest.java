@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
+import com.jobflow.exception.ApiException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -82,7 +83,7 @@ class AuthServiceTest {
         when(userRepository.existsByEmail("alice@test.com")).thenReturn(true);
 
         assertThatThrownBy(() -> authService.register(request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessageContaining("already registered");
     }
 
@@ -111,7 +112,7 @@ class AuthServiceTest {
         when(userRepository.findByEmail("unknown@test.com")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.login(request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Invalid email or password");
     }
 
@@ -125,7 +126,7 @@ class AuthServiceTest {
         when(passwordEncoder.matches("wrongPassword", "encodedPassword")).thenReturn(false);
 
         assertThatThrownBy(() -> authService.login(request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Invalid email or password");
     }
 
@@ -158,7 +159,7 @@ class AuthServiceTest {
         when(userRepository.findByEmail("alice@test.com")).thenReturn(Optional.of(testUser));
 
         assertThatThrownBy(() -> authService.updateTimeZone("alice@test.com", "Not/A_Zone"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessage("Unknown time zone: Not/A_Zone");
         verify(userRepository, never()).save(any(User.class));
     }
@@ -169,5 +170,39 @@ class AuthServiceTest {
         when(userRepository.findByEmail("alice@test.com")).thenReturn(Optional.of(testUser));
 
         assertThat(authService.getCurrentUser("alice@test.com").getTimeZone()).isEqualTo("America/Denver");
+    }
+
+    // --- error codes ---
+
+    @Test
+    void login_wrongPassword_hasInvalidCredentialsCode() {
+        when(userRepository.findByEmail("alice@test.com")).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
+        LoginRequest request = new LoginRequest();
+        request.setEmail("alice@test.com");
+        request.setPassword("wrong");
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(ApiException.class)
+                .hasFieldOrPropertyWithValue("code", "INVALID_CREDENTIALS");
+    }
+
+    @Test
+    void unknownTimeZone_hasCodeAndTheZoneAsParam() {
+        when(userRepository.findByEmail("alice@test.com")).thenReturn(Optional.of(testUser));
+
+        assertThatThrownBy(() -> authService.updateTimeZone("alice@test.com", "Not/A_Zone"))
+                .isInstanceOf(ApiException.class)
+                .hasFieldOrPropertyWithValue("code", "UNKNOWN_TIME_ZONE")
+                .hasFieldOrPropertyWithValue("params", java.util.Map.of("timeZone", "Not/A_Zone"));
+    }
+
+    @Test
+    void missingUser_isNotFoundWithCode() {
+        when(userRepository.findByEmail("ghost@test.com")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.getCurrentUser("ghost@test.com"))
+                .isInstanceOf(com.jobflow.exception.NotFoundException.class)
+                .hasFieldOrPropertyWithValue("code", "USER_NOT_FOUND");
     }
 }

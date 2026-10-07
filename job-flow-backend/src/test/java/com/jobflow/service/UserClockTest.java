@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import com.jobflow.exception.ApiException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -57,9 +58,9 @@ class UserClockTest {
     @Test
     void requireValidZone_rejectsUnknownZones() {
         assertThatThrownBy(() -> UserClock.requireValidZone("Mars/Olympus_Mons"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessage("Unknown time zone: Mars/Olympus_Mons");
         assertThatThrownBy(() -> UserClock.requireValidZone("asia/shanghai"))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(ApiException.class);
     }
 }

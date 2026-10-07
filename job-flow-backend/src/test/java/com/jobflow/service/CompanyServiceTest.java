@@ -22,6 +22,7 @@ import java.util.Optional;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.PlatformTransactionManager;
+import com.jobflow.exception.ApiException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -169,7 +170,7 @@ class CompanyServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
         assertThatThrownBy(() -> companyService.create(1L, request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessage("Company name is required");
     }
 
@@ -181,7 +182,7 @@ class CompanyServiceTest {
         when(companyRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(testCompany));
 
         assertThatThrownBy(() -> companyService.update(1L, 1L, request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessage("Company name is required");
     }
 
@@ -261,7 +262,7 @@ class CompanyServiceTest {
         when(companyRepository.findByNameIgnoreCaseAndUserId("acme inc", 1L)).thenReturn(Optional.of(testCompany));
 
         assertThatThrownBy(() -> companyService.create(1L, request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessage("A company named 'acme inc' already exists");
         verify(companyRepository, never()).saveAndFlush(any(Company.class));
     }
@@ -276,7 +277,7 @@ class CompanyServiceTest {
         when(companyRepository.saveAndFlush(any(Company.class))).thenThrow(new DataIntegrityViolationException("Duplicate entry"));
 
         assertThatThrownBy(() -> companyService.create(1L, request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessage("A company named 'Racy Co' already exists");
     }
 
@@ -304,7 +305,30 @@ class CompanyServiceTest {
         when(companyRepository.findByNameIgnoreCaseAndUserId("Globex", 1L)).thenReturn(Optional.of(other));
 
         assertThatThrownBy(() -> companyService.update(1L, 1L, request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessage("A company named 'Globex' already exists");
+    }
+
+    // --- error codes ---
+
+    @Test
+    void duplicateName_hasCodeAndNameParam() {
+        CreateCompanyRequest request = new CreateCompanyRequest();
+        request.setName("acme inc");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(companyRepository.findByNameIgnoreCaseAndUserId("acme inc", 1L)).thenReturn(Optional.of(testCompany));
+
+        assertThatThrownBy(() -> companyService.create(1L, request))
+                .hasFieldOrPropertyWithValue("code", "COMPANY_NAME_TAKEN")
+                .hasFieldOrPropertyWithValue("params", java.util.Map.of("name", "acme inc"));
+    }
+
+    @Test
+    void missingCompany_hasCodeAndId() {
+        when(companyRepository.findByIdAndUserId(42L, 1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> companyService.findById(1L, 42L))
+                .hasFieldOrPropertyWithValue("code", "COMPANY_NOT_FOUND")
+                .hasFieldOrPropertyWithValue("params", java.util.Map.of("id", 42L));
     }
 }

@@ -19,6 +19,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import com.jobflow.exception.ApiException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -160,7 +161,7 @@ class InterviewServiceTest {
         request.setReminderHoursBefore(3);
 
         assertThatThrownBy(() -> interviewService.create(1L, request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessageContaining("reminderHoursBefore");
     }
 
@@ -202,17 +203,17 @@ class InterviewServiceTest {
     void create_missingRequiredFields_throwsClearMessages() {
         CreateInterviewRequest request = new CreateInterviewRequest();
         assertThatThrownBy(() -> interviewService.create(1L, request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessage("Job application is required");
 
         request.setJobApplicationId(10L);
         assertThatThrownBy(() -> interviewService.create(1L, request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessage("Interview date is required");
 
         request.setInterviewDate(LocalDateTime.of(2030, 7, 1, 14, 0));
         assertThatThrownBy(() -> interviewService.create(1L, request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessage("Interview type is required");
 
         verifyNoInteractions(interviewRepository);
@@ -249,5 +250,29 @@ class InterviewServiceTest {
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> interviewService.findUpcoming(99L)).isInstanceOf(NotFoundException.class);
+    }
+
+    // --- error codes ---
+
+    @Test
+    void invalidReminderHours_listsTheAllowedValues() {
+        CreateInterviewRequest request = new CreateInterviewRequest();
+        request.setJobApplicationId(10L);
+        request.setInterviewDate(LocalDateTime.of(2030, 7, 1, 14, 0));
+        request.setInterviewType(InterviewType.ONSITE);
+        request.setReminderHoursBefore(5);
+
+        assertThatThrownBy(() -> interviewService.create(1L, request))
+                .hasFieldOrPropertyWithValue("code", "INVALID_REMINDER_HOURS")
+                .hasFieldOrPropertyWithValue("params", java.util.Map.of("allowed", "1, 6, 24"));
+    }
+
+    @Test
+    void missingInterview_hasCodeAndId() {
+        when(interviewRepository.findByIdAndJobApplicationUserId(7L, 1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> interviewService.findById(1L, 7L))
+                .hasFieldOrPropertyWithValue("code", "INTERVIEW_NOT_FOUND")
+                .hasFieldOrPropertyWithValue("params", java.util.Map.of("id", 7L));
     }
 }

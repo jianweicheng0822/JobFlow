@@ -148,7 +148,7 @@ public class GmailController {
     private User getUser(Authentication authentication) {
         String email = authentication.getName();
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new NotFoundException("User not found"));
+                .orElseThrow(() -> NotFoundException.user());
     }
 
     private static String encode(String value) {

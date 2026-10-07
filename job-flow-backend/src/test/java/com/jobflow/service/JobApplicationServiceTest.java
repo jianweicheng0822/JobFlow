@@ -20,6 +20,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import com.jobflow.exception.ApiException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -296,7 +297,7 @@ class JobApplicationServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
         assertThatThrownBy(() -> jobApplicationService.create(1L, request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessage("Company is required");
     }
 
@@ -706,7 +707,7 @@ class JobApplicationServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
         assertThatThrownBy(() -> jobApplicationService.create(1L, request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessage("Position title is required");
     }
 
@@ -719,7 +720,7 @@ class JobApplicationServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
         assertThatThrownBy(() -> jobApplicationService.create(1L, request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessage("Company is required");
     }
 
@@ -753,7 +754,7 @@ class JobApplicationServiceTest {
         when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
 
         assertThatThrownBy(() -> jobApplicationService.update(1L, 100L, request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessage("Position title cannot be blank");
     }
 
@@ -820,7 +821,7 @@ class JobApplicationServiceTest {
         when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
 
         assertThatThrownBy(() -> jobApplicationService.update(1L, 100L, request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessage("Company name cannot be blank");
     }
 
@@ -871,5 +872,27 @@ class JobApplicationServiceTest {
         assertThat(activity.get(0).getMonth()).isEqualTo("NOV");
         assertThat(activity.get(11).getMonth()).isEqualTo("OCT");
         verify(jobApplicationRepository).countByUserIdAndAppliedDateBetween(1L, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31));
+    }
+
+    // --- error codes ---
+
+    @Test
+    void blankTitleOnCreate_hasCode() {
+        CreateJobApplicationRequest request = new CreateJobApplicationRequest();
+        request.setPositionTitle("  ");
+        request.setCompanyName("Acme");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+
+        assertThatThrownBy(() -> jobApplicationService.create(1L, request))
+                .hasFieldOrPropertyWithValue("code", "POSITION_TITLE_REQUIRED");
+    }
+
+    @Test
+    void missingApplication_hasCodeAndId() {
+        when(jobApplicationRepository.findByIdAndUserId(999L, 1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> jobApplicationService.findById(1L, 999L))
+                .hasFieldOrPropertyWithValue("code", "APPLICATION_NOT_FOUND")
+                .hasFieldOrPropertyWithValue("params", java.util.Map.of("id", 999L));
     }
 }

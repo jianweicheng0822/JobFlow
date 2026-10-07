@@ -23,6 +23,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import com.jobflow.exception.ApiException;
 
 import static com.jobflow.util.TextUtils.blankToNull;
 
@@ -85,18 +86,18 @@ public class JobApplicationService {
 
     public JobApplicationDTO findById(Long userId, Long id) {
         JobApplication app = jobApplicationRepository.findByIdAndUserId(id, userId)
-            .orElseThrow(() -> new NotFoundException("Job application not found: " + id));
+            .orElseThrow(() -> NotFoundException.application(id));
         return toDTO(app);
     }
 
     public JobApplicationDTO create(Long userId, CreateJobApplicationRequest request) {
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("User not found"));
+            .orElseThrow(() -> NotFoundException.user());
 
         // The controller validates this too; repeated here for callers that skip it
         String positionTitle = blankToNull(request.getPositionTitle());
         if (positionTitle == null) {
-            throw new IllegalArgumentException("Position title is required");
+            throw ApiException.badRequest("POSITION_TITLE_REQUIRED", "Position title is required");
         }
 
         Company company = resolveCompany(user, request);
@@ -120,12 +121,12 @@ public class JobApplicationService {
     private Company resolveCompany(User user, CreateJobApplicationRequest request) {
         if (request.getCompanyId() != null) {
             return companyRepository.findByIdAndUserId(request.getCompanyId(), user.getId())
-                .orElseThrow(() -> new NotFoundException("Company not found: " + request.getCompanyId()));
+                .orElseThrow(() -> NotFoundException.company(request.getCompanyId()));
         }
 
         String name = blankToNull(request.getCompanyName());
         if (name == null) {
-            throw new IllegalArgumentException("Company is required");
+            throw ApiException.badRequest("COMPANY_REQUIRED", "Company is required");
         }
 
         return companyService.findOrCreateByName(user, name);
@@ -133,22 +134,22 @@ public class JobApplicationService {
 
     public JobApplicationDTO update(Long userId, Long id, UpdateJobApplicationRequest request) {
         JobApplication app = jobApplicationRepository.findByIdAndUserId(id, userId)
-            .orElseThrow(() -> new NotFoundException("Job application not found: " + id));
+            .orElseThrow(() -> NotFoundException.application(id));
 
         if (request.getCompanyId() != null) {
             Company company = companyRepository.findByIdAndUserId(request.getCompanyId(), userId)
-                .orElseThrow(() -> new NotFoundException("Company not found: " + request.getCompanyId()));
+                .orElseThrow(() -> NotFoundException.company(request.getCompanyId()));
             app.setCompany(company);
         } else if (request.getCompanyName() != null) {
             // Typed a company name instead of picking one from the list
             String companyName = blankToNull(request.getCompanyName());
-            if (companyName == null) throw new IllegalArgumentException("Company name cannot be blank");
+            if (companyName == null) throw ApiException.badRequest("COMPANY_NAME_BLANK", "Company name cannot be blank");
             app.setCompany(companyService.findOrCreateByName(app.getUser(), companyName));
         }
         // null = leave as is; for optional fields, a blank value clears them
         if (request.getPositionTitle() != null) {
             String positionTitle = blankToNull(request.getPositionTitle());
-            if (positionTitle == null) throw new IllegalArgumentException("Position title cannot be blank");
+            if (positionTitle == null) throw ApiException.badRequest("POSITION_TITLE_BLANK", "Position title cannot be blank");
             app.setPositionTitle(positionTitle);
         }
         if (request.getLocation() != null) app.setLocation(blankToNull(request.getLocation()));
@@ -196,7 +197,7 @@ public class JobApplicationService {
     @Transactional
     public void delete(Long userId, Long id) {
         JobApplication app = jobApplicationRepository.findByIdAndUserId(id, userId)
-            .orElseThrow(() -> new NotFoundException("Job application not found: " + id));
+            .orElseThrow(() -> NotFoundException.application(id));
         interviewRepository.deleteByJobApplicationId(id);
         emailImportLogRepository.deleteByJobApplicationId(id);
         jobApplicationRepository.delete(app);
@@ -237,7 +238,7 @@ public class JobApplicationService {
     public List<ApplicationActivityDTO> getActivity(Long userId) {
         List<ApplicationActivityDTO> activity = new ArrayList<>();
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("User not found"));
+            .orElseThrow(() -> NotFoundException.user());
         // Month buckets follow the user's calendar, so "this month" flips at their midnight
         LocalDate now = userClock.today(user);
 
@@ -256,7 +257,7 @@ public class JobApplicationService {
     public JobApplicationDTO toggleStar(Long userId, Long id) {
         int updated = jobApplicationRepository.toggleStar(id, userId, LocalDateTime.now());
         if (updated == 0) {
-            throw new NotFoundException("Job application not found: " + id);
+            throw NotFoundException.application(id);
         }
         return findById(userId, id);
     }

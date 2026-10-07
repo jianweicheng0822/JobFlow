@@ -12,6 +12,8 @@ import com.jobflow.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.jobflow.exception.ApiException;
+import com.jobflow.exception.NotFoundException;
 
 @Service
 @RequiredArgsConstructor
@@ -23,7 +25,7 @@ public class AuthService {
 
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("Email is already registered");
+            throw ApiException.badRequest("EMAIL_TAKEN", "Email is already registered");
         }
 
         User user = User.builder()
@@ -41,10 +43,10 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
+                .orElseThrow(() -> ApiException.badRequest("INVALID_CREDENTIALS", "Invalid email or password"));
 
         if (user.getPassword() == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("Invalid email or password");
+            throw ApiException.badRequest("INVALID_CREDENTIALS", "Invalid email or password");
         }
 
         String token = jwtService.generateToken(user.getEmail());
@@ -53,13 +55,13 @@ public class AuthService {
 
     public AuthResponse getCurrentUser(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> NotFoundException.user());
         return buildAuthResponse(user, null);
     }
 
     public AuthResponse updateProfile(String currentEmail, UpdateProfileRequest request) {
         User user = userRepository.findByEmail(currentEmail)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> NotFoundException.user());
 
         user.setName(request.getName());
         if (request.getJobTitle() != null) user.setJobTitle(request.getJobTitle());
@@ -71,7 +73,7 @@ public class AuthService {
 
     public AuthResponse updateTimeZone(String email, String timeZone) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> NotFoundException.user());
         user.setTimeZone(UserClock.requireValidZone(timeZone));
         userRepository.save(user);
         return buildAuthResponse(user, null);
@@ -79,18 +81,18 @@ public class AuthService {
 
     public void changePassword(String email, ChangePasswordRequest request) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> NotFoundException.user());
 
         // OAuth users setting password for the first time: skip current password check
         if (user.getPassword() != null) {
             if (request.getCurrentPassword() == null || request.getCurrentPassword().isBlank()) {
-                throw new IllegalArgumentException("Current password is required");
+                throw ApiException.badRequest("CURRENT_PASSWORD_REQUIRED", "Current password is required");
             }
             if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
-                throw new IllegalArgumentException("Current password is incorrect");
+                throw ApiException.badRequest("CURRENT_PASSWORD_INCORRECT", "Current password is incorrect");
             }
             if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
-                throw new IllegalArgumentException("New password cannot be the same as your current password");
+                throw ApiException.badRequest("PASSWORD_UNCHANGED", "New password cannot be the same as your current password");
             }
         }
 

@@ -16,6 +16,9 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Set;
+import com.jobflow.exception.ApiException;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.jobflow.util.TextUtils.blankToNull;
 
@@ -36,13 +39,13 @@ public class InterviewService {
 
     public InterviewDTO findById(Long userId, Long id) {
         Interview interview = interviewRepository.findByIdAndJobApplicationUserId(id, userId)
-            .orElseThrow(() -> new NotFoundException("Interview not found: " + id));
+            .orElseThrow(() -> NotFoundException.interview(id));
         return toDTO(interview);
     }
 
     public List<InterviewDTO> findUpcoming(Long userId) {
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("User not found"));
+            .orElseThrow(() -> NotFoundException.user());
         // Interview times are the user's local wall-clock time, so compare with their "now"
         return interviewRepository
             .findByJobApplicationUserIdAndInterviewDateAfterOrderByInterviewDateAsc(userId, userClock.now(user))
@@ -54,20 +57,20 @@ public class InterviewService {
     public InterviewDTO create(Long userId, CreateInterviewRequest request) {
         // Required on create only; update is partial so these can be null there
         if (request.getJobApplicationId() == null) {
-            throw new IllegalArgumentException("Job application is required");
+            throw ApiException.badRequest("INTERVIEW_APPLICATION_REQUIRED", "Job application is required");
         }
         if (request.getInterviewDate() == null) {
-            throw new IllegalArgumentException("Interview date is required");
+            throw ApiException.badRequest("INTERVIEW_DATE_REQUIRED", "Interview date is required");
         }
         if (request.getInterviewType() == null) {
-            throw new IllegalArgumentException("Interview type is required");
+            throw ApiException.badRequest("INTERVIEW_TYPE_REQUIRED", "Interview type is required");
         }
         if (request.getReminderHoursBefore() != null) {
             validateReminderHours(request.getReminderHoursBefore());
         }
 
         JobApplication app = jobApplicationRepository.findByIdAndUserId(request.getJobApplicationId(), userId)
-            .orElseThrow(() -> new NotFoundException("Job application not found: " + request.getJobApplicationId()));
+            .orElseThrow(() -> NotFoundException.application(request.getJobApplicationId()));
 
         Interview interview = Interview.builder()
             .jobApplication(app)
@@ -82,11 +85,11 @@ public class InterviewService {
 
     public InterviewDTO update(Long userId, Long id, CreateInterviewRequest request) {
         Interview interview = interviewRepository.findByIdAndJobApplicationUserId(id, userId)
-            .orElseThrow(() -> new NotFoundException("Interview not found: " + id));
+            .orElseThrow(() -> NotFoundException.interview(id));
 
         if (request.getJobApplicationId() != null) {
             JobApplication app = jobApplicationRepository.findByIdAndUserId(request.getJobApplicationId(), userId)
-                .orElseThrow(() -> new NotFoundException("Job application not found: " + request.getJobApplicationId()));
+                .orElseThrow(() -> NotFoundException.application(request.getJobApplicationId()));
             interview.setJobApplication(app);
         }
         boolean shouldResetReminder = false;
@@ -120,7 +123,7 @@ public class InterviewService {
 
     public void delete(Long userId, Long id) {
         Interview interview = interviewRepository.findByIdAndJobApplicationUserId(id, userId)
-            .orElseThrow(() -> new NotFoundException("Interview not found: " + id));
+            .orElseThrow(() -> NotFoundException.interview(id));
         interviewRepository.delete(interview);
     }
 
@@ -128,7 +131,8 @@ public class InterviewService {
 
     private void validateReminderHours(int hours) {
         if (!ALLOWED_REMINDER_HOURS.contains(hours)) {
-            throw new IllegalArgumentException("reminderHoursBefore must be one of " + ALLOWED_REMINDER_HOURS);
+            throw ApiException.badRequest("INVALID_REMINDER_HOURS", "reminderHoursBefore must be one of " + ALLOWED_REMINDER_HOURS,
+                Map.of("allowed", ALLOWED_REMINDER_HOURS.stream().sorted().map(String::valueOf).collect(Collectors.joining(", "))));
         }
     }
 

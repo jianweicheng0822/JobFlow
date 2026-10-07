@@ -9,6 +9,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import com.jobflow.exception.ApiException;
+import java.util.Map;
 
 /**
  * "Today" and "now" as seen by a particular user.
@@ -61,7 +63,8 @@ public class UserClock {
         try {
             return ZoneId.of(id.trim()).getId();
         } catch (DateTimeException | NullPointerException e) {
-            throw new IllegalArgumentException("Unknown time zone: " + id);
+            throw ApiException.badRequest("UNKNOWN_TIME_ZONE", "Unknown time zone: " + id,
+                    Map.of("timeZone", String.valueOf(id)));
         }
     }
 }

@@ -60,7 +60,7 @@ public class InterviewController {
     private Long getUserId(Authentication authentication) {
         String email = authentication.getName();
         User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new NotFoundException("User not found"));
+            .orElseThrow(() -> NotFoundException.user());
         return user.getId();
     }
 }

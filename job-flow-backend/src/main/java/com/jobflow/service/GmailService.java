@@ -33,6 +33,7 @@ import java.time.ZoneId;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import com.jobflow.exception.ApiException;
 
 import static com.jobflow.util.TextUtils.blankToNull;
 import static com.jobflow.util.TextUtils.truncate;
@@ -108,10 +109,10 @@ public class GmailService {
     // alreadyRetried makes sure we refresh the token and retry at most once
     private List<GmailImportPreviewDTO> scanEmails(Long userId, boolean alreadyRetried) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
+                .orElseThrow(() -> NotFoundException.user());
 
         if (!user.isGmailConnected() || user.getGoogleAccessToken() == null) {
-            throw new IllegalArgumentException("Gmail is not connected. Please log in with Google first.");
+            throw ApiException.badRequest("GMAIL_NOT_CONNECTED", "Gmail is not connected. Please log in with Google first.");
         }
 
         try {
@@ -152,24 +153,24 @@ public class GmailService {
             if (e.getStatusCode() == 401) {
                 if (alreadyRetried) {
                     // A fresh token was still rejected, e.g. access was revoked on Google's side
-                    throw new IllegalArgumentException("Gmail access was rejected. Please re-link your Google account.");
+                    throw ApiException.badRequest("GMAIL_RELINK_REQUIRED", "Gmail access was rejected. Please re-link your Google account.");
                 }
                 // Token expired, refresh and retry once
                 refreshAccessToken(user);
                 return scanEmails(userId, true);
             }
             log.error("Gmail API error during scan", e);
-            throw new ExternalServiceException(GMAIL_UNAVAILABLE, e);
+            throw new ExternalServiceException("GMAIL_UNAVAILABLE", GMAIL_UNAVAILABLE, e);
         } catch (Exception e) {
             log.error("Failed to scan Gmail", e);
-            throw new ExternalServiceException(GMAIL_UNAVAILABLE, e);
+            throw new ExternalServiceException("GMAIL_UNAVAILABLE", GMAIL_UNAVAILABLE, e);
         }
     }
 
     @Transactional
     public GmailImportResultDTO importApplications(Long userId, GmailImportConfirmRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
+                .orElseThrow(() -> NotFoundException.user());
 
         int imported = 0;
         int skipped = 0;
@@ -239,7 +240,7 @@ public class GmailService {
     // Package-private so tests can stub the call to Google
     void refreshAccessToken(User user) {
         if (user.getGoogleRefreshToken() == null) {
-            throw new IllegalArgumentException("No refresh token available. Please re-link your Google account.");
+            throw ApiException.badRequest("GMAIL_RELINK_REQUIRED", "No refresh token available. Please re-link your Google account.");
         }
 
         AccessToken newToken;
@@ -251,11 +252,11 @@ public class GmailService {
                 log.warn("Google rejected the refresh token for user {}", user.getId(), e);
                 user.setGmailConnected(false);
                 userRepository.save(user);
-                throw new IllegalArgumentException("Failed to refresh Google access token. Please re-link your Google account.");
+                throw ApiException.badRequest("GMAIL_RELINK_REQUIRED", "Failed to refresh Google access token. Please re-link your Google account.");
             }
             // Network blip or a Google outage: keep the link so the next try can just work
             log.error("Couldn't reach Google to refresh the access token", e);
-            throw new ExternalServiceException(GMAIL_UNAVAILABLE, e);
+            throw new ExternalServiceException("GMAIL_UNAVAILABLE", GMAIL_UNAVAILABLE, e);
         }
 
         user.setGoogleAccessToken(newToken.getTokenValue());

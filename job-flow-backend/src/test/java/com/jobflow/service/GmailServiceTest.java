@@ -30,6 +30,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
+import com.jobflow.exception.ApiException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -92,7 +93,7 @@ class GmailServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
         assertThatThrownBy(() -> gmailService.scanEmails(1L))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Gmail is not connected");
     }
 
@@ -102,7 +103,7 @@ class GmailServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
         assertThatThrownBy(() -> gmailService.scanEmails(1L))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Gmail is not connected");
     }
 
@@ -542,7 +543,7 @@ class GmailServiceTest {
         doNothing().when(service).refreshAccessToken(any());
 
         assertThatThrownBy(() -> service.scanEmails(1L))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessageContaining("re-link your Google account");
 
         // One refresh, two attempts total, then we give up instead of looping
@@ -580,7 +581,7 @@ class GmailServiceTest {
         testUser.setGoogleRefreshToken(null);
 
         assertThatThrownBy(() -> gmailService.refreshAccessToken(testUser))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessageContaining("re-link your Google account");
     }
 
@@ -613,7 +614,7 @@ class GmailServiceTest {
         doThrow(tokenEndpointError(400, "{\"error\":\"invalid_grant\"}")).when(service).fetchNewAccessToken(anyString());
 
         assertThatThrownBy(() -> service.refreshAccessToken(testUser))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessageContaining("re-link your Google account");
 
         assertThat(testUser.isGmailConnected()).isFalse();
@@ -735,5 +736,30 @@ class GmailServiceTest {
         gmailService.importApplications(1L, request);
 
         verify(jobApplicationRepository).save(argThat(app -> app.getAppliedDate().equals(LocalDate.of(2026, 10, 6))));
+    }
+
+    // --- error codes ---
+
+    @Test
+    void notConnected_andRelink_haveCodes() {
+        testUser.setGmailConnected(false);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        assertThatThrownBy(() -> gmailService.scanEmails(1L))
+                .hasFieldOrPropertyWithValue("code", "GMAIL_NOT_CONNECTED");
+
+        testUser.setGoogleRefreshToken(null);
+        assertThatThrownBy(() -> gmailService.refreshAccessToken(testUser))
+                .hasFieldOrPropertyWithValue("code", "GMAIL_RELINK_REQUIRED");
+    }
+
+    @Test
+    void gmailOutage_hasGmailUnavailableCode() throws Exception {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        GmailService service = spy(gmailService);
+        doThrow(new IOException("connection reset")).when(service).buildGmailClient(any());
+
+        assertThatThrownBy(() -> service.scanEmails(1L))
+                .isInstanceOf(ExternalServiceException.class)
+                .hasFieldOrPropertyWithValue("code", "GMAIL_UNAVAILABLE");
     }
 }
