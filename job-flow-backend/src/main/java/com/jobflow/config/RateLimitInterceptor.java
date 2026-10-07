@@ -38,7 +38,8 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             // Same shape as GlobalExceptionHandler so the frontend can show "message"
             response.getWriter().write("{\"timestamp\":\"" + LocalDateTime.now()
                     + "\",\"status\":429,\"error\":\"Too Many Requests\","
-                    + "\"message\":\"Too many requests. Please wait " + retryAfterSeconds + " seconds and try again.\"}");
+                    + "\"message\":\"Too many requests. Please wait " + retryAfterSeconds + " seconds and try again.\","
+                    + "\"code\":\"RATE_LIMITED\",\"params\":{\"seconds\":" + retryAfterSeconds + "}}");
             return false;
         }
 
