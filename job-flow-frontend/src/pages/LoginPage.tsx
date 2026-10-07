@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import './LoginPage.css'
+import { getErrorMessage } from '../api/client'
 
 export default function LoginPage() {
   const { login, tryDemo } = useAuth()
@@ -21,8 +22,8 @@ export default function LoginPage() {
     try {
       await login({ email, password })
       navigate('/', { replace: true })
-    } catch (err: any) {
-      setError(err.response?.data?.message || t.loginFailed)
+    } catch (err) {
+      setError(getErrorMessage(err, t.loginFailed))
     } finally {
       setLoading(false)
     }

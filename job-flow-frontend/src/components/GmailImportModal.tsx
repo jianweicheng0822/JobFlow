@@ -4,6 +4,7 @@ import * as gmailApi from '../api/gmail'
 import type { GmailImportPreview } from '../api/gmail'
 import { useLanguage } from '../context/LanguageContext'
 import './GmailImportModal.css'
+import { getErrorMessage } from '../api/client'
 
 interface Props {
   previews: GmailImportPreview[]
@@ -54,9 +55,8 @@ export default function GmailImportModal({ previews, onClose }: Props) {
     try {
       const res = await gmailApi.confirmImport(items)
       setResult(res.data)
-    } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } } }
-      setError(e.response?.data?.message || t.importFailed)
+    } catch (err) {
+      setError(getErrorMessage(err, t.importFailed))
     } finally {
       setImporting(false)
     }

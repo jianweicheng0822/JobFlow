@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { isDemoMode, resolveMock } from './mockData'
+import { translateApiError, type ApiErrorBody } from './errorMessages'
 
 const client = axios.create({
   baseURL: '/api',
@@ -49,11 +50,13 @@ client.interceptors.response.use(
 )
 
 /**
- * Extracts a human-readable error message from an axios error.
+ * A human-readable error message in the user's language: the translated error
+ * code when we have one, else the backend's English message, else the fallback.
  */
 export function getErrorMessage(err: unknown, fallback: string): string {
   if (axios.isAxiosError(err)) {
-    return err.response?.data?.message || fallback
+    const body = err.response?.data as ApiErrorBody | undefined
+    return translateApiError(body) || body?.message || fallback
   }
   if (err instanceof Error) {
     return err.message

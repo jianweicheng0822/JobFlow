@@ -123,9 +123,8 @@ export default function SettingsPage() {
       const res = await gmailApi.scanGmail()
       setGmailPreviews(res.data)
       setShowGmailModal(true)
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } }
-      setScanError(error.response?.data?.message || 'Failed to scan Gmail. Please try again.')
+    } catch (err) {
+      setScanError(getErrorMessage(err, 'Failed to scan Gmail. Please try again.'))
     } finally {
       setGmailLoading(false)
     }

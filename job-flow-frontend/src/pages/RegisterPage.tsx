@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import './LoginPage.css'
+import { getErrorMessage } from '../api/client'
 
 export default function RegisterPage() {
   const { register } = useAuth()
@@ -29,8 +30,8 @@ export default function RegisterPage() {
     try {
       await register({ name, email, password })
       navigate('/', { replace: true })
-    } catch (err: any) {
-      setError(err.response?.data?.message || t.registerFailed)
+    } catch (err) {
+      setError(getErrorMessage(err, t.registerFailed))
     } finally {
       setLoading(false)
     }
