@@ -21,6 +21,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -136,5 +138,36 @@ class AuthServiceTest {
         assertThat(response.getEmail()).isEqualTo("alice@test.com");
         assertThat(response.getName()).isEqualTo("Alice");
         assertThat(response.getToken()).isNull();
+    }
+
+    // --- time zone ---
+
+    @Test
+    void updateTimeZone_savesAndReturnsIt() {
+        when(userRepository.findByEmail("alice@test.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        AuthResponse response = authService.updateTimeZone("alice@test.com", " Asia/Shanghai ");
+
+        assertThat(testUser.getTimeZone()).isEqualTo("Asia/Shanghai");
+        assertThat(response.getTimeZone()).isEqualTo("Asia/Shanghai");
+    }
+
+    @Test
+    void updateTimeZone_unknownZone_isRejectedAndNothingSaved() {
+        when(userRepository.findByEmail("alice@test.com")).thenReturn(Optional.of(testUser));
+
+        assertThatThrownBy(() -> authService.updateTimeZone("alice@test.com", "Not/A_Zone"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Unknown time zone: Not/A_Zone");
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void getCurrentUser_includesTimeZone() {
+        testUser.setTimeZone("America/Denver");
+        when(userRepository.findByEmail("alice@test.com")).thenReturn(Optional.of(testUser));
+
+        assertThat(authService.getCurrentUser("alice@test.com").getTimeZone()).isEqualTo("America/Denver");
     }
 }

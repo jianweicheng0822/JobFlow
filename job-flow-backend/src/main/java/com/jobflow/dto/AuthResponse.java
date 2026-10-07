@@ -16,4 +16,5 @@ public class AuthResponse {
     private String bio;
     private boolean hasPassword;
     private boolean gmailConnected;
+    private String timeZone;
 }

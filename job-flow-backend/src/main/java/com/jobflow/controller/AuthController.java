@@ -5,6 +5,7 @@ import com.jobflow.dto.ChangePasswordRequest;
 import com.jobflow.dto.LoginRequest;
 import com.jobflow.dto.RegisterRequest;
 import com.jobflow.dto.UpdateProfileRequest;
+import com.jobflow.dto.UpdateTimeZoneRequest;
 import com.jobflow.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +44,13 @@ public class AuthController {
     public AuthResponse updateProfile(Authentication authentication,
                                       @Valid @RequestBody UpdateProfileRequest request) {
         return authService.updateProfile(authentication.getName(), request);
+    }
+
+    // Set from the browser on first login, and from Settings after that
+    @PutMapping("/time-zone")
+    public AuthResponse updateTimeZone(Authentication authentication,
+                                       @Valid @RequestBody UpdateTimeZoneRequest request) {
+        return authService.updateTimeZone(authentication.getName(), request.getTimeZone());
     }
 
     @PutMapping("/password")

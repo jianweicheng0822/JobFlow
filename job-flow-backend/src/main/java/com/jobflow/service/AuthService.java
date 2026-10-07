@@ -69,6 +69,14 @@ public class AuthService {
         return buildAuthResponse(user, null);
     }
 
+    public AuthResponse updateTimeZone(String email, String timeZone) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        user.setTimeZone(UserClock.requireValidZone(timeZone));
+        userRepository.save(user);
+        return buildAuthResponse(user, null);
+    }
+
     public void changePassword(String email, ChangePasswordRequest request) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -100,6 +108,7 @@ public class AuthService {
                 .bio(user.getBio())
                 .hasPassword(user.getPassword() != null)
                 .gmailConnected(user.isGmailConnected())
+                .timeZone(user.getTimeZone())
                 .build();
     }
 }

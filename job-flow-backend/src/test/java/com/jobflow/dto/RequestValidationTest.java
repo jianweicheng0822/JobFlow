@@ -154,4 +154,15 @@ class RequestValidationTest {
 
         assertThat(messages(request)).isEmpty();
     }
+
+    // --- UpdateTimeZoneRequest ---
+
+    @Test
+    void timeZone_blank_fails() {
+        UpdateTimeZoneRequest request = new UpdateTimeZoneRequest();
+        assertThat(messages(request)).contains("Time zone is required");
+
+        request.setTimeZone("  ");
+        assertThat(messages(request)).contains("Time zone is required");
+    }
 }

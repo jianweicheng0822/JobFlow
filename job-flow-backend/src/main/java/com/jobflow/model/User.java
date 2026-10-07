@@ -51,6 +51,10 @@ public class User {
     @Builder.Default
     private boolean gmailConnected = false;
 
+    // IANA zone id like "America/Denver"; null until the frontend sets it (see UserClock)
+    @Column(length = 64)
+    private String timeZone;
+
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
