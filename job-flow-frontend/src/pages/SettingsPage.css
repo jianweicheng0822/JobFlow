@@ -531,3 +531,39 @@
     text-align: center;
   }
 }
+
+/* ===== Time zone (Appearance) ===== */
+.settings-timezone-current {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.settings-timezone-current strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.settings-timezone-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  max-width: 520px;
+}
+
+.settings-timezone-row .settings-btn-primary {
+  flex-shrink: 0;
+}
+
+.settings-timezone-hint {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}

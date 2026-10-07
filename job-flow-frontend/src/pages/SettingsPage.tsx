@@ -9,6 +9,7 @@ import * as authApi from '../api/auth'
 import * as gmailApi from '../api/gmail'
 import GmailImportModal from '../components/GmailImportModal'
 import './SettingsPage.css'
+import TimeZoneSetting from '../components/TimeZoneSetting'
 
 const AVATAR_STORAGE_KEY = 'jobflow-avatar'
 
@@ -553,6 +554,9 @@ export default function SettingsPage() {
                 </div>
               </button>
             </div>
+
+            {/* Remount when the zone changes (e.g. the first-sign-in sync lands) so the input follows */}
+            <TimeZoneSetting key={user?.timeZone ?? 'none'} />
           </div>
         </div>
       )}
