@@ -188,6 +188,17 @@ describe('GET /applications/recent', () => {
   });
 });
 
+describe('demo user time zone', () => {
+  it('starts with the browser zone and can be changed like the real API', () => {
+    const before = resolveMock('/auth/me', 'get') as { timeZone: string | null };
+    expect(before.timeZone).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
+
+    const after = resolveMock('/auth/time-zone', 'put', { timeZone: 'Asia/Shanghai' }) as { timeZone: string };
+    expect(after.timeZone).toBe('Asia/Shanghai');
+    expect((resolveMock('/auth/me', 'get') as { timeZone: string }).timeZone).toBe('Asia/Shanghai');
+  });
+});
+
 describe('isDemoMode', () => {
   it('returns true when token is demo-token', () => {
     localStorage.setItem('jobflow-token', 'demo-token');

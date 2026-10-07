@@ -166,6 +166,7 @@ export default function SettingsPage() {
         bio: res.data.bio,
         hasPassword: res.data.hasPassword,
         gmailConnected: res.data.gmailConnected,
+        timeZone: res.data.timeZone ?? user?.timeZone ?? null,
       })
       showToast(t.profileUpdated, 'success')
     } catch (err) {

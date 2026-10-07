@@ -7,7 +7,7 @@ import type {
   ApplicationStatus,
   InterviewType,
 } from './types';
-import { todayLocal } from '../utils/date';
+import { todayLocal, browserTimeZone } from '../utils/date';
 
 // Factory functions that return fresh seed data every time
 function createSeedCompanies(): CompanyDTO[] {
@@ -142,7 +142,16 @@ let activity: ApplicationActivityDTO[] = createSeedActivity();
 let stats: DashboardStatsDTO = computeStats(applications);
 
 // Reset all mock data back to initial seed state
+// Demo user's time zone; starts as the browser's and can be changed in Settings
+let demoTimeZone: string | null = browserTimeZone();
+
+function demoUser() {
+  return { token: null, name: 'Demo User', email: 'demo@jobflow.com', avatarUrl: null, jobTitle: null, bio: null,
+    hasPassword: true, gmailConnected: false, timeZone: demoTimeZone };
+}
+
 export function resetMockData(): void {
+  demoTimeZone = browserTimeZone();
   companies = createSeedCompanies();
   applications = createSeedApplications(companies);
   interviews = createSeedInterviews();
@@ -226,7 +235,7 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
     }
     if (url === '/interviews') return [...interviews];
     if (url === '/interviews/upcoming') return [...interviews];
-    if (url === '/auth/me') return { token: null, name: 'Demo User', email: 'demo@jobflow.com', avatarUrl: null, jobTitle: null, bio: null, hasPassword: true };
+    if (url === '/auth/me') return demoUser();
     if (url === '/gmail/status') return { gmailConnected: false, provider: '' };
     if (url === '/gmail/link') return { authUrl: '' };
   }
@@ -386,7 +395,12 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
 
   // ===== Profile & Password =====
   if (method === 'put' && url === '/auth/profile') {
-    return { token: null, name: 'Demo User', email: 'demo@jobflow.com', avatarUrl: null, jobTitle: null, bio: null, hasPassword: true };
+    return demoUser();
+  }
+  if (method === 'put' && url === '/auth/time-zone') {
+    const payload = (typeof body === 'string' ? JSON.parse(body) : body) as { timeZone?: string } | undefined;
+    if (payload?.timeZone) demoTimeZone = payload.timeZone;
+    return demoUser();
   }
   if (method === 'put' && url === '/auth/password') {
     return {};

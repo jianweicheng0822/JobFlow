@@ -9,6 +9,7 @@ export interface AuthResponse {
   bio: string | null
   hasPassword: boolean
   gmailConnected: boolean
+  timeZone: string | null // IANA id like "America/Denver"; null until first set
 }
 
 export interface LoginRequest {
@@ -48,3 +49,6 @@ export const updateProfile = (data: UpdateProfileRequest) =>
 
 export const changePassword = (data: ChangePasswordRequest) =>
   client.put<void>('/auth/password', data)
+
+export const updateTimeZone = (timeZone: string) =>
+  client.put<AuthResponse>('/auth/time-zone', { timeZone })

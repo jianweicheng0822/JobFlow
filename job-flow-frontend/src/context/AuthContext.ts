@@ -11,6 +11,7 @@ export interface AuthUser {
   bio: string | null
   hasPassword: boolean
   gmailConnected: boolean
+  timeZone: string | null
 }
 
 export interface AuthContextType {

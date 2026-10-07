@@ -7,6 +7,15 @@
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
+// The device's IANA time zone, e.g. "America/Denver" (null if the browser won't say)
+export function browserTimeZone(): string | null {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || null
+  } catch {
+    return null
+  }
+}
+
 // Today's date in the user's own timezone, as YYYY-MM-DD
 export function todayLocal(now: Date = new Date()): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
