@@ -8,6 +8,7 @@ import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 
 /**
  * "Today" and "now" as seen by a particular user.
@@ -48,6 +49,11 @@ public class UserClock {
 
     public LocalDateTime now(User user) {
         return LocalDateTime.now(clock.withZone(zoneOf(user)));
+    }
+
+    // For server-side windows that must not depend on the server's or DB's zone
+    public LocalDateTime nowUtc() {
+        return LocalDateTime.now(clock.withZone(ZoneOffset.UTC));
     }
 
     // Checks an IANA id like "Asia/Shanghai" (case-sensitive) and returns it normalized

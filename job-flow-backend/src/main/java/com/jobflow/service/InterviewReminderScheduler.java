@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
@@ -18,11 +19,19 @@ public class InterviewReminderScheduler {
 
     private final InterviewRepository interviewRepository;
     private final EmailService emailService;
+    private final UserClock userClock;
 
     @Scheduled(fixedRate = 600_000) // every 10 minutes
     @Transactional
     public void sendPendingReminders() {
-        List<Interview> interviews = interviewRepository.findInterviewsNeedingReminder();
+        // Every zone is within +-14h of UTC and reminders go out at most 24h early, so
+        // [-1 day, +2 days] around UTC now catches anything that could be due anywhere
+        LocalDateTime utcNow = userClock.nowUtc();
+        List<Interview> interviews = interviewRepository
+            .findPendingRemindersBetween(utcNow.minusDays(1), utcNow.plusDays(2))
+            .stream()
+            .filter(this::isDue)
+            .toList();
         if (interviews.isEmpty()) {
             log.debug("No interview reminders to send");
             return;
@@ -48,5 +57,13 @@ public class InterviewReminderScheduler {
                     interview.getId(), e);
             }
         }
+    }
+
+    // Due when the interview hasn't started yet on the user's clock and is within
+    // their chosen number of hours
+    private boolean isDue(Interview interview) {
+        LocalDateTime usersNow = userClock.now(interview.getJobApplication().getUser());
+        LocalDateTime start = interview.getInterviewDate();
+        return start.isAfter(usersNow) && !start.isAfter(usersNow.plusHours(interview.getReminderHoursBefore()));
     }
 }
