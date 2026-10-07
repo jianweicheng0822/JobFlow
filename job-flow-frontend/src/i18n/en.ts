@@ -50,7 +50,7 @@ const en = {
   viewAll: 'View All',
   recentlyUpdated: 'Recently Updated Applications',
   lastAction: 'Last Action',
-  dateApplied: 'Date Applied: ',
+  dateApplied: 'Date Applied',
   noUpcomingInterviews: 'No upcoming interviews',
   upcomingInterviews: 'Upcoming Interviews',
   quickStats: 'Quick Stats',

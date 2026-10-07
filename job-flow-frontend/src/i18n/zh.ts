@@ -50,7 +50,7 @@ const zh = {
   viewAll: '查看全部',
   recentlyUpdated: '最近更新的申请',
   lastAction: '最近动态',
-  dateApplied: '投递日期：',
+  dateApplied: '投递日期',
   noUpcomingInterviews: '暂无即将到来的面试',
   upcomingInterviews: '即将到来的面试',
   quickStats: '快速统计',
