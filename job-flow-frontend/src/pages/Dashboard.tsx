@@ -7,6 +7,7 @@ import { getUpcomingInterviews } from '../api/interviews'
 import type { DashboardStatsDTO, JobApplicationDTO, InterviewDTO, ApplicationStatus } from '../api/types'
 import { sortStarredFirst } from '../utils/sortStarredFirst'
 import { formatLastAction } from '../utils/formatLastAction'
+import { formatDateOnly } from '../utils/date'
 
 // ===== Types =====
 interface PipelineCard {
@@ -61,11 +62,6 @@ function getCompanyColor(name: string): string {
 
 const AVATAR_COLORS = ['#4f6ef7', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#ec4899']
 
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
 
 function formatInterviewTime(dateStr: string): string {
   const d = new Date(dateStr)
@@ -89,7 +85,7 @@ function buildPipelineColumns(applications: JobApplicationDTO[], t: Record<strin
         company: app.company.name,
         location: app.location || '',
         salary: app.salary || '',
-        date: formatDate(app.appliedDate),
+        date: formatDateOnly(app.appliedDate),
         starred: app.starred,
       })),
     }

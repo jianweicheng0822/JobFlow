@@ -7,6 +7,7 @@ import type {
   ApplicationStatus,
   InterviewType,
 } from './types';
+import { todayLocal } from '../utils/date';
 
 // Factory functions that return fresh seed data every time
 function createSeedCompanies(): CompanyDTO[] {
@@ -247,7 +248,7 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
       location: (payload?.location as string) || null,
       salary: (payload?.salary as string) || null,
       status: (payload?.status as ApplicationStatus) || 'APPLIED',
-      appliedDate: (payload?.appliedDate as string) || now.slice(0, 10),
+      appliedDate: (payload?.appliedDate as string) || todayLocal(),
       lastAction: 'Applied',
       notes: (payload?.notes as string) || null,
       createdAt: now,

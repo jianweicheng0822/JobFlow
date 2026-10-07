@@ -124,4 +124,18 @@ describe('ApplicationForm', () => {
     expect(payload.companyName).toBe('Initech');
     expect(payload).not.toHaveProperty('companyId');
   });
+
+  it("defaults the applied date to the user's local today", () => {
+    const originalTZ = process.env.TZ;
+    process.env.TZ = 'America/Denver';
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-07T01:30:00Z')); // 7:30pm Oct 6 in Denver
+    try {
+      render(<ApplicationForm onSuccess={onSuccess} onCancel={onCancel} />, { wrapper: Wrapper });
+      expect(screen.getByDisplayValue('2026-10-06')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+      process.env.TZ = originalTZ;
+    }
+  });
 });

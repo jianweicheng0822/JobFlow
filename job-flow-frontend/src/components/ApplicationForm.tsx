@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { FormEvent } from 'react';
 import { getCompanies } from '../api/companies';
 import { createApplication, updateApplication } from '../api/applications';
+import { todayLocal } from '../utils/date';
 import type {
   CompanyDTO,
   JobApplicationDTO,
@@ -52,7 +53,7 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
   const [location, setLocation] = useState(application?.location ?? '');
   const [salary, setSalary] = useState(application?.salary ?? '');
   const [status, setStatus] = useState<ApplicationStatus>(application?.status ?? 'APPLIED');
-  const [appliedDate, setAppliedDate] = useState(application?.appliedDate ?? new Date().toISOString().slice(0, 10));
+  const [appliedDate, setAppliedDate] = useState(application?.appliedDate ?? todayLocal());
   const [notes, setNotes] = useState(application?.notes ?? '');
 
   useEffect(() => {

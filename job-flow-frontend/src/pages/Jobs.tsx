@@ -9,6 +9,7 @@ import { useToast } from '../context/ToastContext'
 import { useLanguage } from '../context/LanguageContext'
 import { getErrorMessage } from '../api/client'
 import { sortStarredFirst } from '../utils/sortStarredFirst'
+import { formatDateOnly } from '../utils/date'
 
 // ===== Helpers =====
 const STATUS_COLORS: Record<ApplicationStatus, string> = {
@@ -43,11 +44,6 @@ function getCompanyColor(name: string): string {
   return COMPANY_COLORS[name] || '#6b7280'
 }
 
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
 
 interface TopEmployer {
   company: string
@@ -422,7 +418,7 @@ export default function Jobs() {
                             </span>
                           </td>
                           <td>{app.location || ''}</td>
-                          <td>{formatDate(app.appliedDate)}</td>
+                          <td>{formatDateOnly(app.appliedDate)}</td>
                           <td>
                             <select
                               className="jobs-stage-badge jobs-stage-select"
