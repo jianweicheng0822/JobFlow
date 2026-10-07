@@ -9,6 +9,44 @@ import type {
 } from './types';
 import { todayLocal, browserTimeZone } from '../utils/date';
 
+// ===== Dates relative to today =====
+// The seed data was written around late July 2026. Shifting it by however many
+// days have passed since keeps the demo looking current whenever it's opened.
+const SEED_ANCHOR = '2026-07-27';
+
+function daysSinceAnchor(now: Date = new Date()): number {
+  const [y, m, d] = SEED_ANCHOR.split('-').map(Number);
+  const anchor = new Date(y, m - 1, d);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((today.getTime() - anchor.getTime()) / 86400000);
+}
+
+// "2026-07-15" or "2026-07-15T10:00:00Z", moved forward by `days`
+function shiftDate(value: string, days: number): string {
+  if (value.length === 10) {
+    const [y, m, d] = value.split('-').map(Number);
+    return todayLocal(new Date(y, m - 1, d + days));
+  }
+  const shifted = new Date(value);
+  shifted.setUTCDate(shifted.getUTCDate() + days);
+  return shifted.toISOString().replace('.000Z', 'Z');
+}
+
+// Local wall-clock date-time `days` from today, in the backend's format ("2026-10-08T10:00:00")
+function localDateTimeIn(days: number, hour: number, minute = 0): string {
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + days, hour, minute);
+  return `${todayLocal(d)}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+}
+
+// Calendar days from the user's today to the interview's day, like the backend (today = 0)
+export function daysUntilLocal(interviewDate: string, now: Date = new Date()): number {
+  const target = new Date(interviewDate);
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfTarget = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+  return Math.round((startOfTarget.getTime() - startOfToday.getTime()) / 86400000);
+}
+
 // Factory functions that return fresh seed data every time
 function createSeedCompanies(): CompanyDTO[] {
   return [
@@ -23,7 +61,8 @@ function createSeedCompanies(): CompanyDTO[] {
 }
 
 function createSeedApplications(companies: CompanyDTO[]): JobApplicationDTO[] {
-  return [
+  const offset = daysSinceAnchor();
+  const seed: JobApplicationDTO[] = [
     {
       id: 1, positionTitle: 'Senior UX Designer', company: companies[0],
       location: 'Seattle, WA', salary: '$145,000', status: 'APPLIED',
@@ -85,27 +124,33 @@ function createSeedApplications(companies: CompanyDTO[]): JobApplicationDTO[] {
       createdAt: '2026-06-10T09:00:00Z', updatedAt: '2026-07-01T15:00:00Z', starred: false,
     },
   ];
+  return seed.map((app) => ({
+    ...app,
+    appliedDate: app.appliedDate && shiftDate(app.appliedDate, offset),
+    createdAt: shiftDate(app.createdAt, offset),
+    updatedAt: shiftDate(app.updatedAt, offset),
+  }));
 }
 
 function createSeedInterviews(): InterviewDTO[] {
   return [
     {
       id: 1, jobApplicationId: 5, positionTitle: 'Senior Frontend Engineer',
-      companyName: 'Apple', interviewDate: '2026-07-30T10:00:00Z',
+      companyName: 'Apple', interviewDate: localDateTimeIn(2, 10),
       interviewType: 'ONSITE', notes: 'Bring portfolio',
-      reminderEnabled: true, reminderHoursBefore: 24, reminderSent: false, daysUntil: 3,
-    },
-    {
-      id: 2, jobApplicationId: 4, positionTitle: 'Software Engineer',
-      companyName: 'Amazon', interviewDate: '2026-07-29T14:00:00Z',
-      interviewType: 'PHONE', notes: 'Behavioral + coding',
       reminderEnabled: true, reminderHoursBefore: 24, reminderSent: false, daysUntil: 2,
     },
     {
+      id: 2, jobApplicationId: 4, positionTitle: 'Software Engineer',
+      companyName: 'Amazon', interviewDate: localDateTimeIn(1, 14),
+      interviewType: 'PHONE', notes: 'Behavioral + coding',
+      reminderEnabled: true, reminderHoursBefore: 24, reminderSent: false, daysUntil: 1,
+    },
+    {
       id: 3, jobApplicationId: 3, positionTitle: 'Product Manager',
-      companyName: 'Meta', interviewDate: '2026-08-02T09:00:00Z',
+      companyName: 'Meta', interviewDate: localDateTimeIn(5, 9),
       interviewType: 'VIDEO', notes: 'Case study round',
-      reminderEnabled: false, reminderHoursBefore: 24, reminderSent: false, daysUntil: 6,
+      reminderEnabled: false, reminderHoursBefore: 24, reminderSent: false, daysUntil: 5,
     },
   ];
 }
@@ -122,15 +167,21 @@ function createSeedActivity(): ApplicationActivityDTO[] {
   ];
 }
 
+// Same numbers as JobApplicationService.getStats: interviews means INTERVIEW only,
+// and rates are percentages with one decimal
 function computeStats(apps: JobApplicationDTO[]): DashboardStatsDTO {
+  const total = apps.length;
+  const interviews = apps.filter(a => a.status === 'INTERVIEW').length;
+  const offers = apps.filter(a => a.status === 'OFFER').length;
+  const rate = (count: number) => (total > 0 ? Math.round((count * 1000) / total) / 10 : 0);
   return {
-    totalApplications: apps.length,
+    totalApplications: total,
     inReview: apps.filter(a => a.status === 'IN_REVIEW').length,
-    interviews: apps.filter(a => a.status === 'INTERVIEW' || a.status === 'PHONE_SCREEN').length,
-    offers: apps.filter(a => a.status === 'OFFER').length,
+    interviews,
+    offers,
     rejections: apps.filter(a => a.status === 'REJECTED').length,
-    interviewRate: 20,
-    offerRate: 10,
+    interviewRate: rate(interviews),
+    offerRate: rate(offers),
   };
 }
 
@@ -234,7 +285,14 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
       return companies.find(c => c.id === id);
     }
     if (url === '/interviews') return [...interviews];
-    if (url === '/interviews/upcoming') return [...interviews];
+    // Like the backend: only interviews still ahead, soonest first
+    if (url === '/interviews/upcoming') {
+      const now = new Date();
+      return interviews
+        .filter(i => new Date(i.interviewDate) > now)
+        .sort((a, b) => new Date(a.interviewDate).getTime() - new Date(b.interviewDate).getTime())
+        .map(i => ({ ...i, daysUntil: daysUntilLocal(i.interviewDate, now) }));
+    }
     if (url === '/auth/me') return demoUser();
     if (url === '/gmail/status') return { gmailConnected: false, provider: '' };
     if (url === '/gmail/link') return { authUrl: '' };
@@ -325,8 +383,7 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
     const appId = payload?.jobApplicationId as number | undefined;
     const linkedApp = appId ? applications.find(a => a.id === appId) : undefined;
     const interviewDate = (payload?.interviewDate as string) || new Date().toISOString();
-    const now = new Date();
-    const daysUntil = Math.max(0, Math.round((new Date(interviewDate).getTime() - now.getTime()) / 86400000));
+    const daysUntil = daysUntilLocal(interviewDate);
 
     const newInterview: InterviewDTO = {
       id: Date.now(),
@@ -350,8 +407,7 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
     if (idx === -1) return interviews[0];
     const payload = (typeof body === 'string' ? JSON.parse(body) : body) as Record<string, unknown> | undefined;
     const interviewDate = (payload?.interviewDate as string) || interviews[idx].interviewDate;
-    const now = new Date();
-    const daysUntil = Math.max(0, Math.round((new Date(interviewDate).getTime() - now.getTime()) / 86400000));
+    const daysUntil = daysUntilLocal(interviewDate);
 
     interviews[idx] = {
       ...interviews[idx],

@@ -199,6 +199,65 @@ describe('demo user time zone', () => {
   });
 });
 
+describe('demo data stays current', () => {
+  const localToday = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const daysAgo = (n: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  it('dates applications relative to today, keeping their order and spacing', () => {
+    const apps = resolveMock('/applications', 'get') as JobApplicationDTO[];
+    const byId = Object.fromEntries(apps.map((a) => [a.id, a]));
+
+    expect(apps.every((a) => (a.appliedDate ?? '') <= localToday())).toBe(true);
+    // Seed 9 (DevOps) is the most recent application, 5 days before the old anchor date
+    expect(byId[9].appliedDate).toBe(daysAgo(5));
+    // Seed 10 (UX Researcher) is still the oldest, 6 weeks earlier
+    expect(byId[10].appliedDate).toBe(daysAgo(47));
+  });
+
+  it('counts only INTERVIEW as interviews and computes the rates like the backend', () => {
+    const stats = resolveMock('/applications/stats', 'get') as DashboardStatsDTO;
+    // Seed has one INTERVIEW, one PHONE_SCREEN and one OFFER out of 10
+    expect(stats.interviews).toBe(1);
+    expect(stats.interviewRate).toBe(10);
+    expect(stats.offerRate).toBe(10);
+  });
+
+  it('puts the seed interviews in the near future, soonest first', () => {
+    const upcoming = resolveMock('/interviews/upcoming', 'get') as InterviewDTO[];
+
+    expect(upcoming.map((i) => i.daysUntil)).toEqual([1, 2, 5]);
+    expect(upcoming.every((i) => new Date(i.interviewDate) > new Date())).toBe(true);
+    // Stored like the backend: local wall-clock time, no zone suffix
+    expect(upcoming.every((i) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(i.interviewDate))).toBe(true);
+  });
+
+  it('leaves past interviews out of upcoming', () => {
+    const past = `${daysAgo(1)}T10:00:00`;
+    const created = resolveMock('/interviews', 'post', { jobApplicationId: 1, interviewDate: past, interviewType: 'PHONE' }) as InterviewDTO;
+
+    const upcoming = resolveMock('/interviews/upcoming', 'get') as InterviewDTO[];
+    expect(upcoming.some((i) => i.id === created.id)).toBe(false);
+    expect(created.daysUntil).toBe(-1);
+  });
+});
+
+describe('daysUntilLocal', () => {
+  it('counts calendar days, not 24-hour blocks', async () => {
+    const { daysUntilLocal } = await import('../mockData');
+    const now = new Date(2026, 9, 6, 23, 30); // 11:30pm Oct 6
+    expect(daysUntilLocal('2026-10-06T23:45:00', now)).toBe(0);
+    expect(daysUntilLocal('2026-10-07T00:15:00', now)).toBe(1); // 45 minutes away but tomorrow
+    expect(daysUntilLocal('2026-10-13T09:00:00', now)).toBe(7);
+  });
+});
+
 describe('isDemoMode', () => {
   it('returns true when token is demo-token', () => {
     localStorage.setItem('jobflow-token', 'demo-token');

@@ -11,8 +11,9 @@ vi.mock('../../api/auth', () => ({
   updateTimeZone: vi.fn(),
 }));
 
-// Pretend this device is in Denver
-vi.mock('../../utils/date', () => ({
+// Pretend this device is in Denver; keep the other date helpers real (the demo mock uses them)
+vi.mock('../../utils/date', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../utils/date')>()),
   browserTimeZone: () => 'America/Denver',
 }));
 
