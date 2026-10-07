@@ -12,6 +12,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class SecurityIntegrationTest extends BaseIntegrationTest {
@@ -71,5 +72,16 @@ class SecurityIntegrationTest extends BaseIntegrationTest {
         mockMvc.perform(get("/api/applications")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void accountEndpoints_return401WithoutToken() throws Exception {
+        // These live under /api/auth but aren't public; they used to 500 without a token
+        for (String path : new String[]{"/api/auth/profile", "/api/auth/password", "/api/auth/time-zone"}) {
+            mockMvc.perform(put(path)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"name\":\"x\",\"newPassword\":\"secret123\",\"timeZone\":\"UTC\"}"))
+                    .andExpect(status().isUnauthorized());
+        }
     }
 }
