@@ -52,7 +52,11 @@ function percentile(sorted, p) {
 }
 
 function newGroup() {
-  return { start: Infinity, end: -Infinity, durations: [], byName: new Map(), requests: 0, failed: 0, iterations: 0, dropped: 0 };
+  return {
+    start: Infinity, end: -Infinity, // when samples were recorded (end of each request)
+    firstStart: Infinity, lastStart: -Infinity, // when iterations began
+    durations: [], byName: new Map(), requests: 0, failed: 0, iterations: 0, dropped: 0,
+  };
 }
 
 async function readRequests(file) {
@@ -79,7 +83,7 @@ async function readRequests(file) {
       dropped.push([time, value]);
       continue;
     }
-    if (metric !== 'http_req_duration' && metric !== 'http_req_failed' && metric !== 'iterations') continue;
+    if (!['http_req_duration', 'http_req_failed', 'iterations', 'iteration_duration'].includes(metric)) continue;
 
     if (firstTime === null) firstTime = time;
     const target = parseTags(fields[col.extra_tags]).target;
@@ -101,17 +105,36 @@ async function readRequests(file) {
     } else if (metric === 'http_req_failed') {
       g.requests++;
       g.failed += value;
-    } else {
+    } else if (metric === 'iterations') {
       g.iterations++;
+    } else {
+      // Recorded when the iteration ends; subtract its duration to get when it began
+      const began = time - value / 1000;
+      g.firstStart = Math.min(g.firstStart, began);
+      g.lastStart = Math.max(g.lastStart, began);
     }
   }
 
-  for (const [time, count] of dropped) {
-    for (const g of groups.values()) {
-      if (time >= g.start && time <= g.end) { g.dropped += count; break; }
+  // Each group's time window. For stress steps, use when iterations *began*: a slow
+  // iteration can finish well into the next step, so end times make steps overlap
+  // (stretching them to ~90s and handing one step's drops to another).
+  const sorted = [...groups.entries()].sort((a, b) => a[0] - b[0]);
+  sorted.forEach(([, g], i) => {
+    if (isStress) {
+      const next = sorted[i + 1];
+      g.windowStart = g.firstStart;
+      g.windowEnd = next ? next[1].firstStart : g.lastStart + 1;
+    } else {
+      g.windowStart = g.start;
+      g.windowEnd = g.end + 1;
     }
+  });
+
+  for (const [time, count] of dropped) {
+    const match = sorted.find(([, g]) => time >= g.windowStart && time < g.windowEnd);
+    if (match) match[1].dropped += count;
   }
-  return { groups: [...groups.entries()].sort((a, b) => a[0] - b[0]), isStress };
+  return { groups: sorted, isStress };
 }
 
 function readResources(file) {
@@ -143,7 +166,8 @@ async function main() {
 
   const out = [`# ${path.basename(dir)}`, ''];
   out.push(`Pass = p95 < ${P95_LIMIT_MS}ms and errors < ${ERROR_LIMIT * 100}%. ` +
-    'CPU columns are averages over the step, as a share of the whole machine.', '');
+    'Dropped = iterations k6 had to skip because all its VUs were busy waiting (for reference, ' +
+    'doesn\'t affect pass). CPU columns are averages over the step, as a share of the whole machine.', '');
 
   out.push(`| ${isStress ? 'Target it/s' : 'Time'} | Actual it/s | Req/s | p50 | p95 | p99 | Errors | Dropped | CPU total | Java | MySQL | k6 | |`);
   out.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|');
@@ -153,17 +177,18 @@ async function main() {
   const partialSteps = [];
   for (const [key, g] of groups) {
     g.durations.sort((a, b) => a - b);
-    const seconds = Math.max(1, g.end - g.start + 1);
+    const seconds = Math.max(1, Math.round(g.windowEnd - g.windowStart));
     const p95 = percentile(g.durations, 95);
     const errorRate = g.requests ? g.failed / g.requests : 0;
-    const pass = p95 < P95_LIMIT_MS && errorRate < ERROR_LIMIT && g.dropped === 0;
+    // Dropped iterations are shown but don't fail a step; the bar is p95 and errors only
+    const pass = p95 < P95_LIMIT_MS && errorRate < ERROR_LIMIT;
     // A stress step cut short (run stopped mid-step) has too little data to judge
     const partial = isStress && seconds < MIN_STEP_SECONDS;
     if (partial) partialSteps.push(`${key} it/s (${seconds}s)`);
     if (!partial && pass && firstFail === null) lastPass = key;
     if (!partial && !pass && firstFail === null) firstFail = key;
 
-    const window = resources.filter((r) => r.time >= g.start && r.time <= g.end);
+    const window = resources.filter((r) => r.time >= g.windowStart && r.time < g.windowEnd);
     out.push(`| ${isStress ? key : `+${key}s`} | ${(g.iterations / seconds).toFixed(1)} | ${fmt(g.requests / seconds)} ` +
       `| ${fmt(percentile(g.durations, 50), 'ms')} | ${fmt(p95, 'ms')} | ${fmt(percentile(g.durations, 99), 'ms')} ` +
       `| ${(errorRate * 100).toFixed(1)}% | ${g.dropped} ` +
