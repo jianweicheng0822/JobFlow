@@ -11,6 +11,7 @@ import com.jobflow.repository.UserRepository;
 import com.jobflow.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -22,8 +23,11 @@ import java.util.stream.Collectors;
 
 import static com.jobflow.util.TextUtils.blankToNull;
 
+// toDTO reads the application's user and company, which are lazy, so every method
+// needs an open session (open-in-view is off)
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class InterviewService {
 
     private final InterviewRepository interviewRepository;
@@ -31,18 +35,21 @@ public class InterviewService {
     private final UserRepository userRepository;
     private final UserClock userClock;
 
+    @Transactional(readOnly = true)
     public List<InterviewDTO> findAll(Long userId) {
         return interviewRepository.findByJobApplicationUserId(userId).stream()
             .map(this::toDTO)
             .toList();
     }
 
+    @Transactional(readOnly = true)
     public InterviewDTO findById(Long userId, Long id) {
         Interview interview = interviewRepository.findByIdAndJobApplicationUserId(id, userId)
             .orElseThrow(() -> NotFoundException.interview(id));
         return toDTO(interview);
     }
 
+    @Transactional(readOnly = true)
     public List<InterviewDTO> findUpcoming(Long userId) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> NotFoundException.user());

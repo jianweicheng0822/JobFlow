@@ -25,6 +25,9 @@ spring:
       maximum-pool-size: 20
 
   jpa:
+    # Off so a request only holds a DB connection while a service method runs,
+    # not until the response is fully written. Services open their own transactions.
+    open-in-view: false
     hibernate:
       ddl-auto: validate
     show-sql: true

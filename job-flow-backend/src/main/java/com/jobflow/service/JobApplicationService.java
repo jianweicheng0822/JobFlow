@@ -39,12 +39,18 @@ public class JobApplicationService {
     private final InterviewRepository interviewRepository;
     private final UserClock userClock;
 
+    // open-in-view is off, so anything that reaches app.getCompany() runs in a transaction.
+    // create() doesn't on purpose: it calls findOrCreateByName, which opens its own new
+    // transaction, and nesting that would hold two pooled connections per request.
+
+    @Transactional(readOnly = true)
     public List<JobApplicationDTO> findAll(Long userId) {
         return jobApplicationRepository.findByUserIdOrderByUpdatedAtDesc(userId).stream()
             .map(this::toDTO)
             .toList();
     }
 
+    @Transactional(readOnly = true)
     public PageResponse<JobApplicationDTO> findAllPaged(Long userId, int page, int size, ApplicationStatus status, String keyword, String sortBy, String sortDir) {
         // Map frontend sort field names to entity property paths
         String sortField = switch (sortBy) {
@@ -78,12 +84,14 @@ public class JobApplicationService {
             .build();
     }
 
+    @Transactional(readOnly = true)
     public List<JobApplicationDTO> findByStatus(Long userId, ApplicationStatus status) {
         return jobApplicationRepository.findByUserIdAndStatusOrderByUpdatedAtDesc(userId, status).stream()
             .map(this::toDTO)
             .toList();
     }
 
+    @Transactional(readOnly = true)
     public JobApplicationDTO findById(Long userId, Long id) {
         JobApplication app = jobApplicationRepository.findByIdAndUserId(id, userId)
             .orElseThrow(() -> NotFoundException.application(id));
@@ -132,6 +140,9 @@ public class JobApplicationService {
         return companyService.findOrCreateByName(user, name);
     }
 
+    // The app's company is a lazy reference until something loads it. Typing a new company
+    // name nests findOrCreateByName's transaction here; rare enough to accept.
+    @Transactional
     public JobApplicationDTO update(Long userId, Long id, UpdateJobApplicationRequest request) {
         JobApplication app = jobApplicationRepository.findByIdAndUserId(id, userId)
             .orElseThrow(() -> NotFoundException.application(id));
@@ -210,6 +221,7 @@ public class JobApplicationService {
         }
     }
 
+    @Transactional(readOnly = true)
     public List<JobApplicationDTO> findRecent(Long userId) {
         return jobApplicationRepository.findTop10ByUserIdOrderByUpdatedAtDesc(userId).stream()
             .map(this::toDTO)
@@ -262,6 +274,7 @@ public class JobApplicationService {
         return findById(userId, id);
     }
 
+    @Transactional(readOnly = true)
     public String exportCsv(Long userId) {
         List<JobApplication> apps = jobApplicationRepository.findByUserIdOrderByUpdatedAtDesc(userId);
         StringBuilder sb = new StringBuilder();
