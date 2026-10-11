@@ -18,6 +18,11 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+    hikari:
+      # Default is 10. Load testing showed 190 of 200 request threads stuck waiting
+      # for a connection at 80 it/s. Bigger isn't always better: past ~2x the DB's
+      # cores, MySQL itself starts to slow down.
+      maximum-pool-size: 20
 
   jpa:
     hibernate:
