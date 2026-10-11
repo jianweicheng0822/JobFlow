@@ -5,6 +5,7 @@ import com.jobflow.model.JobApplication;
 import com.jobflow.repository.InterviewRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,7 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
+// Off under loadtest: seeded interviews would otherwise mail thousands of fake addresses
 @Component
+@Profile("!loadtest")
 @RequiredArgsConstructor
 @Slf4j
 public class InterviewReminderScheduler {

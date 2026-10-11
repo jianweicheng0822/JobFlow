@@ -1,0 +1,18 @@
+# Load testing profile: run with SPRING_PROFILES_ACTIVE=loadtest
+# Uses its own database so seeded test users never mix with real dev data.
+
+spring:
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/jobflow_loadtest?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true
+
+  jpa:
+    # Printing every SQL statement slows each request down and skews the numbers
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+app:
+  rate-limit:
+    # Effectively off: k6 sends far more requests per user than the real limit allows
+    max-requests: 1000000

@@ -15,7 +15,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Component
-@Profile("!test")
+@Profile("!test & !loadtest")
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
 

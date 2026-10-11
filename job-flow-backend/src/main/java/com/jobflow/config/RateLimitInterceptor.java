@@ -2,6 +2,8 @@ package com.jobflow.config;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -13,10 +15,23 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class RateLimitInterceptor implements HandlerInterceptor {
 
-    private static final int MAX_REQUESTS = 60;
+    static final int DEFAULT_MAX_REQUESTS = 60;
     private static final long WINDOW_MS = 60_000; // 1 minute
 
+    // Per user (or IP) per window. Only raised for load testing, where one k6 user
+    // fires far more than a real person would.
+    private final int maxRequests;
+
     private final ConcurrentHashMap<String, RequestBucket> buckets = new ConcurrentHashMap<>();
+
+    public RateLimitInterceptor() {
+        this(DEFAULT_MAX_REQUESTS);
+    }
+
+    @Autowired
+    public RateLimitInterceptor(@Value("${app.rate-limit.max-requests:60}") int maxRequests) {
+        this.maxRequests = maxRequests;
+    }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -30,7 +45,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             return existing;
         });
 
-        if (bucket.count > MAX_REQUESTS) {
+        if (bucket.count > maxRequests) {
             long retryAfterSeconds = Math.max(1, (bucket.windowStart + WINDOW_MS - now + 999) / 1000);
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setHeader("Retry-After", String.valueOf(retryAfterSeconds));
@@ -43,8 +58,8 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        response.setHeader("X-RateLimit-Limit", String.valueOf(MAX_REQUESTS));
-        response.setHeader("X-RateLimit-Remaining", String.valueOf(Math.max(0, MAX_REQUESTS - bucket.count)));
+        response.setHeader("X-RateLimit-Limit", String.valueOf(maxRequests));
+        response.setHeader("X-RateLimit-Remaining", String.valueOf(Math.max(0, maxRequests - bucket.count)));
         return true;
     }
 

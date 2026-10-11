@@ -44,6 +44,22 @@ class RateLimitInterceptorTest {
     }
 
     @Test
+    void customLimit_isUsed() throws Exception {
+        interceptor = new RateLimitInterceptor(3);
+        request.setRemoteAddr("10.0.0.9");
+
+        for (int i = 0; i < 3; i++) {
+            response = new MockHttpServletResponse();
+            assertThat(interceptor.preHandle(request, response, new Object())).isTrue();
+        }
+        assertThat(response.getHeader("X-RateLimit-Limit")).isEqualTo("3");
+
+        response = new MockHttpServletResponse();
+        assertThat(interceptor.preHandle(request, response, new Object())).isFalse();
+        assertThat(response.getStatus()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
+    }
+
+    @Test
     void remainingDecrementsWithEachRequest() throws Exception {
         request.setRemoteAddr("10.0.0.2");
 
