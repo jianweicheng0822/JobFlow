@@ -46,3 +46,6 @@ job-flow-frontend/design/
 
 ### Claude Code (local tooling) ###
 .claude/
+
+# Raw load test output (CSVs get big); conclusions go in docs/loadtest/
+loadtest/results/

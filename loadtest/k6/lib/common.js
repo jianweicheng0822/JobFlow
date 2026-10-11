@@ -2,6 +2,7 @@
 // user flows (read / write / login) that the scripts combine.
 
 import http from 'k6/http';
+import exec from 'k6/execution';
 import { check, fail } from 'k6';
 
 // k6 runs in Docker, so the backend on the host is host.docker.internal
@@ -24,16 +25,71 @@ const THRESHOLDS = {
   'http_req_duration{scenario:main}': ['p(95)<500'],
 };
 
+// Each stress step holds one rate for a minute, so analyze.js can report per step
+const STEP_SECONDS = 60;
+
+// Room for VUs to pile up when the backend slows down. If k6 runs out of them it
+// drops iterations instead of sending them, which analyze.js reports.
+const VUS = { preAllocatedVUs: 50, maxVUs: 1000 };
+
+// Stress: start at `start` iterations/s and add `step` every minute up to `max`
+function stressProfile({ start, step, max }) {
+  const stages = [];
+  for (let rate = start; rate <= max; rate += step) {
+    stages.push({ duration: '5s', target: rate }, { duration: `${STEP_SECONDS - 5}s`, target: rate });
+  }
+  return { executor: 'ramping-arrival-rate', startRate: start, timeUnit: '1s', stages, ...VUS };
+}
+
+// load and spike are sized from the limit found by stress (-e LIMIT=<iterations/s>)
+function requireLimit(profileName) {
+  const limit = Number(__ENV.LIMIT);
+  if (!limit) {
+    throw new Error(`PROFILE=${profileName} needs -e LIMIT=<iterations/s>, the limit found by the stress run`);
+  }
+  return limit;
+}
+
 // Load shapes, picked with -e PROFILE=... Rates are iterations per second.
-// Only smoke for now; load / stress / spike get tuned in step 4.
 const PROFILES = {
-  smoke: {
+  smoke: () => ({
     executor: 'constant-arrival-rate',
     rate: 1,
     timeUnit: '1s',
     duration: '30s',
     preAllocatedVUs: 5,
     maxVUs: 10,
+  }),
+
+  stress: (stress) => stressProfile(stress),
+
+  // 60% of the limit for 10 minutes: does it stay steady, or slowly get worse?
+  load: () => ({
+    executor: 'constant-arrival-rate',
+    rate: Math.round(requireLimit('load') * 0.6),
+    timeUnit: '1s',
+    duration: '10m',
+    ...VUS,
+  }),
+
+  // 30% of the limit, jump to 150% for a minute, then back: does it recover?
+  spike: () => {
+    const limit = requireLimit('spike');
+    const base = Math.round(limit * 0.3);
+    const peak = Math.round(limit * 1.5);
+    return {
+      executor: 'ramping-arrival-rate',
+      startRate: base,
+      timeUnit: '1s',
+      stages: [
+        { duration: '1m', target: base },
+        { duration: '10s', target: peak },
+        { duration: '1m', target: peak },
+        { duration: '10s', target: base },
+        { duration: '2m', target: base },
+      ],
+      ...VUS,
+    };
   },
 };
 
@@ -45,26 +101,47 @@ function randomInt(min, max) {
   return min + Math.floor(Math.random() * (max - min + 1));
 }
 
+const DEFAULT_STRESS = { start: 10, step: 10, max: 150 };
+let stressSteps = null;
+
 // Builds k6 options for the chosen profile. `endpoints` are the request names the
 // script uses, so the summary shows p95 per endpoint, not just the overall number.
-export function buildOptions(endpoints) {
+// `stress` overrides the stress ramp for scripts that need a different range.
+export function buildOptions(endpoints, { stress = DEFAULT_STRESS } = {}) {
   const profileName = __ENV.PROFILE || 'smoke';
-  const profile = PROFILES[profileName];
-  if (!profile) {
+  const makeProfile = PROFILES[profileName];
+  if (!makeProfile) {
     throw new Error(`Unknown PROFILE "${profileName}". Available: ${Object.keys(PROFILES).join(', ')}`);
   }
+  if (profileName === 'stress') stressSteps = stress;
 
   const thresholds = { ...THRESHOLDS };
   for (const name of endpoints) {
     thresholds[`http_req_duration{scenario:main,name:${name}}`] = ['p(95)<500'];
   }
+  if (profileName === 'stress') {
+    // Once 10% of requests fail the system is clearly past its limit; no point going on
+    thresholds['http_req_failed{scenario:main}'] = [
+      'rate<0.01',
+      { threshold: 'rate<0.10', abortOnFail: true, delayAbortEval: '30s' },
+    ];
+  }
 
   return {
-    scenarios: { main: profile },
+    scenarios: { main: makeProfile(stress) },
     thresholds,
     // setup() logs in all 205 users, which takes a while because of BCrypt
     setupTimeout: '2m',
   };
+}
+
+// Call at the start of every iteration. Under stress it tags requests with the
+// step's target rate, so analyze.js can group results by step.
+export function markStep() {
+  if (!stressSteps) return;
+  const elapsed = Date.now() - exec.scenario.startTime;
+  const step = Math.floor(elapsed / (STEP_SECONDS * 1000));
+  exec.vu.metrics.tags.target = String(stressSteps.start + step * stressSteps.step);
 }
 
 function ok(res, name) {
