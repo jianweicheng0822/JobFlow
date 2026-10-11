@@ -26,6 +26,10 @@ A full-stack job application tracker with JWT + OAuth2 authentication, Kanban pi
     <td align="center"><strong>Analytics</strong><br><a href="docs/analytics.png"><img src="docs/analytics.png" alt="Analytics" width="400"></a></td>
     <td align="center"><strong>Settings</strong><br><a href="docs/settings.png"><img src="docs/settings.png" alt="Settings" width="400"></a></td>
   </tr>
+  <tr>
+    <td align="center"><strong>Dark Mode</strong><br><a href="docs/dashboard-dark.png"><img src="docs/dashboard-dark.png" alt="Dashboard in dark mode" width="400"></a></td>
+    <td></td>
+  </tr>
 </table>
 
 > *Click any screenshot to view full resolution.*
