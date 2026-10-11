@@ -36,6 +36,34 @@ All users have the password `loadtest123`. Application statuses and dates (last
 The script refuses to run if the backend isn't in loadtest mode, or if the data
 is already there.
 
+## 3. Run a k6 script
+
+k6 runs in Docker, so nothing needs installing. From the repo root:
+
+```bash
+# Git Bash
+MSYS_NO_PATHCONV=1 docker run --rm -v "$(pwd -W)/loadtest/k6:/scripts" grafana/k6:2.3.0 run -e PROFILE=smoke /scripts/read.js
+```
+
+```powershell
+# PowerShell
+docker run --rm -v "${PWD}/loadtest/k6:/scripts" grafana/k6:2.3.0 run -e PROFILE=smoke /scripts/read.js
+```
+
+| Script | What it does |
+|---|---|
+| `login.js` | Logs in only. Kept separate because BCrypt is CPU-heavy |
+| `read.js` | One user browsing Dashboard, Jobs, Companies and Interviews |
+| `write.js` | Creates an application, changes its status, stars it, then deletes it |
+| `mixed.js` | 80% read, 15% write, 5% login. Use this one for the overall limit |
+
+`read`, `write` and `mixed` log every test user in once during setup, so BCrypt
+doesn't skew those numbers. The setup requests are left out of the results.
+
+A run passes if fewer than 1% of requests fail and p95 stays under 500 ms, both
+overall and per endpoint. `write.js` deletes what it creates, so the data size
+stays the same between runs.
+
 ### Starting over
 
 Drop the database and restart the backend; Flyway rebuilds it empty:
