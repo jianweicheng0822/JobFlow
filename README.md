@@ -1,5 +1,6 @@
 # JobFlow
 
+[![CI](https://github.com/jianweicheng0822/JobFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/jianweicheng0822/JobFlow/actions/workflows/ci.yml)
 ![Java 21](https://img.shields.io/badge/Java_21-ED8B00?logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?logo=springboot&logoColor=white)
 ![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=white)
