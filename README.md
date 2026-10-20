@@ -67,6 +67,7 @@ to `.env` and fill it in:
 | `JWT_SECRET` | Yes | Signs login tokens (at least 32 characters) |
 | `DB_HOST`, `DB_PORT` | No | MySQL address, default `localhost:3306` |
 | `MAIL_USERNAME`, `MAIL_PASSWORD` | No | Gmail SMTP for interview reminder emails |
+| `SEED_DEMO_DATA` | No | `true` creates a sample account `demo@jobflow.com` / `demo123` on startup. Default `false`; keep it off anywhere public |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | No | Google sign-in and Gmail import |
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | No | GitHub sign-in |
 

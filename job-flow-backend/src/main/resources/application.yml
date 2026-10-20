@@ -83,3 +83,6 @@ app:
   jwt:
     secret: ${JWT_SECRET}
     expiration-ms: 86400000
+  # Seeds a demo account (demo@jobflow.com / demo123) with sample data on startup.
+  # Local demos only: anyone who knows the password can log in.
+  seed-demo-data: ${SEED_DEMO_DATA:false}

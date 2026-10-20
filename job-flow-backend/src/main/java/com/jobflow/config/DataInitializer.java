@@ -7,17 +7,22 @@ import com.jobflow.repository.JobApplicationRepository;
 import com.jobflow.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.annotation.Profile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+// Sample data for local demos. Off unless app.seed-demo-data=true, since it creates
+// an account with a well-known password.
 @Component
-@Profile("!test & !loadtest")
+@ConditionalOnProperty(name = "app.seed-demo-data", havingValue = "true")
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
+
+    static final String DEMO_EMAIL = "demo@jobflow.com";
 
     private final CompanyRepository companyRepository;
     private final JobApplicationRepository jobApplicationRepository;
@@ -25,16 +30,17 @@ public class DataInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    // One transaction, so a failure part way doesn't leave half the data behind
     @Override
+    @Transactional
     public void run(String... args) {
-        if (companyRepository.count() > 0) {
+        if (userRepository.existsByEmail(DEMO_EMAIL)) {
             return;
         }
 
-        // Create a demo user for seed data
         User demoUser = userRepository.save(User.builder()
             .name("Demo User")
-            .email("demo@jobflow.com")
+            .email(DEMO_EMAIL)
             .password(passwordEncoder.encode("demo123"))
             .provider(AuthProvider.LOCAL)
             .build());
@@ -44,30 +50,35 @@ public class DataInitializer implements CommandLineRunner {
             .name("TechCorp Inc.")
             .location("Seattle, WA")
             .website("https://techcorp.example.com")
+            .user(demoUser)
             .build());
 
         Company spotify = companyRepository.save(Company.builder()
             .name("Spotify")
             .location("Stockholm")
             .website("https://spotify.com")
+            .user(demoUser)
             .build());
 
         Company google = companyRepository.save(Company.builder()
             .name("Google")
             .location("Mountain View, CA")
             .website("https://google.com")
+            .user(demoUser)
             .build());
 
         Company meta = companyRepository.save(Company.builder()
             .name("Meta")
             .location("Menlo Park, CA")
             .website("https://meta.com")
+            .user(demoUser)
             .build());
 
         Company amazon = companyRepository.save(Company.builder()
             .name("Amazon")
             .location("Seattle, WA")
             .website("https://amazon.com")
+            .user(demoUser)
             .build());
 
         // Create job applications linked to demo user

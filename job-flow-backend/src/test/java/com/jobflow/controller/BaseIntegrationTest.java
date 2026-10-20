@@ -19,7 +19,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @ActiveProfiles("test")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @Testcontainers
-abstract class BaseIntegrationTest {
+// Public so integration tests outside this package can share the MySQL container setup
+public abstract class BaseIntegrationTest {
 
     @Container
     @ServiceConnection
@@ -34,7 +35,7 @@ abstract class BaseIntegrationTest {
     private Flyway flyway;
 
     @BeforeEach
-    void resetDatabase() {
+    protected void resetDatabase() {
         flyway.clean();
         flyway.migrate();
     }
