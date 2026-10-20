@@ -21,3 +21,6 @@ app:
   jwt:
     secret: testSecretKeyThatIsAtLeast256BitsLongForHS256AlgorithmInTests
     expiration-ms: 3600000
+  # Jobs firing mid-test would hit a database that's being wiped (see SchedulingConfig)
+  scheduling:
+    enabled: false

@@ -87,7 +87,7 @@ Open http://localhost. MySQL is exposed on port 3307.
 
 ### Option B: Run locally
 
-Needs Node.js 20+, Java 21+ and MySQL 8+. Create the database first; Flyway
+Needs Node.js 22+, Java 21+ and MySQL 8+. Create the database first; Flyway
 creates the tables on first start.
 
 ```bash
