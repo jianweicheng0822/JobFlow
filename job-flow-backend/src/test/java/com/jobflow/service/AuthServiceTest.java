@@ -4,6 +4,7 @@ import com.jobflow.dto.AuthResponse;
 import com.jobflow.dto.LoginRequest;
 import com.jobflow.dto.RegisterRequest;
 import com.jobflow.model.AuthProvider;
+import com.jobflow.model.OneTimeCodePurpose;
 import com.jobflow.model.User;
 import com.jobflow.repository.UserRepository;
 import com.jobflow.security.JwtService;
@@ -37,6 +38,9 @@ class AuthServiceTest {
 
     @Mock
     private JwtService jwtService;
+
+    @Mock
+    private OneTimeCodeService oneTimeCodeService;
 
     @InjectMocks
     private AuthService authService;
@@ -204,5 +208,28 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.getCurrentUser("ghost@test.com"))
                 .isInstanceOf(com.jobflow.exception.NotFoundException.class)
                 .hasFieldOrPropertyWithValue("code", "USER_NOT_FOUND");
+    }
+
+    // --- OAuth code exchange ---
+
+    @Test
+    void exchangeOAuthCode_validCode_returnsJwtForThatUser() {
+        when(oneTimeCodeService.consume("good-code", OneTimeCodePurpose.OAUTH_LOGIN)).thenReturn(Optional.of(testUser));
+        when(jwtService.generateToken("alice@test.com")).thenReturn("jwt-token");
+
+        AuthResponse response = authService.exchangeOAuthCode("good-code");
+
+        assertThat(response.getToken()).isEqualTo("jwt-token");
+        assertThat(response.getEmail()).isEqualTo("alice@test.com");
+    }
+
+    @Test
+    void exchangeOAuthCode_badCode_throwsWithoutIssuingToken() {
+        when(oneTimeCodeService.consume("bad-code", OneTimeCodePurpose.OAUTH_LOGIN)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.exchangeOAuthCode("bad-code"))
+                .isInstanceOf(ApiException.class)
+                .hasFieldOrPropertyWithValue("code", "INVALID_OAUTH_CODE");
+        verify(jwtService, never()).generateToken(anyString());
     }
 }

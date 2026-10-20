@@ -6,10 +6,13 @@ import com.jobflow.dto.GmailImportPreviewDTO;
 import com.jobflow.dto.GmailImportResultDTO;
 import com.jobflow.dto.RegisterRequest;
 import com.jobflow.model.AuthProvider;
+import com.jobflow.model.OneTimeCodePurpose;
 import com.jobflow.model.User;
+import com.jobflow.repository.OneTimeCodeRepository;
 import com.jobflow.repository.UserRepository;
 import com.jobflow.security.OAuth2LoginSuccessHandler;
 import com.jobflow.service.GmailService;
+import com.jobflow.service.OneTimeCodeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,10 +21,13 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.any;
@@ -44,6 +50,12 @@ class GmailControllerIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private OneTimeCodeService oneTimeCodeService;
+
+    @Autowired
+    private OneTimeCodeRepository oneTimeCodeRepository;
 
     @MockBean
     private OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
@@ -194,8 +206,72 @@ class GmailControllerIntegrationTest extends BaseIntegrationTest {
     void callback_invalidState_redirectsWithError() throws Exception {
         mockMvc.perform(get("/api/gmail/callback")
                         .param("code", "fake-code")
-                        .param("state", "invalid-jwt-token"))
+                        .param("state", "invalid-state"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("https://jobflow.example/settings?gmailLinked=false&error=invalid_state"));
+    }
+
+    // The old flow put the user's JWT in "state"; a JWT must not work as a state anymore
+    @Test
+    void callback_jwtAsState_isRejected() throws Exception {
+        mockMvc.perform(get("/api/gmail/callback")
+                        .param("code", "fake-code")
+                        .param("state", aliceToken))
+                .andExpect(redirectedUrl("https://jobflow.example/settings?gmailLinked=false&error=invalid_state"));
+    }
+
+    @Test
+    void getLink_stateIsOneTimeCodeNotJwt() throws Exception {
+        String state = linkState();
+
+        assertThat(state).isNotEqualTo(aliceToken).doesNotContain(".");
+        assertThat(oneTimeCodeRepository.count()).isEqualTo(1);
+    }
+
+    @Test
+    void callback_expiredState_isRejected() throws Exception {
+        User alice = userRepository.findByEmail("alice@test.com").orElseThrow();
+        String state = oneTimeCodeService.issue(alice, OneTimeCodePurpose.GMAIL_LINK, Duration.ofSeconds(-1));
+
+        mockMvc.perform(get("/api/gmail/callback").param("code", "fake-code").param("state", state))
+                .andExpect(redirectedUrl("https://jobflow.example/settings?gmailLinked=false&error=invalid_state"));
+    }
+
+    // A login code can't be replayed as a Gmail link state
+    @Test
+    void callback_loginCodeAsState_isRejected() throws Exception {
+        User alice = userRepository.findByEmail("alice@test.com").orElseThrow();
+        String loginCode = oneTimeCodeService.issue(alice, OneTimeCodePurpose.OAUTH_LOGIN, Duration.ofSeconds(60));
+
+        mockMvc.perform(get("/api/gmail/callback").param("code", "fake-code").param("state", loginCode))
+                .andExpect(redirectedUrl("https://jobflow.example/settings?gmailLinked=false&error=invalid_state"));
+    }
+
+    // "Cancel" on Google's consent screen sends error=access_denied and no code
+    @Test
+    void callback_userDenied_redirectsFriendly() throws Exception {
+        String state = linkState();
+
+        mockMvc.perform(get("/api/gmail/callback")
+                        .param("error", "access_denied")
+                        .param("state", state))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("https://jobflow.example/settings?gmailLinked=false&error=access_denied"));
+    }
+
+    @Test
+    void callback_withoutAnyParams_redirectsInsteadOf400() throws Exception {
+        mockMvc.perform(get("/api/gmail/callback"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("https://jobflow.example/settings?gmailLinked=false&error=access_denied"));
+    }
+
+    private String linkState() throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/gmail/link")
+                        .header("Authorization", "Bearer " + aliceToken))
+                .andExpect(status().isOk())
+                .andReturn();
+        String authUrl = objectMapper.readTree(result.getResponse().getContentAsString()).get("authUrl").asText();
+        return UriComponentsBuilder.fromUriString(authUrl).build(true).getQueryParams().getFirst("state");
     }
 }

@@ -91,7 +91,12 @@ export default function SettingsPage() {
     } else if (gmailLinked === 'false') {
       setActiveTab('integrations')
       const error = params.get('error') || 'unknown'
-      showToast(`${t.googleLinkFailed} (${error})`, 'error')
+      if (error === 'access_denied') {
+        // They pressed Cancel on Google's screen; nothing went wrong
+        showToast(t.googleLinkCancelled, 'info')
+      } else {
+        showToast(`${t.googleLinkFailed} (${error})`, 'error')
+      }
       window.history.replaceState({}, '', window.location.pathname)
     }
   }, [showToast, t])

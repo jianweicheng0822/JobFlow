@@ -198,6 +198,7 @@ const zh = {
   connecting: '连接中...',
   googleLinked: 'Google 账号关联成功！',
   googleLinkFailed: 'Google 账号关联失败',
+  googleLinkCancelled: '已取消关联 Google 账号',
   googleLinkStartFailed: '无法启动 Google 关联',
   theme: '主题',
   themeDesc: '选择你喜欢的外观风格',
@@ -276,6 +277,7 @@ const zh = {
 
   // OAuth Callback
   signingYouIn: '正在登录...',
+  oauthFailed: '登录未完成，请重试。',
 
   // Last action (Dashboard "Recently Updated"); see utils/formatLastAction.ts
   movedTo: '状态更新为「{status}」',

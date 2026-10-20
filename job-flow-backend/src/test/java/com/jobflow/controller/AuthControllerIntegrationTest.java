@@ -3,13 +3,21 @@ package com.jobflow.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jobflow.dto.LoginRequest;
 import com.jobflow.dto.RegisterRequest;
+import com.jobflow.model.OneTimeCodePurpose;
+import com.jobflow.model.User;
+import com.jobflow.repository.UserRepository;
 import com.jobflow.security.OAuth2LoginSuccessHandler;
+import com.jobflow.service.OneTimeCodeService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
+
+import java.time.Duration;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -23,6 +31,12 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private OneTimeCodeService oneTimeCodeService;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @MockBean
     private OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
@@ -145,5 +159,76 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
     void me_withoutToken_returns401() throws Exception {
         mockMvc.perform(get("/api/auth/me"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // --- POST /api/auth/oauth/exchange ---
+
+    private String issueLoginCode(String email, Duration ttl) {
+        User user = userRepository.findByEmail(email).orElseThrow();
+        return oneTimeCodeService.issue(user, OneTimeCodePurpose.OAUTH_LOGIN, ttl);
+    }
+
+    private ResultActions exchange(String code) throws Exception {
+        return mockMvc.perform(post("/api/auth/oauth/exchange")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of("code", code))));
+    }
+
+    @Test
+    void oauthExchange_validCode_returnsWorkingToken() throws Exception {
+        registerAndGetToken("Alice", "alice@test.com", "password123");
+        String code = issueLoginCode("alice@test.com", Duration.ofSeconds(60));
+
+        MvcResult result = exchange(code)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("alice@test.com"))
+                .andExpect(jsonPath("$.token").isString())
+                .andReturn();
+
+        String token = objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asText();
+        mockMvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("alice@test.com"));
+    }
+
+    @Test
+    void oauthExchange_reusedCode_returns400() throws Exception {
+        registerAndGetToken("Alice", "alice@test.com", "password123");
+        String code = issueLoginCode("alice@test.com", Duration.ofSeconds(60));
+
+        exchange(code).andExpect(status().isOk());
+        exchange(code)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_OAUTH_CODE"));
+    }
+
+    @Test
+    void oauthExchange_expiredCode_returns400() throws Exception {
+        registerAndGetToken("Alice", "alice@test.com", "password123");
+        String code = issueLoginCode("alice@test.com", Duration.ofSeconds(-1));
+
+        exchange(code)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_OAUTH_CODE"));
+    }
+
+    @Test
+    void oauthExchange_unknownCode_returns400() throws Exception {
+        exchange("made-up-code")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_OAUTH_CODE"));
+    }
+
+    // A JWT is not a login code, even a valid one
+    @Test
+    void oauthExchange_jwtInsteadOfCode_returns400() throws Exception {
+        String jwt = registerAndGetToken("Alice", "alice@test.com", "password123");
+
+        exchange(jwt).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void oauthExchange_blankCode_returns400() throws Exception {
+        exchange("").andExpect(status().isBadRequest());
     }
 }

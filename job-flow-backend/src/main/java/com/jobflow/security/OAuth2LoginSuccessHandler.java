@@ -1,8 +1,10 @@
 package com.jobflow.security;
 
 import com.jobflow.model.AuthProvider;
+import com.jobflow.model.OneTimeCodePurpose;
 import com.jobflow.model.User;
 import com.jobflow.repository.UserRepository;
+import com.jobflow.service.OneTimeCodeService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -16,13 +18,16 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.time.Duration;
 
 @Component
 @RequiredArgsConstructor
 public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
+    private static final Duration LOGIN_CODE_TTL = Duration.ofSeconds(60);
+
     private final UserRepository userRepository;
-    private final JwtService jwtService;
+    private final OneTimeCodeService oneTimeCodeService;
     private final OAuth2AuthorizedClientService authorizedClientService;
 
     @Value("${app.frontend-url}")
@@ -74,8 +79,10 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
         userRepository.save(user);
 
-        String token = jwtService.generateToken(user.getEmail());
-        String redirectUrl = frontendUrl + "/oauth/callback?token=" + token;
+        // Not the JWT itself: URLs end up in browser history, logs and Referer headers.
+        // The frontend swaps this short-lived code for the JWT right away.
+        String code = oneTimeCodeService.issue(user, OneTimeCodePurpose.OAUTH_LOGIN, LOGIN_CODE_TTL);
+        String redirectUrl = frontendUrl + "/oauth/callback?code=" + code;
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }
 

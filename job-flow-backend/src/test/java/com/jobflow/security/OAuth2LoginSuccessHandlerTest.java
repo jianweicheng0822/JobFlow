@@ -1,8 +1,10 @@
 package com.jobflow.security;
 
 import com.jobflow.model.AuthProvider;
+import com.jobflow.model.OneTimeCodePurpose;
 import com.jobflow.model.User;
 import com.jobflow.repository.UserRepository;
+import com.jobflow.service.OneTimeCodeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,7 +40,7 @@ class OAuth2LoginSuccessHandlerTest {
     private UserRepository userRepository;
 
     @Mock
-    private JwtService jwtService;
+    private OneTimeCodeService oneTimeCodeService;
 
     @Mock
     private OAuth2AuthorizedClientService authorizedClientService;
@@ -89,7 +91,7 @@ class OAuth2LoginSuccessHandlerTest {
         when(client.getRefreshToken()).thenReturn(refreshToken);
         when(authorizedClientService.loadAuthorizedClient("google", "google-123")).thenReturn(client);
 
-        when(jwtService.generateToken("alice@gmail.com")).thenReturn("jwt-token-123");
+        when(oneTimeCodeService.issue(any(), eq(OneTimeCodePurpose.OAUTH_LOGIN), any())).thenReturn("one-time-code-123");
 
         handler.onAuthenticationSuccess(request, response, authToken);
 
@@ -104,8 +106,9 @@ class OAuth2LoginSuccessHandlerTest {
 
         // Back to the configured frontend, not a hard-coded dev URL
         assertThat(response.getRedirectedUrl())
-                .startsWith("https://jobflow.example/oauth/callback?")
-                .contains("token=jwt-token-123");
+                .isEqualTo("https://jobflow.example/oauth/callback?code=one-time-code-123");
+        // The 60s code is tied to the new user
+        verify(oneTimeCodeService).issue(savedUser, OneTimeCodePurpose.OAUTH_LOGIN, java.time.Duration.ofSeconds(60));
     }
 
     @Test
@@ -140,7 +143,7 @@ class OAuth2LoginSuccessHandlerTest {
         when(client.getRefreshToken()).thenReturn(null);
         when(authorizedClientService.loadAuthorizedClient("google", "google-123")).thenReturn(client);
 
-        when(jwtService.generateToken("alice@gmail.com")).thenReturn("jwt-token");
+        when(oneTimeCodeService.issue(any(), eq(OneTimeCodePurpose.OAUTH_LOGIN), any())).thenReturn("login-code");
 
         handler.onAuthenticationSuccess(request, response, authToken);
 
@@ -171,12 +174,12 @@ class OAuth2LoginSuccessHandlerTest {
         when(userRepository.findByEmail("alice@gmail.com")).thenReturn(Optional.of(existingUser));
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
         when(authorizedClientService.loadAuthorizedClient("google", "google-123")).thenReturn(null);
-        when(jwtService.generateToken("alice@gmail.com")).thenReturn("jwt-token");
+        when(oneTimeCodeService.issue(any(), eq(OneTimeCodePurpose.OAUTH_LOGIN), any())).thenReturn("login-code");
 
         handler.onAuthenticationSuccess(request, response, authToken);
 
         // Should still redirect successfully
-        assertThat(response.getRedirectedUrl()).contains("token=jwt-token");
+        assertThat(response.getRedirectedUrl()).contains("code=login-code");
     }
 
     // --- GitHub OAuth2 ---
@@ -202,7 +205,7 @@ class OAuth2LoginSuccessHandlerTest {
             u.setId(2L);
             return u;
         });
-        when(jwtService.generateToken("alice@github.com")).thenReturn("gh-jwt-token");
+        when(oneTimeCodeService.issue(any(), eq(OneTimeCodePurpose.OAUTH_LOGIN), any())).thenReturn("gh-code");
 
         handler.onAuthenticationSuccess(request, response, auth);
 
@@ -236,7 +239,7 @@ class OAuth2LoginSuccessHandlerTest {
             u.setId(3L);
             return u;
         });
-        when(jwtService.generateToken("secret-user@github.com")).thenReturn("gh-jwt-token");
+        when(oneTimeCodeService.issue(any(), eq(OneTimeCodePurpose.OAUTH_LOGIN), any())).thenReturn("gh-code");
 
         handler.onAuthenticationSuccess(request, response, auth);
 
@@ -264,7 +267,7 @@ class OAuth2LoginSuccessHandlerTest {
             u.setId(4L);
             return u;
         });
-        when(jwtService.generateToken("noname@github.com")).thenReturn("jwt");
+        when(oneTimeCodeService.issue(any(), eq(OneTimeCodePurpose.OAUTH_LOGIN), any())).thenReturn("login-code");
 
         handler.onAuthenticationSuccess(request, response, auth);
 
@@ -296,7 +299,7 @@ class OAuth2LoginSuccessHandlerTest {
 
         when(userRepository.findByEmail("alice@gmail.com")).thenReturn(Optional.of(existingUser));
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(jwtService.generateToken("alice@gmail.com")).thenReturn("jwt");
+        when(oneTimeCodeService.issue(any(), eq(OneTimeCodePurpose.OAUTH_LOGIN), any())).thenReturn("login-code");
 
         handler.onAuthenticationSuccess(request, response, auth);
 

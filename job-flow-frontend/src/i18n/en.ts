@@ -198,6 +198,7 @@ const en = {
   connecting: 'Connecting...',
   googleLinked: 'Google account linked successfully!',
   googleLinkFailed: 'Failed to link Google account',
+  googleLinkCancelled: 'Google account linking was cancelled',
   googleLinkStartFailed: 'Failed to start Google linking',
   theme: 'Theme',
   themeDesc: 'Choose your preferred appearance',
@@ -276,6 +277,7 @@ const en = {
 
   // OAuth Callback
   signingYouIn: 'Signing you in...',
+  oauthFailed: "Couldn't finish signing in. Please try again.",
 
   // Last action (Dashboard "Recently Updated"); see utils/formatLastAction.ts
   movedTo: 'Moved to {status}',

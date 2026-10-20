@@ -6,8 +6,9 @@ import com.jobflow.dto.GmailImportPreviewDTO;
 import com.jobflow.dto.GmailImportResultDTO;
 import com.jobflow.model.User;
 import com.jobflow.repository.UserRepository;
-import com.jobflow.security.JwtService;
+import com.jobflow.model.OneTimeCodePurpose;
 import com.jobflow.service.GmailService;
+import com.jobflow.service.OneTimeCodeService;
 import com.jobflow.exception.NotFoundException;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ import org.springframework.web.client.RestTemplate;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -35,7 +37,7 @@ public class GmailController {
 
     private final GmailService gmailService;
     private final UserRepository userRepository;
-    private final JwtService jwtService;
+    private final OneTimeCodeService oneTimeCodeService;
 
     @Value("${spring.security.oauth2.client.registration.google.client-id:}")
     private String googleClientId;
@@ -52,11 +54,13 @@ public class GmailController {
     private static final String GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
     private static final String GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
     private static final String GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
+    private static final Duration LINK_STATE_TTL = Duration.ofMinutes(10);
 
     @GetMapping("/link")
     public Map<String, String> getGmailLinkUrl(Authentication authentication) {
         User user = getUser(authentication);
-        String token = jwtService.generateToken(user.getEmail());
+        // Google echoes "state" back in the callback URL, so it gets a one-time code rather than a JWT
+        String state = oneTimeCodeService.issue(user, OneTimeCodePurpose.GMAIL_LINK, LINK_STATE_TTL);
 
         String authUrl = GOOGLE_AUTH_URL
                 + "?client_id=" + encode(googleClientId)
@@ -65,25 +69,26 @@ public class GmailController {
                 + "&scope=" + encode(GMAIL_SCOPE)
                 + "&access_type=offline"
                 + "&prompt=consent"
-                + "&state=" + encode(token);
+                + "&state=" + encode(state);
 
         return Map.of("authUrl", authUrl);
     }
 
     @GetMapping("/callback")
-    public void handleCallback(@RequestParam("code") String code,
-                               @RequestParam("state") String state,
+    public void handleCallback(@RequestParam(value = "code", required = false) String code,
+                               @RequestParam(value = "state", required = false) String state,
+                               @RequestParam(value = "error", required = false) String error,
                                HttpServletResponse response) throws IOException {
-        // Validate JWT from state to identify the user
-        if (!jwtService.validateToken(state)) {
-            response.sendRedirect(settingsUrl("gmailLinked=false&error=invalid_state"));
+        // The user clicked "Cancel" on Google's consent screen (or Google sent no code at all)
+        if (error != null || code == null || code.isBlank()) {
+            response.sendRedirect(settingsUrl("gmailLinked=false&error=access_denied"));
             return;
         }
 
-        String email = jwtService.getEmailFromToken(state);
-        User user = userRepository.findByEmail(email).orElse(null);
+        // The state tells us who started the link, and only works once
+        User user = oneTimeCodeService.consume(state, OneTimeCodePurpose.GMAIL_LINK).orElse(null);
         if (user == null) {
-            response.sendRedirect(settingsUrl("gmailLinked=false&error=user_not_found"));
+            response.sendRedirect(settingsUrl("gmailLinked=false&error=invalid_state"));
             return;
         }
 

@@ -6,6 +6,7 @@ import com.jobflow.dto.LoginRequest;
 import com.jobflow.dto.RegisterRequest;
 import com.jobflow.dto.UpdateProfileRequest;
 import com.jobflow.model.AuthProvider;
+import com.jobflow.model.OneTimeCodePurpose;
 import com.jobflow.model.User;
 import com.jobflow.repository.UserRepository;
 import com.jobflow.security.JwtService;
@@ -22,6 +23,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final OneTimeCodeService oneTimeCodeService;
 
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -51,6 +53,14 @@ public class AuthService {
 
         String token = jwtService.generateToken(user.getEmail());
         return buildAuthResponse(user, token);
+    }
+
+    // Second half of OAuth login: the redirect only carries a one-time code, swapped here for the JWT.
+    // Same 400 as a bad password so the login page can show it the same way.
+    public AuthResponse exchangeOAuthCode(String code) {
+        User user = oneTimeCodeService.consume(code, OneTimeCodePurpose.OAUTH_LOGIN)
+                .orElseThrow(() -> ApiException.badRequest("INVALID_OAUTH_CODE", "Sign-in link is invalid or has expired"));
+        return buildAuthResponse(user, jwtService.generateToken(user.getEmail()));
     }
 
     public AuthResponse getCurrentUser(String email) {

@@ -3,6 +3,7 @@ package com.jobflow.controller;
 import com.jobflow.dto.AuthResponse;
 import com.jobflow.dto.ChangePasswordRequest;
 import com.jobflow.dto.LoginRequest;
+import com.jobflow.dto.OAuthExchangeRequest;
 import com.jobflow.dto.RegisterRequest;
 import com.jobflow.dto.UpdateProfileRequest;
 import com.jobflow.dto.UpdateTimeZoneRequest;
@@ -30,6 +31,12 @@ public class AuthController {
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
+    }
+
+    // The OAuth redirect lands on the frontend with a one-time code; it trades it in here
+    @PostMapping("/oauth/exchange")
+    public AuthResponse exchangeOAuthCode(@Valid @RequestBody OAuthExchangeRequest request) {
+        return authService.exchangeOAuthCode(request.getCode());
     }
 
     @GetMapping("/me")

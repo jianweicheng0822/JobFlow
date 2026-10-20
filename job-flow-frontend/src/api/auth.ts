@@ -41,6 +41,10 @@ export const login = (data: LoginRequest) =>
 export const register = (data: RegisterRequest) =>
   client.post<AuthResponse>('/auth/register', data)
 
+// Trades the one-time code from the OAuth redirect for a JWT
+export const exchangeOAuthCode = (code: string) =>
+  client.post<AuthResponse>('/auth/oauth/exchange', { code })
+
 export const getMe = () =>
   client.get<AuthResponse>('/auth/me')
 
