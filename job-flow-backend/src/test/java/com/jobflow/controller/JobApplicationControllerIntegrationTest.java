@@ -99,10 +99,11 @@ class JobApplicationControllerIntegrationTest extends BaseIntegrationTest {
 
     @Test
     void getAll_returnsOnlyOwnApplications() throws Exception {
-        Long companyId = createCompany(aliceToken);
-        createApplication(aliceToken, companyId);
-        createApplication(aliceToken, companyId);
-        createApplication(bobToken, companyId);
+        Long aliceCompanyId = createCompany(aliceToken);
+        Long bobCompanyId = createCompany(bobToken);
+        createApplication(aliceToken, aliceCompanyId);
+        createApplication(aliceToken, aliceCompanyId);
+        createApplication(bobToken, bobCompanyId);
 
         // Alice should see 2
         mockMvc.perform(get("/api/applications")
@@ -126,6 +127,44 @@ class JobApplicationControllerIntegrationTest extends BaseIntegrationTest {
         mockMvc.perform(get("/api/applications/" + appId)
                         .header("Authorization", "Bearer " + bobToken))
                 .andExpect(status().isNotFound());
+    }
+
+    // Companies belong to one user, so another user's company id must look like it doesn't exist
+    @Test
+    void create_withOtherUsersCompany_returns404() throws Exception {
+        Long aliceCompanyId = createCompany(aliceToken);
+
+        String json = String.format("""
+                {"positionTitle": "Engineer", "companyId": %d}
+                """, aliceCompanyId);
+
+        mockMvc.perform(post("/api/applications")
+                        .header("Authorization", "Bearer " + bobToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("COMPANY_NOT_FOUND"));
+
+        mockMvc.perform(get("/api/applications")
+                        .header("Authorization", "Bearer " + bobToken))
+                .andExpect(jsonPath("$", hasSize(0)));
+    }
+
+    @Test
+    void update_cannotMoveOwnApplicationToOtherUsersCompany() throws Exception {
+        Long aliceCompanyId = createCompany(aliceToken);
+        Long bobAppId = createApplication(bobToken, createCompany(bobToken));
+
+        String json = String.format("""
+                {"companyId": %d}
+                """, aliceCompanyId);
+
+        mockMvc.perform(put("/api/applications/" + bobAppId)
+                        .header("Authorization", "Bearer " + bobToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("COMPANY_NOT_FOUND"));
     }
 
     @Test
@@ -163,10 +202,11 @@ class JobApplicationControllerIntegrationTest extends BaseIntegrationTest {
 
     @Test
     void stats_returnsOnlyOwnStats() throws Exception {
-        Long companyId = createCompany(aliceToken);
-        createApplication(aliceToken, companyId);
-        createApplication(aliceToken, companyId);
-        createApplication(bobToken, companyId);
+        Long aliceCompanyId = createCompany(aliceToken);
+        Long bobCompanyId = createCompany(bobToken);
+        createApplication(aliceToken, aliceCompanyId);
+        createApplication(aliceToken, aliceCompanyId);
+        createApplication(bobToken, bobCompanyId);
 
         // Alice's stats should show 2 total
         mockMvc.perform(get("/api/applications/stats")

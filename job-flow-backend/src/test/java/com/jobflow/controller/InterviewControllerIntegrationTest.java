@@ -137,9 +137,8 @@ class InterviewControllerIntegrationTest extends BaseIntegrationTest {
 
     @Test
     void getAll_returnsOnlyOwnInterviews() throws Exception {
-        Long companyId = createCompany(aliceToken);
-        Long aliceApp = createApplication(aliceToken, companyId);
-        Long bobApp = createApplication(bobToken, companyId);
+        Long aliceApp = createApplication(aliceToken, createCompany(aliceToken));
+        Long bobApp = createApplication(bobToken, createCompany(bobToken));
 
         createInterview(aliceToken, aliceApp, "2030-06-15T10:00:00");
         createInterview(aliceToken, aliceApp, "2030-06-16T10:00:00");
