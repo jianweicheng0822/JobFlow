@@ -80,6 +80,12 @@ spring:
         #     user-name-attribute: sub
 
 app:
+  # Where users open the app. OAuth and Gmail linking send the browser back here,
+  # and it's the only origin allowed to call the API cross-origin.
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  gmail:
+    # Must match a redirect URI registered for the Google OAuth client
+    redirect-uri: ${GMAIL_REDIRECT_URI:http://localhost:8080/api/gmail/callback}
   jwt:
     secret: ${JWT_SECRET}
     expiration-ms: 86400000

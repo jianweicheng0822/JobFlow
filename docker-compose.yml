@@ -9,7 +9,9 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      # Over TCP on purpose: on first start MySQL runs a temporary init server that only
+      # listens on the socket, and pinging "localhost" (socket) reported healthy too early
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -36,7 +38,9 @@ services:
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-placeholder}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-placeholder}
       SEED_DEMO_DATA: ${SEED_DEMO_DATA:-false}
-      CORS_ORIGIN: http://localhost
+      # Change both if the app isn't served at http://localhost (e.g. another port or a domain)
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      GMAIL_REDIRECT_URI: ${GMAIL_REDIRECT_URI:-http://localhost/api/gmail/callback}
       # Regex of proxy IPs whose X-Forwarded-For we trust: nginx on the Docker network (172.16.0.0/12)
       TRUSTED_PROXIES: '172\.(1[6-9]|2[0-9]|3[0-1])\.\d{1,3}\.\d{1,3}'
 

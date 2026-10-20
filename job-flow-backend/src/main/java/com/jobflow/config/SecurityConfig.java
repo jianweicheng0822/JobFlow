@@ -4,6 +4,7 @@ import com.jobflow.security.JwtAuthenticationFilter;
 import com.jobflow.security.OAuth2LoginSuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -38,13 +39,17 @@ public class SecurityConfig {
     // Optional: only present when OAuth2 client auto-config is active
     private final ClientRegistrationRepository clientRegistrationRepository;
 
+    private final String frontendUrl;
+
     @Autowired
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
                           OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler,
-                          @Autowired(required = false) ClientRegistrationRepository clientRegistrationRepository) {
+                          @Autowired(required = false) ClientRegistrationRepository clientRegistrationRepository,
+                          @Value("${app.frontend-url}") String frontendUrl) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.oAuth2LoginSuccessHandler = oAuth2LoginSuccessHandler;
         this.clientRegistrationRepository = clientRegistrationRepository;
+        this.frontendUrl = frontendUrl;
     }
 
     @Bean
@@ -97,10 +102,12 @@ public class SecurityConfig {
         return defaultResolver;
     }
 
+    // Only matters when the frontend is served from another origin. Behind nginx (Docker)
+    // the browser sees one origin, so these requests aren't cross-origin at all.
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        config.setAllowedOrigins(List.of(frontendUrl));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

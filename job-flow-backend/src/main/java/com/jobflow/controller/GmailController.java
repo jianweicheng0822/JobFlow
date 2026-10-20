@@ -43,9 +43,14 @@ public class GmailController {
     @Value("${spring.security.oauth2.client.registration.google.client-secret:}")
     private String googleClientSecret;
 
+    @Value("${app.gmail.redirect-uri}")
+    private String redirectUri;
+
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
+
     private static final String GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
     private static final String GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
-    private static final String REDIRECT_URI = "http://localhost:8080/api/gmail/callback";
     private static final String GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
 
     @GetMapping("/link")
@@ -55,7 +60,7 @@ public class GmailController {
 
         String authUrl = GOOGLE_AUTH_URL
                 + "?client_id=" + encode(googleClientId)
-                + "&redirect_uri=" + encode(REDIRECT_URI)
+                + "&redirect_uri=" + encode(redirectUri)
                 + "&response_type=code"
                 + "&scope=" + encode(GMAIL_SCOPE)
                 + "&access_type=offline"
@@ -71,14 +76,14 @@ public class GmailController {
                                HttpServletResponse response) throws IOException {
         // Validate JWT from state to identify the user
         if (!jwtService.validateToken(state)) {
-            response.sendRedirect("http://localhost:5173/settings?gmailLinked=false&error=invalid_state");
+            response.sendRedirect(settingsUrl("gmailLinked=false&error=invalid_state"));
             return;
         }
 
         String email = jwtService.getEmailFromToken(state);
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) {
-            response.sendRedirect("http://localhost:5173/settings?gmailLinked=false&error=user_not_found");
+            response.sendRedirect(settingsUrl("gmailLinked=false&error=user_not_found"));
             return;
         }
 
@@ -89,7 +94,7 @@ public class GmailController {
             params.add("code", code);
             params.add("client_id", googleClientId);
             params.add("client_secret", googleClientSecret);
-            params.add("redirect_uri", REDIRECT_URI);
+            params.add("redirect_uri", redirectUri);
             params.add("grant_type", "authorization_code");
 
             HttpHeaders headers = new HttpHeaders();
@@ -101,7 +106,7 @@ public class GmailController {
                     GOOGLE_TOKEN_URL, request, Map.class);
 
             if (tokenResponse == null) {
-                response.sendRedirect("http://localhost:5173/settings?gmailLinked=false&error=token_exchange_failed");
+                response.sendRedirect(settingsUrl("gmailLinked=false&error=token_exchange_failed"));
                 return;
             }
 
@@ -115,10 +120,15 @@ public class GmailController {
             user.setGmailConnected(true);
             userRepository.save(user);
 
-            response.sendRedirect("http://localhost:5173/settings?gmailLinked=true");
+            response.sendRedirect(settingsUrl("gmailLinked=true"));
         } catch (Exception e) {
-            response.sendRedirect("http://localhost:5173/settings?gmailLinked=false&error=token_exchange_failed");
+            response.sendRedirect(settingsUrl("gmailLinked=false&error=token_exchange_failed"));
         }
+    }
+
+    // The callback is a full-page visit from Google, so the user goes back to the Settings page
+    private String settingsUrl(String query) {
+        return frontendUrl + "/settings?" + query;
     }
 
     @PostMapping("/scan")

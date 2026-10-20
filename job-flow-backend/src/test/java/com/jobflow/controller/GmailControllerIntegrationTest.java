@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -28,6 +29,11 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+// Non-default URLs, so the tests prove they come from config rather than hard-coded dev values
+@TestPropertySource(properties = {
+        "app.frontend-url=https://jobflow.example",
+        "app.gmail.redirect-uri=https://jobflow.example/api/gmail/callback"
+})
 class GmailControllerIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
@@ -92,7 +98,9 @@ class GmailControllerIntegrationTest extends BaseIntegrationTest {
                         .header("Authorization", "Bearer " + aliceToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.authUrl").isString())
-                .andExpect(jsonPath("$.authUrl", containsString("accounts.google.com")));
+                .andExpect(jsonPath("$.authUrl", containsString("accounts.google.com")))
+                .andExpect(jsonPath("$.authUrl",
+                        containsString("redirect_uri=https%3A%2F%2Fjobflow.example%2Fapi%2Fgmail%2Fcallback")));
     }
 
     @Test
@@ -188,6 +196,6 @@ class GmailControllerIntegrationTest extends BaseIntegrationTest {
                         .param("code", "fake-code")
                         .param("state", "invalid-jwt-token"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("**/settings?gmailLinked=false*"));
+                .andExpect(redirectedUrl("https://jobflow.example/settings?gmailLinked=false&error=invalid_state"));
     }
 }

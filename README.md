@@ -71,6 +71,8 @@ to `.env` and fill it in:
 | `SEED_DEMO_DATA` | No | `true` creates a sample account `demo@jobflow.com` / `demo123` on startup. Default `false`; keep it off anywhere public |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | No | Google sign-in and Gmail import |
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | No | GitHub sign-in |
+| `FRONTEND_URL` | No | Where the app is opened; sign-in and Gmail linking return here. Default `http://localhost:5173` (`http://localhost` in Docker) |
+| `GMAIL_REDIRECT_URI` | No | Gmail linking callback, must be registered in your Google OAuth client. Default `http://localhost:8080/api/gmail/callback` (`http://localhost/api/gmail/callback` in Docker) |
 
 The app works without the optional ones; those features are just turned off.
 

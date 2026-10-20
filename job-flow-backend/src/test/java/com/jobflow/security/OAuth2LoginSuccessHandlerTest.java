@@ -20,6 +20,7 @@ import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -52,6 +53,8 @@ class OAuth2LoginSuccessHandlerTest {
     void setUp() {
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
+        // Normally injected from app.frontend-url
+        ReflectionTestUtils.setField(handler, "frontendUrl", "https://jobflow.example");
     }
 
     // --- Google OAuth2 ---
@@ -99,8 +102,10 @@ class OAuth2LoginSuccessHandlerTest {
         assertThat(savedUser.getProvider()).isEqualTo(AuthProvider.GOOGLE);
         assertThat(savedUser.getProviderId()).isEqualTo("google-123");
 
-        // Verify redirect
-        assertThat(response.getRedirectedUrl()).contains("token=jwt-token-123");
+        // Back to the configured frontend, not a hard-coded dev URL
+        assertThat(response.getRedirectedUrl())
+                .startsWith("https://jobflow.example/oauth/callback?")
+                .contains("token=jwt-token-123");
     }
 
     @Test
