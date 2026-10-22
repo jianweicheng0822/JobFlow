@@ -12,20 +12,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-import org.springframework.security.oauth2.core.OAuth2AccessToken;
-import org.springframework.security.oauth2.core.OAuth2RefreshToken;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -43,12 +37,6 @@ class OAuth2LoginSuccessHandlerTest {
     @Mock
     private OneTimeCodeService oneTimeCodeService;
 
-    @Mock
-    private OAuth2AuthorizedClientService authorizedClientService;
-
-    @Mock
-    private ObjectProvider<OAuth2AuthorizedClientService> authorizedClientServiceProvider;
-
     @InjectMocks
     private OAuth2LoginSuccessHandler handler;
 
@@ -61,7 +49,6 @@ class OAuth2LoginSuccessHandlerTest {
         response = new MockHttpServletResponse();
         // Normally injected from app.frontend-url
         ReflectionTestUtils.setField(handler, "frontendUrl", "https://jobflow.example");
-        lenient().when(authorizedClientServiceProvider.getIfAvailable()).thenReturn(authorizedClientService);
     }
 
     // --- Google OAuth2 ---
@@ -87,15 +74,6 @@ class OAuth2LoginSuccessHandlerTest {
             return u;
         });
 
-        // Mock authorized client with tokens
-        OAuth2AuthorizedClient client = mock(OAuth2AuthorizedClient.class);
-        OAuth2AccessToken accessToken = new OAuth2AccessToken(
-                OAuth2AccessToken.TokenType.BEARER, "google-access-token", Instant.now(), Instant.now().plusSeconds(3600));
-        OAuth2RefreshToken refreshToken = new OAuth2RefreshToken("google-refresh-token", Instant.now());
-        when(client.getAccessToken()).thenReturn(accessToken);
-        when(client.getRefreshToken()).thenReturn(refreshToken);
-        when(authorizedClientService.loadAuthorizedClient("google", "google-123")).thenReturn(client);
-
         when(oneTimeCodeService.issue(any(), eq(OneTimeCodePurpose.OAUTH_LOGIN), any())).thenReturn("one-time-code-123");
 
         handler.onAuthenticationSuccess(request, response, authToken);
@@ -117,9 +95,10 @@ class OAuth2LoginSuccessHandlerTest {
     }
 
     @Test
-    void googleLogin_existingUser_updatesAvatarAndTokens() throws Exception {
+    void googleLogin_existingUser_updatesAvatarAndKeepsGmailLink() throws Exception {
         request.setRequestURI("/login/oauth2/code/google");
 
+        // Linked Gmail earlier from Settings
         User existingUser = User.builder()
                 .id(1L)
                 .email("alice@gmail.com")
@@ -127,6 +106,9 @@ class OAuth2LoginSuccessHandlerTest {
                 .provider(AuthProvider.GOOGLE)
                 .providerId("google-123")
                 .avatarUrl("https://old-photo.url")
+                .googleAccessToken("gmail-access-token")
+                .googleRefreshToken("gmail-refresh-token")
+                .gmailConnected(true)
                 .build();
 
         OAuth2User oAuth2User = new DefaultOAuth2User(
@@ -140,51 +122,44 @@ class OAuth2LoginSuccessHandlerTest {
 
         when(userRepository.findByEmail("alice@gmail.com")).thenReturn(Optional.of(existingUser));
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        OAuth2AuthorizedClient client = mock(OAuth2AuthorizedClient.class);
-        OAuth2AccessToken accessToken = new OAuth2AccessToken(
-                OAuth2AccessToken.TokenType.BEARER, "new-access-token", Instant.now(), Instant.now().plusSeconds(3600));
-        when(client.getAccessToken()).thenReturn(accessToken);
-        when(client.getRefreshToken()).thenReturn(null);
-        when(authorizedClientService.loadAuthorizedClient("google", "google-123")).thenReturn(client);
-
         when(oneTimeCodeService.issue(any(), eq(OneTimeCodePurpose.OAUTH_LOGIN), any())).thenReturn("login-code");
 
         handler.onAuthenticationSuccess(request, response, authToken);
 
-        // Avatar should be updated
         assertThat(existingUser.getAvatarUrl()).isEqualTo("https://new-photo.url");
-        // Google access token stored
-        assertThat(existingUser.getGoogleAccessToken()).isEqualTo("new-access-token");
+        // Signing in must not overwrite the Gmail tokens with ones that can't read mail
+        assertThat(existingUser.getGoogleAccessToken()).isEqualTo("gmail-access-token");
+        assertThat(existingUser.getGoogleRefreshToken()).isEqualTo("gmail-refresh-token");
         assertThat(existingUser.isGmailConnected()).isTrue();
+        assertThat(response.getRedirectedUrl()).contains("code=login-code");
     }
 
     @Test
-    void googleLogin_noAuthorizedClient_stillRedirects() throws Exception {
+    void googleLogin_newUser_isNotGmailConnected() throws Exception {
         request.setRequestURI("/login/oauth2/code/google");
-
-        User existingUser = User.builder()
-                .id(1L).email("alice@gmail.com").name("Alice")
-                .provider(AuthProvider.GOOGLE).providerId("google-123").build();
 
         OAuth2User oAuth2User = new DefaultOAuth2User(
                 Collections.emptyList(),
-                Map.of("sub", "google-123", "email", "alice@gmail.com", "name", "Alice", "picture", "https://photo.url"),
+                Map.of("sub", "google-456", "email", "bob@gmail.com", "name", "Bob", "picture", "https://photo.url"),
                 "sub"
         );
 
         OAuth2AuthenticationToken authToken = new OAuth2AuthenticationToken(
                 oAuth2User, Collections.emptyList(), "google");
 
-        when(userRepository.findByEmail("alice@gmail.com")).thenReturn(Optional.of(existingUser));
+        when(userRepository.findByEmail("bob@gmail.com")).thenReturn(Optional.empty());
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(authorizedClientService.loadAuthorizedClient("google", "google-123")).thenReturn(null);
         when(oneTimeCodeService.issue(any(), eq(OneTimeCodePurpose.OAUTH_LOGIN), any())).thenReturn("login-code");
 
         handler.onAuthenticationSuccess(request, response, authToken);
 
-        // Should still redirect successfully
-        assertThat(response.getRedirectedUrl()).contains("code=login-code");
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository, atLeastOnce()).save(userCaptor.capture());
+        User savedUser = userCaptor.getValue();
+        // Gmail import needs its own consent from Settings
+        assertThat(savedUser.isGmailConnected()).isFalse();
+        assertThat(savedUser.getGoogleAccessToken()).isNull();
+        assertThat(savedUser.getGoogleRefreshToken()).isNull();
     }
 
     // --- GitHub OAuth2 ---
@@ -200,7 +175,7 @@ class OAuth2LoginSuccessHandlerTest {
                 "id"
         );
 
-        // Use a plain Authentication (not OAuth2AuthenticationToken) to skip Google token storage
+        // The handler only reads the principal, so a plain Authentication is enough
         Authentication auth = mock(Authentication.class);
         when(auth.getPrincipal()).thenReturn(oAuth2User);
 

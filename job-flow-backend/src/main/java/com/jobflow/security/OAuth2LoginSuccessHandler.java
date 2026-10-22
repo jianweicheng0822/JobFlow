@@ -8,12 +8,8 @@ import com.jobflow.service.OneTimeCodeService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -29,8 +25,6 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
     private final UserRepository userRepository;
     private final OneTimeCodeService oneTimeCodeService;
-    // Spring Boot only creates this when an OAuth provider is configured
-    private final ObjectProvider<OAuth2AuthorizedClientService> authorizedClientService;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -64,22 +58,8 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
             user.setAvatarUrl(avatarUrl);
         }
 
-        // Store Google OAuth tokens for Gmail API access
-        if (provider == AuthProvider.GOOGLE && authentication instanceof OAuth2AuthenticationToken oauthToken) {
-            OAuth2AuthorizedClientService clients = authorizedClientService.getIfAvailable();
-            OAuth2AuthorizedClient client = clients == null ? null : clients.loadAuthorizedClient(
-                    oauthToken.getAuthorizedClientRegistrationId(),
-                    oauthToken.getName());
-            if (client != null) {
-                String accessToken = client.getAccessToken().getTokenValue();
-                user.setGoogleAccessToken(accessToken);
-                if (client.getRefreshToken() != null) {
-                    user.setGoogleRefreshToken(client.getRefreshToken().getTokenValue());
-                }
-                user.setGmailConnected(true);
-            }
-        }
-
+        // Sign-in tokens have no Gmail access, so Gmail tokens are left alone here.
+        // Users link Gmail from Settings (GmailController), which stores its own.
         userRepository.save(user);
 
         // Not the JWT itself: URLs end up in browser history, logs and Referer headers.

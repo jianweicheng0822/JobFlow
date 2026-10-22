@@ -138,6 +138,7 @@ const en = {
   noAccount: "Don't have an account? ",
   signUp: 'Sign up',
   tryDemo: 'Try Demo',
+  privacyPolicy: 'Privacy Policy',
   loginFailed: 'Login failed. Please try again.',
 
   // Register Page

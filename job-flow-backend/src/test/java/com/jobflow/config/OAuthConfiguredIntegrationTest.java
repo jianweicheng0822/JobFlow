@@ -37,16 +37,16 @@ class OAuthConfiguredIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void googleStart_redirectsToGoogleAskingForOfflineGmailAccess() throws Exception {
+    void googleStart_redirectsToGoogleAskingOnlyForProfile() throws Exception {
         UriComponents redirect = redirectFrom("/oauth2/authorization/google");
 
         assertThat(redirect.getHost()).isEqualTo("accounts.google.com");
         assertThat(redirect.getQueryParams().getFirst("client_id")).isEqualTo("test-google-id");
         assertThat(decoded(redirect, "redirect_uri")).isEqualTo("http://localhost/login/oauth2/code/google");
-        assertThat(decoded(redirect, "scope")).contains("email", "profile", "https://www.googleapis.com/auth/gmail.readonly");
-        // Without these Google sends no refresh token and Gmail import stops working after an hour
-        assertThat(redirect.getQueryParams().getFirst("access_type")).isEqualTo("offline");
-        assertThat(redirect.getQueryParams().getFirst("prompt")).isEqualTo("consent");
+        assertThat(decoded(redirect, "scope").split(" ")).containsExactlyInAnyOrder("email", "profile");
+        // Signing in shouldn't make users click through a consent screen every time
+        assertThat(redirect.getQueryParams().getFirst("access_type")).isNull();
+        assertThat(redirect.getQueryParams().getFirst("prompt")).isNull();
     }
 
     @Test

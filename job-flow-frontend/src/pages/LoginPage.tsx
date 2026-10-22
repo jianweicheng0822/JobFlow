@@ -85,6 +85,10 @@ export default function LoginPage() {
         >
           {t.tryDemo}
         </button>
+
+        <p className="auth-footer">
+          <Link to="/privacy">{t.privacyPolicy}</Link>
+        </p>
       </div>
     </div>
   )

@@ -1,0 +1,37 @@
+/* Same card as the sign-in page, just wider for reading */
+.privacy-card {
+  max-width: 720px;
+}
+
+.privacy-section {
+  margin-top: 24px;
+}
+
+.privacy-section h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.privacy-section p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.privacy-links {
+  margin-top: 24px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.privacy-links a {
+  color: var(--sidebar-accent);
+  text-decoration: none;
+}
+
+.privacy-links a:hover {
+  text-decoration: underline;
+}

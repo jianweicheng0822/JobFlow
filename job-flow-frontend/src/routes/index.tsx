@@ -11,6 +11,7 @@ import SettingsPage from '../pages/SettingsPage'
 import LoginPage from '../pages/LoginPage'
 import RegisterPage from '../pages/RegisterPage'
 import OAuthCallback from '../pages/OAuthCallback'
+import PrivacyPage from '../pages/PrivacyPage'
 
 export const router = createBrowserRouter([
   {
@@ -20,6 +21,8 @@ export const router = createBrowserRouter([
       { path: '/login', element: <LoginPage /> },
       { path: '/register', element: <RegisterPage /> },
       { path: '/oauth/callback', element: <OAuthCallback /> },
+      // Google requires a public privacy policy for apps that use its sign-in and APIs
+      { path: '/privacy', element: <PrivacyPage /> },
 
       // Protected routes
       {

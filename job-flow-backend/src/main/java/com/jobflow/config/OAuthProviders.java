@@ -23,8 +23,10 @@ public class OAuthProviders {
     }
 
     public static OAuthProviders fromEnvironment(Environment env) {
+        // No Gmail scope here: it's a restricted scope, and asking for it at sign-in would show
+        // every Google user an "unverified app" warning. Linking Gmail asks for it on its own.
         ClientRegistration google = provider(env, "google", "GOOGLE", CommonOAuth2Provider.GOOGLE,
-                "email", "profile", "https://www.googleapis.com/auth/gmail.readonly");
+                "email", "profile");
         ClientRegistration github = provider(env, "github", "GITHUB", CommonOAuth2Provider.GITHUB,
                 "user:email", "read:user");
         return new OAuthProviders(google, github);

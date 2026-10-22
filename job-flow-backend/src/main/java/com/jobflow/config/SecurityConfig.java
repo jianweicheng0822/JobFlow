@@ -89,21 +89,12 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     * Custom resolver that adds access_type=offline and prompt=consent
-     * for Google OAuth so we receive a refresh token.
-     */
+    // Sign-in only needs who the user is, so no refresh token and no forced consent screen.
+    // Gmail access is asked for separately when the user links Gmail (GmailController).
     private OAuth2AuthorizationRequestResolver customAuthorizationRequestResolver() {
         DefaultOAuth2AuthorizationRequestResolver defaultResolver =
                 new DefaultOAuth2AuthorizationRequestResolver(
                         clientRegistrationRepository, AUTHORIZATION_BASE_URI);
-
-        defaultResolver.setAuthorizationRequestCustomizer(builder -> {
-            builder.additionalParameters(params -> {
-                params.put("access_type", "offline");
-                params.put("prompt", "consent");
-            });
-        });
 
         // The default resolver throws (and Spring answers 500) for a provider that isn't
         // registered. Pass those through instead so OAuthFallbackController can 404.

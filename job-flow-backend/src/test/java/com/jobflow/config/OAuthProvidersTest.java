@@ -49,8 +49,8 @@ class OAuthProvidersTest {
         ClientRegistration google = providers.registrations().get(0);
         assertThat(google.getClientId()).isEqualTo("g-id");
         assertThat(google.getClientSecret()).isEqualTo("g-secret");
-        assertThat(google.getScopes()).containsExactlyInAnyOrder(
-                "email", "profile", "https://www.googleapis.com/auth/gmail.readonly");
+        // Gmail access is requested separately, when the user links Gmail
+        assertThat(google.getScopes()).containsExactlyInAnyOrder("email", "profile");
         // Same callback path the Google/GitHub consoles already have registered
         assertThat(google.getRedirectUri()).isEqualTo("{baseUrl}/{action}/oauth2/code/{registrationId}");
         assertThat(providers.registrations().get(1).getScopes()).containsExactlyInAnyOrder("user:email", "read:user");

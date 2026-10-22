@@ -138,6 +138,7 @@ const zh = {
   noAccount: '还没有账号？',
   signUp: '注册',
   tryDemo: '体验 Demo',
+  privacyPolicy: '隐私政策',
   loginFailed: '登录失败，请重试。',
 
   // Register Page
