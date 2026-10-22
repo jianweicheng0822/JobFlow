@@ -59,8 +59,8 @@ A full-stack job application tracker with JWT + OAuth2 authentication, Kanban pi
 
 ### Configuration
 
-The backend reads its settings from environment variables. Copy `.env.example`
-to `.env` and fill it in:
+Copy `.env.example` to `.env` in the repo root and fill it in. Docker Compose
+and a local backend both read it (environment variables override it):
 
 | Variable | Required | What it's for |
 |----------|----------|---------------|
@@ -128,11 +128,13 @@ cd ../job-flow-frontend
 npm install && npm run dev
 ```
 
-For a local run, set the variables above as environment variables, or put a
-`.env` file in `job-flow-backend/`. If you only run MySQL from Docker
-(`docker compose up -d mysql`), set `DB_PORT=3307`.
+The backend picks up the repo root `.env` on its own (also `job-flow-backend/.env`),
+so there's nothing to export. If you only run MySQL from Docker
+(`docker compose up -d mysql`), keep `DB_PORT=3307` from `.env.example`.
 
-On Windows, `start.bat` starts the backend and frontend in two windows.
+On Windows, `start.bat` does all of this in one go: starts Docker and MySQL if
+needed, opens the backend and frontend in two windows, and opens the app once
+the backend is up.
 
 > **Demo Mode:** Click "Try Demo" on the login page to explore with mock data, no backend needed.
 

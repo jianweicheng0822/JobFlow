@@ -13,6 +13,16 @@ spring:
   application:
     name: jobflow
 
+  # Local runs pick up the repo's .env (KEY=value), so start.bat, mvnw and the IDE all
+  # share one config. Real environment variables still win, and in Docker there's no
+  # .env in the container, so deployments are unaffected. Both paths cover running
+  # from the repo root and from job-flow-backend/. Read as a .properties file, so a
+  # backslash in a value needs doubling.
+  config:
+    import:
+      - optional:file:../.env[.properties]
+      - optional:file:.env[.properties]
+
   datasource:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/jobflow?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     driver-class-name: com.mysql.cj.jdbc.Driver

@@ -24,6 +24,15 @@ spring:
       - org.springframework.boot.autoconfigure.mail.MailSenderAutoConfiguration
 
 app:
+  # application.yml also reads the developer's .env; never let real OAuth credentials
+  # leak into tests. Tests that need a provider set fake ones with @TestPropertySource.
+  oauth:
+    google:
+      client-id: ""
+      client-secret: ""
+    github:
+      client-id: ""
+      client-secret: ""
   jwt:
     secret: testSecretKeyThatIsAtLeast256BitsLongForHS256AlgorithmInTests
     expiration-ms: 3600000
