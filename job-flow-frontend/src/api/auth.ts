@@ -41,6 +41,16 @@ export const login = (data: LoginRequest) =>
 export const register = (data: RegisterRequest) =>
   client.post<AuthResponse>('/auth/register', data)
 
+// Which OAuth providers the server has credentials for
+export interface AuthProviders {
+  google: boolean
+  github: boolean
+  gmail: boolean
+}
+
+export const getAuthProviders = () =>
+  client.get<AuthProviders>('/auth/providers')
+
 // Trades the one-time code from the OAuth redirect for a JWT
 export const exchangeOAuthCode = (code: string) =>
   client.post<AuthResponse>('/auth/oauth/exchange', { code })

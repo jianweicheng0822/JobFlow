@@ -69,12 +69,30 @@ to `.env` and fill it in:
 | `DB_HOST`, `DB_PORT` | No | MySQL address, default `localhost:3306` |
 | `MAIL_USERNAME`, `MAIL_PASSWORD` | No | Gmail SMTP for interview reminder emails |
 | `SEED_DEMO_DATA` | No | `true` creates a sample account `demo@jobflow.com` / `demo123` on startup. Default `false`; keep it off anywhere public |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | No | Google sign-in and Gmail import |
-| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | No | GitHub sign-in |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | No | Google sign-in and Gmail import. Set both or neither |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | No | GitHub sign-in. Set both or neither |
 | `FRONTEND_URL` | No | Where the app is opened; sign-in and Gmail linking return here. Default `http://localhost:5173` (`http://localhost` in Docker) |
 | `GMAIL_REDIRECT_URI` | No | Gmail linking callback, must be registered in your Google OAuth client. Default `http://localhost:8080/api/gmail/callback` (`http://localhost/api/gmail/callback` in Docker) |
 
 The app works without the optional ones; those features are just turned off.
+
+#### Sign-in with Google / GitHub
+
+Each provider turns on when both its client id and secret are set. Its button then
+shows on the login and register pages, and Google also enables Gmail import in
+Settings. A provider with no credentials is hidden. A provider with only one of the
+two set stops the backend at startup, so a typo in your secrets can't go unnoticed.
+The startup log shows which providers are on (`OAuth sign-in enabled: [google, github]`).
+
+Keep the credentials in `.env` or your host's secret store, never in the repo.
+Register these redirect URIs with each provider, using the address users open
+(`http://localhost` for Docker, `http://localhost:8080` when running locally):
+
+| Provider | Redirect URI |
+|----------|--------------|
+| Google (sign-in) | `<app address>/login/oauth2/code/google` |
+| Google (Gmail import) | the value of `GMAIL_REDIRECT_URI` |
+| GitHub | `<app address>/login/oauth2/code/github` |
 
 ### Option A: Docker (everything in one go)
 

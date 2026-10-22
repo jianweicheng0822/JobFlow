@@ -12,6 +12,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.Authentication;
@@ -45,6 +46,9 @@ class OAuth2LoginSuccessHandlerTest {
     @Mock
     private OAuth2AuthorizedClientService authorizedClientService;
 
+    @Mock
+    private ObjectProvider<OAuth2AuthorizedClientService> authorizedClientServiceProvider;
+
     @InjectMocks
     private OAuth2LoginSuccessHandler handler;
 
@@ -57,6 +61,7 @@ class OAuth2LoginSuccessHandlerTest {
         response = new MockHttpServletResponse();
         // Normally injected from app.frontend-url
         ReflectionTestUtils.setField(handler, "frontendUrl", "https://jobflow.example");
+        lenient().when(authorizedClientServiceProvider.getIfAvailable()).thenReturn(authorizedClientService);
     }
 
     // --- Google OAuth2 ---

@@ -2,6 +2,7 @@ package com.jobflow.config;
 
 import com.jobflow.security.JwtAuthenticationFilter;
 import com.jobflow.security.OAuth2LoginSuccessHandler;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +20,7 @@ import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequ
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.cors.CorsConfiguration;
@@ -33,10 +35,12 @@ import java.util.Map;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    private static final String AUTHORIZATION_BASE_URI = "/oauth2/authorization";
+
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
-    // Optional: only present when OAuth2 client auto-config is active
+    // Optional: only present when at least one OAuth provider is configured (OAuthClientConfig)
     private final ClientRegistrationRepository clientRegistrationRepository;
 
     private final String frontendUrl;
@@ -62,6 +66,8 @@ public class SecurityConfig {
                 // Only signing up and logging in are public. The rest of /api/auth (me, profile,
                 // password, time-zone) needs a token; without one the entry point below answers 401.
                 .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/oauth/exchange").permitAll()
+                // Login and register pages ask which sign-in buttons to show
+                .requestMatchers(HttpMethod.GET, "/api/auth/providers").permitAll()
                 .requestMatchers("/api/gmail/callback").permitAll()
                 .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                 .anyRequest().authenticated()
@@ -90,7 +96,7 @@ public class SecurityConfig {
     private OAuth2AuthorizationRequestResolver customAuthorizationRequestResolver() {
         DefaultOAuth2AuthorizationRequestResolver defaultResolver =
                 new DefaultOAuth2AuthorizationRequestResolver(
-                        clientRegistrationRepository, "/oauth2/authorization");
+                        clientRegistrationRepository, AUTHORIZATION_BASE_URI);
 
         defaultResolver.setAuthorizationRequestCustomizer(builder -> {
             builder.additionalParameters(params -> {
@@ -99,7 +105,25 @@ public class SecurityConfig {
             });
         });
 
-        return defaultResolver;
+        // The default resolver throws (and Spring answers 500) for a provider that isn't
+        // registered. Pass those through instead so OAuthFallbackController can 404.
+        AntPathRequestMatcher matcher = new AntPathRequestMatcher(AUTHORIZATION_BASE_URI + "/{registrationId}");
+        return new OAuth2AuthorizationRequestResolver() {
+            @Override
+            public OAuth2AuthorizationRequest resolve(HttpServletRequest request) {
+                String id = matcher.matcher(request).getVariables().get("registrationId");
+                return isRegistered(id) ? defaultResolver.resolve(request) : null;
+            }
+
+            @Override
+            public OAuth2AuthorizationRequest resolve(HttpServletRequest request, String registrationId) {
+                return isRegistered(registrationId) ? defaultResolver.resolve(request, registrationId) : null;
+            }
+        };
+    }
+
+    private boolean isRegistered(String registrationId) {
+        return registrationId != null && clientRegistrationRepository.findByRegistrationId(registrationId) != null;
     }
 
     // Only matters when the frontend is served from another origin. Behind nginx (Docker)

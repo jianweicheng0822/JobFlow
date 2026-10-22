@@ -1,5 +1,6 @@
 package com.jobflow.controller;
 
+import com.jobflow.config.OAuthProviders;
 import com.jobflow.dto.AuthResponse;
 import com.jobflow.dto.ChangePasswordRequest;
 import com.jobflow.dto.LoginRequest;
@@ -15,12 +16,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
     private final AuthService authService;
+    private final OAuthProviders oAuthProviders;
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
@@ -31,6 +35,15 @@ public class AuthController {
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
+    }
+
+    // Which sign-in buttons and integrations the frontend should show
+    @GetMapping("/providers")
+    public Map<String, Boolean> getProviders() {
+        return Map.of(
+                "google", oAuthProviders.isGoogleEnabled(),
+                "github", oAuthProviders.isGithubEnabled(),
+                "gmail", oAuthProviders.isGmailEnabled());
     }
 
     // The OAuth redirect lands on the frontend with a one-time code; it trades it in here

@@ -49,10 +49,10 @@ public class GmailService {
     private final EmailImportLogRepository emailImportLogRepository;
     private final UserClock userClock;
 
-    @Value("${spring.security.oauth2.client.registration.google.client-id:}")
+    @Value("${app.oauth.google.client-id:}")
     private String googleClientId;
 
-    @Value("${spring.security.oauth2.client.registration.google.client-secret:}")
+    @Value("${app.oauth.google.client-secret:}")
     private String googleClientSecret;
 
     private static final String GMAIL_SEARCH_QUERY =

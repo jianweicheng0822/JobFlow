@@ -38,7 +38,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 // Non-default URLs, so the tests prove they come from config rather than hard-coded dev values
 @TestPropertySource(properties = {
         "app.frontend-url=https://jobflow.example",
-        "app.gmail.redirect-uri=https://jobflow.example/api/gmail/callback"
+        "app.gmail.redirect-uri=https://jobflow.example/api/gmail/callback",
+        "app.oauth.google.client-id=test-google-id",
+        "app.oauth.google.client-secret=test-google-secret"
 })
 class GmailControllerIntegrationTest extends BaseIntegrationTest {
 
@@ -112,7 +114,8 @@ class GmailControllerIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.authUrl").isString())
                 .andExpect(jsonPath("$.authUrl", containsString("accounts.google.com")))
                 .andExpect(jsonPath("$.authUrl",
-                        containsString("redirect_uri=https%3A%2F%2Fjobflow.example%2Fapi%2Fgmail%2Fcallback")));
+                        containsString("redirect_uri=https%3A%2F%2Fjobflow.example%2Fapi%2Fgmail%2Fcallback")))
+                .andExpect(jsonPath("$.authUrl", containsString("client_id=test-google-id")));
     }
 
     @Test

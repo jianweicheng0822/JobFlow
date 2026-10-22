@@ -10,6 +10,7 @@ import * as gmailApi from '../api/gmail'
 import GmailImportModal from '../components/GmailImportModal'
 import './SettingsPage.css'
 import TimeZoneSetting from '../components/TimeZoneSetting'
+import { useAuthProviders } from '../hooks/useAuthProviders'
 
 const AVATAR_STORAGE_KEY = 'jobflow-avatar'
 
@@ -28,6 +29,9 @@ export default function SettingsPage() {
   const { showToast } = useToast()
   const { t, lang, setLanguage } = useLanguage()
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile')
+  // Gmail import is the only integration, so the tab goes when the server can't do it
+  const showIntegrations = useAuthProviders()?.gmail === true
+  const visibleTabs = tabDefs.filter((tab) => tab.key !== 'integrations' || showIntegrations)
 
   const [avatar, setAvatar] = useState<string | null>(() => {
     return localStorage.getItem(AVATAR_STORAGE_KEY)
@@ -238,7 +242,7 @@ export default function SettingsPage() {
       <div className="settings-layout">
         {/* Left Side Nav */}
         <nav className="settings-nav">
-          {tabDefs.map((tab) => {
+          {visibleTabs.map((tab) => {
             const Icon = tab.icon
             return (
               <button
@@ -418,7 +422,7 @@ export default function SettingsPage() {
       )}
 
       {/* Integrations Tab */}
-      {activeTab === 'integrations' && (
+      {activeTab === 'integrations' && showIntegrations && (
         <div className="settings-section">
           <h3 className="settings-section-title">{t.gmailIntegration}</h3>
           {isDemoMode() ? (

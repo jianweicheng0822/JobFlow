@@ -5,10 +5,13 @@
 #   docker compose up -d --build && ./scripts/compose-smoke.sh
 #
 # BASE overrides the URL; COMPOSE overrides the compose command (e.g. to add -p/-f).
+# EXPECT_OAUTH lists the OAuth features that should be on, e.g. "google,github,gmail"
+# (default: none, matching a stack started without OAuth credentials).
 set -euo pipefail
 
 BASE=${BASE:-http://localhost}
 COMPOSE=${COMPOSE:-docker compose}
+EXPECT_OAUTH=${EXPECT_OAUTH:-}
 EMAIL="smoke-$(date +%s)@example.com"
 PASSWORD="smoke-pass-123"
 
@@ -44,6 +47,15 @@ token=$(sed -n 's/.*"token":"\([^"]*\)".*/\1/p' /tmp/smoke-body)
 
 code=$(api -H "Authorization: Bearer $token" "$BASE/api/applications/stats")
 [ "$code" = "200" ] || fail "stats answered $code"
+
+# The login page shows exactly the OAuth buttons the server has credentials for
+code=$(api "$BASE/api/auth/providers")
+[ "$code" = "200" ] || fail "providers answered $code"
+for p in google github gmail; do
+  expected=false
+  case ",$EXPECT_OAUTH," in *",$p,"*) expected=true ;; esac
+  grep -q "\"$p\":$expected" /tmp/smoke-body || fail "expected $p=$expected, providers said $(cat /tmp/smoke-body)"
+done
 
 # Deep link: nginx has to fall back to index.html for client-side routes
 code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/jobs")

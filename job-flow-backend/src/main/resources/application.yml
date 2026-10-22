@@ -52,37 +52,19 @@ spring:
     baseline-version: 0
     locations: classpath:db/migration
 
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: ${GOOGLE_CLIENT_ID:placeholder}
-            client-secret: ${GOOGLE_CLIENT_SECRET:placeholder}
-            scope: email, profile, https://www.googleapis.com/auth/gmail.readonly
-          github:
-            client-id: ${GITHUB_CLIENT_ID:placeholder}
-            client-secret: ${GITHUB_CLIENT_SECRET:placeholder}
-            scope: user:email, read:user
-        # LinkedIn - uncomment when credentials are available
-        # linkedin:
-        #   client-id: ${LINKEDIN_CLIENT_ID}
-        #   client-secret: ${LINKEDIN_CLIENT_SECRET}
-        #   authorization-grant-type: authorization_code
-        #   redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
-        #   scope: openid, profile, email
-        #   client-name: LinkedIn
-        # provider:
-        #   linkedin:
-        #     authorization-uri: https://www.linkedin.com/oauth/v2/authorization
-        #     token-uri: https://www.linkedin.com/oauth/v2/accessToken
-        #     user-info-uri: https://api.linkedin.com/v2/userinfo
-        #     user-name-attribute: sub
-
 app:
   # Where users open the app. OAuth and Gmail linking send the browser back here,
   # and it's the only origin allowed to call the API cross-origin.
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  # Each provider is on when both its id and secret are set, off when neither is
+  # (see OAuthProviders). Google also enables Gmail import.
+  oauth:
+    google:
+      client-id: ${GOOGLE_CLIENT_ID:}
+      client-secret: ${GOOGLE_CLIENT_SECRET:}
+    github:
+      client-id: ${GITHUB_CLIENT_ID:}
+      client-secret: ${GITHUB_CLIENT_SECRET:}
   gmail:
     # Must match a redirect URI registered for the Google OAuth client
     redirect-uri: ${GMAIL_REDIRECT_URI:http://localhost:8080/api/gmail/callback}

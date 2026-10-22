@@ -30,13 +30,13 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       # Optional ones get a default so leaving them out of .env still starts the app.
-      # Spring refuses an empty OAuth client id, hence "placeholder" (same as application.yml).
+      # Each OAuth provider is on only when both its id and secret are set; empty = off.
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-placeholder}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-placeholder}
-      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-placeholder}
-      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-placeholder}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
       SEED_DEMO_DATA: ${SEED_DEMO_DATA:-false}
       # Change both if the app isn't served at http://localhost (e.g. another port or a domain)
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}

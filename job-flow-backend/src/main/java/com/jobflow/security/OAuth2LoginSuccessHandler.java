@@ -8,6 +8,7 @@ import com.jobflow.service.OneTimeCodeService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
@@ -28,7 +29,8 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
     private final UserRepository userRepository;
     private final OneTimeCodeService oneTimeCodeService;
-    private final OAuth2AuthorizedClientService authorizedClientService;
+    // Spring Boot only creates this when an OAuth provider is configured
+    private final ObjectProvider<OAuth2AuthorizedClientService> authorizedClientService;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -64,7 +66,8 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
         // Store Google OAuth tokens for Gmail API access
         if (provider == AuthProvider.GOOGLE && authentication instanceof OAuth2AuthenticationToken oauthToken) {
-            OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
+            OAuth2AuthorizedClientService clients = authorizedClientService.getIfAvailable();
+            OAuth2AuthorizedClient client = clients == null ? null : clients.loadAuthorizedClient(
                     oauthToken.getAuthorizedClientRegistrationId(),
                     oauthToken.getName());
             if (client != null) {

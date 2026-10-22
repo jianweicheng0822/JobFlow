@@ -29,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 // Runs the real SecurityConfig against AuthController without a database,
 // so it works without Docker (unlike the *IntegrationTest classes)
 @WebMvcTest(AuthController.class)
-@Import({SecurityConfig.class, JwtAuthenticationFilter.class})
+@Import({SecurityConfig.class, JwtAuthenticationFilter.class, OAuthClientConfig.class})
 @ActiveProfiles("test")
 class AuthEndpointSecurityTest {
 
@@ -89,6 +89,13 @@ class AuthEndpointSecurityTest {
                         .header("Authorization", "Bearer good-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"timeZone\":\"UTC\"}"))
+                .andExpect(status().isOk());
+    }
+
+    // The login page asks before anyone is signed in
+    @Test
+    void providers_isPublic() throws Exception {
+        mockMvc.perform(get("/api/auth/providers"))
                 .andExpect(status().isOk());
     }
 }
