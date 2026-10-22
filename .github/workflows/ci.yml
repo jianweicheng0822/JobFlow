@@ -8,10 +8,11 @@ on:
 permissions:
   contents: read
 
-# A newer push to the same branch makes the older run pointless
+# A newer push to a PR makes the older run pointless. On main, runs wait their turn
+# instead, so a push can't cancel a deploy halfway through.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   backend:
@@ -75,3 +76,97 @@ jobs:
       - name: Tear down
         if: always()
         run: docker compose down -v
+
+  images:
+    name: Build and push images
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [backend, frontend, smoke]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        app: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: job-flow-${{ matrix.app }}
+          push: true
+          # The sha tag is what gets deployed; latest is just for humans
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/jobflow-${{ matrix.app }}:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/jobflow-${{ matrix.app }}:latest
+          # Links the package to this repo on GitHub
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+
+  deploy:
+    name: Deploy to production
+    needs: images
+    runs-on: ubuntu-latest
+    # Never two deploys at once, and never cancel one halfway
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      # Lets the job prove to AWS who it is (OIDC), so no AWS keys are stored in GitHub.
+      # The role only trusts this repo's main branch and can only run commands on our server.
+      id-token: write
+    env:
+      AWS_REGION: us-east-1
+      INSTANCE_ID: i-0c7371204b3fa00e2
+      SITE: https://jobflow.lumis.software
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::991049183708:role/jobflow-github-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Run deploy.sh on the server
+        run: |
+          raw="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/deploy/deploy.sh"
+          params=$(jq -nc --arg raw "$raw" --arg sha "${{ github.sha }}" '{
+            commands: ["set -e", "curl -fsSL \($raw) -o /opt/jobflow/deploy.sh", "bash /opt/jobflow/deploy.sh \($sha)"],
+            executionTimeout: ["900"]
+          }')
+          id=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --comment "Deploy ${{ github.sha }}" \
+            --parameters "$params" \
+            --query Command.CommandId --output text)
+          echo "SSM command $id"
+
+          # Wait for it to finish (up to 15 minutes)
+          for _ in $(seq 1 180); do
+            sleep 5
+            status=$(aws ssm get-command-invocation --command-id "$id" --instance-id "$INSTANCE_ID" \
+              --query Status --output text 2>/dev/null || echo Pending)
+            case "$status" in
+              Pending|InProgress|Delayed) continue ;;
+              *) break ;;
+            esac
+          done
+
+          aws ssm get-command-invocation --command-id "$id" --instance-id "$INSTANCE_ID" \
+            --query '[StandardOutputContent, StandardErrorContent]' --output text
+          echo "Status: $status"
+          [ "$status" = "Success" ]
+
+      # From the outside, through Cloudflare, like a real visitor
+      - name: Smoke test the live site
+        run: |
+          curl -sf "$SITE/" | grep -q '<div id="root">'
+          providers=$(curl -sf "$SITE/api/auth/providers")
+          echo "$providers"
+          echo "$providers" | jq -e '.google and .github and .gmail' > /dev/null
