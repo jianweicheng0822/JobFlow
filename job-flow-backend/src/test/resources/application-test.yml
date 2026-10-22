@@ -1,4 +1,12 @@
 spring:
+  datasource:
+    hikari:
+      # Spring keeps one app context per distinct test config alive, all on the same
+      # MySQL. At the production size (20) a handful of them would pass MySQL's 151
+      # connection limit. 5 still covers the 4-thread concurrency tests.
+      maximum-pool-size: 5
+      minimum-idle: 1
+
   jpa:
     hibernate:
       ddl-auto: validate
@@ -6,7 +14,6 @@ spring:
 
   flyway:
     enabled: true
-    clean-disabled: false
 
   mail:
     host: localhost
