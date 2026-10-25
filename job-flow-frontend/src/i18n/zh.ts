@@ -140,6 +140,14 @@ const zh = {
   privacyPolicy: '隐私政策',
   loginFailed: '登录失败，请重试。',
 
+  // 404 and error pages
+  notFoundTitle: '页面不存在',
+  notFoundMessage: '你访问的页面不存在，或者已经被移动。',
+  errorPageTitle: '出了点问题',
+  errorPageMessage: '发生了意外错误，页面没能加载。刷新一下通常就能恢复。',
+  reloadPage: '刷新页面',
+  backToHome: '返回首页',
+
   // Register Page
   createAccount: '创建账号',
   registerSubtitle: '立即开始跟踪你的求职申请',

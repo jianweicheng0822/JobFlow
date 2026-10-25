@@ -140,6 +140,14 @@ const en = {
   privacyPolicy: 'Privacy Policy',
   loginFailed: 'Login failed. Please try again.',
 
+  // 404 and error pages
+  notFoundTitle: 'Page not found',
+  notFoundMessage: "The page you're looking for doesn't exist or has moved.",
+  errorPageTitle: 'Something went wrong',
+  errorPageMessage: 'An unexpected error stopped this page from loading. Reloading usually fixes it.',
+  reloadPage: 'Reload page',
+  backToHome: 'Back to home',
+
   // Register Page
   createAccount: 'Create an account',
   registerSubtitle: 'Start tracking your job applications today',

@@ -1,0 +1,23 @@
+/* 404 and error pages: reuse the auth card, just stack the buttons */
+.status-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.status-secondary-btn {
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.status-secondary-btn:hover {
+  background: var(--content-bg);
+}

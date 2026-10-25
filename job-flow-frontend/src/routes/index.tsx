@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, type RouteObject } from 'react-router-dom'
 import RootLayout from '../components/RootLayout'
 import Layout from '../components/Layout'
 import ProtectedRoute from '../components/ProtectedRoute'
@@ -12,35 +12,48 @@ import LoginPage from '../pages/LoginPage'
 import RegisterPage from '../pages/RegisterPage'
 import OAuthCallback from '../pages/OAuthCallback'
 import PrivacyPage from '../pages/PrivacyPage'
+import NotFoundPage from '../pages/NotFoundPage'
+import ErrorPage from '../pages/ErrorPage'
 
-export const router = createBrowserRouter([
+// Exported on its own so tests can mount the same tree in a memory router
+export const routes: RouteObject[] = [
   {
     element: <RootLayout />,
     children: [
-      // Public routes
-      { path: '/login', element: <LoginPage /> },
-      { path: '/register', element: <RegisterPage /> },
-      { path: '/oauth/callback', element: <OAuthCallback /> },
-      // Google requires a public privacy policy for apps that use its sign-in and APIs
-      { path: '/privacy', element: <PrivacyPage /> },
-
-      // Protected routes
       {
-        element: <ProtectedRoute />,
+        // Sits inside RootLayout so the error page still has language and auth
+        errorElement: <ErrorPage />,
         children: [
+          // Public routes
+          { path: '/login', element: <LoginPage /> },
+          { path: '/register', element: <RegisterPage /> },
+          { path: '/oauth/callback', element: <OAuthCallback /> },
+          // Google requires a public privacy policy for apps that use its sign-in and APIs
+          { path: '/privacy', element: <PrivacyPage /> },
+
+          // Protected routes
           {
-            element: <Layout />,
+            element: <ProtectedRoute />,
             children: [
-              { path: '/', element: <Dashboard /> },
-              { path: '/jobs', element: <Jobs /> },
-              { path: '/interviews', element: <Interviews /> },
-              { path: '/companies', element: <Companies /> },
-              { path: '/analytics', element: <Analytics /> },
-              { path: '/settings', element: <SettingsPage /> },
+              {
+                element: <Layout />,
+                children: [
+                  { path: '/', element: <Dashboard /> },
+                  { path: '/jobs', element: <Jobs /> },
+                  { path: '/interviews', element: <Interviews /> },
+                  { path: '/companies', element: <Companies /> },
+                  { path: '/analytics', element: <Analytics /> },
+                  { path: '/settings', element: <SettingsPage /> },
+                ],
+              },
             ],
           },
+
+          { path: '*', element: <NotFoundPage /> },
         ],
       },
     ],
   },
-])
+]
+
+export const router = createBrowserRouter(routes)
