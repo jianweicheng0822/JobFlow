@@ -134,6 +134,15 @@ const zh = {
   offeredOf: '{total} 条中 {count} 条拿到录用',
   rateNeedsMore: '满 {n} 条申请后显示比例',
   showStatusJobs: '查看「{status}」的职位',
+  monthlyApplications: '每月投递',
+  monthApplied: '投递 {count} 个',
+  monthlyChartLabel: '最近 12 个月每月投递数：{values}',
+  dailyActivity: '每日投递',
+  lastWeeks: '最近 {weeks} 周',
+  heatmapDay: '{date}：投递 {count} 个',
+  heatmapSummary: '最近 {weeks} 周有 {days} 天投递，共 {count} 个',
+  heatmapLess: '少',
+  heatmapMore: '多',
 
   // Login Page
   welcomeBack: '欢迎回来',

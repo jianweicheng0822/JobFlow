@@ -134,6 +134,15 @@ const en = {
   offeredOf: '{count} of {total} got an offer',
   rateNeedsMore: 'Rate shows after {n} applications',
   showStatusJobs: 'Show {status} jobs',
+  monthlyApplications: 'Applications per Month',
+  monthApplied: '{count} applied',
+  monthlyChartLabel: 'Applications per month, last 12 months: {values}',
+  dailyActivity: 'Daily Activity',
+  lastWeeks: 'Last {weeks} weeks',
+  heatmapDay: '{date}: {count} applied',
+  heatmapSummary: 'Last {weeks} weeks: {count} applied, active days: {days}',
+  heatmapLess: 'Less',
+  heatmapMore: 'More',
 
   // Login Page
   welcomeBack: 'Welcome back',

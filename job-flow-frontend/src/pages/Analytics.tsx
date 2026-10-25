@@ -8,10 +8,13 @@ import {
 } from 'recharts'
 import { LayoutDashboard, PieChart as PieIcon, BarChart3 } from 'lucide-react'
 import './Analytics.css'
-import { getStats, getApplications } from '../api/applications'
-import type { DashboardStatsDTO, JobApplicationDTO } from '../api/types'
+import { getStats, getApplications, getActivity } from '../api/applications'
+import type { ApplicationActivityDTO, DashboardStatsDTO, JobApplicationDTO } from '../api/types'
 import { buildStatusDistribution } from '../utils/statusDistribution'
 import { MIN_APPS_FOR_SHARE } from '../components/ShareBar'
+import ActivityHeatmap from '../components/ActivityHeatmap'
+
+const HEATMAP_WEEKS = 26
 
 type AnalyticsTab = 'overview' | 'status' | 'company'
 
@@ -53,25 +56,28 @@ function fill(template: string, values: Record<string, string | number>) {
 }
 
 export default function Analytics() {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<AnalyticsTab>('overview')
   const [stats, setStats] = useState<DashboardStatsDTO | null>(null)
   const [companyData, setCompanyData] = useState<{ company: string; count: number }[]>([])
   const [applications, setApplications] = useState<JobApplicationDTO[]>([])
+  const [activity, setActivity] = useState<ApplicationActivityDTO[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [statsRes, appsRes] = await Promise.all([
+        const [statsRes, appsRes, activityRes] = await Promise.all([
           getStats(),
           getApplications(),
+          getActivity(),
         ])
         setStats(statsRes.data)
         setCompanyData(buildCompanyData(appsRes.data))
         setApplications(appsRes.data)
+        setActivity(activityRes.data)
       } catch (err) {
         console.error('Failed to load analytics:', err)
         setError(t.backendError)
@@ -116,6 +122,21 @@ export default function Analytics() {
 
   const statusData = buildStatusDistribution(applications, t)
 
+  // "2026-10" -> "Oct" / "10月" on the axis, "October 2026" / "2026年10月" in the tooltip
+  const locale = lang === 'zh' ? 'zh-CN' : 'en-US'
+  const monthlyData = activity.map(({ yearMonth, count }) => {
+    const [y, m] = yearMonth.split('-').map(Number)
+    const date = new Date(y, m - 1, 1)
+    return {
+      label: date.toLocaleDateString(locale, { month: 'short' }),
+      full: date.toLocaleDateString(locale, { year: 'numeric', month: 'long' }),
+      count,
+    }
+  })
+  const monthlyChartLabel = fill(t.monthlyChartLabel, {
+    values: monthlyData.map((d) => `${d.full} ${d.count}`).join(', '),
+  })
+
   return (
     <div className="analytics-page">
       <h1 className="analytics-page-title">{t.analytics}</h1>
@@ -143,14 +164,56 @@ export default function Analytics() {
         <div className="analytics-content">
           {/* Overview Tab */}
           {activeTab === 'overview' && (
-            <div className="analytics-stat-cards">
-              {statSummary.map((stat) => (
-                <div className="analytics-stat-card" key={stat.label}>
-                  <span className="analytics-stat-label">{stat.label}</span>
-                  <span className="analytics-stat-value">{stat.value}</span>
-                  {stat.sub && <span className="analytics-stat-sub">{stat.sub}</span>}
+            <div className="analytics-overview">
+              <div className="analytics-stat-cards">
+                {statSummary.map((stat) => (
+                  <div className="analytics-stat-card" key={stat.label}>
+                    <span className="analytics-stat-label">{stat.label}</span>
+                    <span className="analytics-stat-value">{stat.value}</span>
+                    {stat.sub && <span className="analytics-stat-sub">{stat.sub}</span>}
+                  </div>
+                ))}
+              </div>
+
+              <div className="analytics-chart-card">
+                <h2 className="analytics-chart-title">{t.monthlyApplications}</h2>
+                <div className="analytics-chart-wrapper" role="img" aria-label={monthlyChartLabel}>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <BarChart data={monthlyData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fontSize: 12, fill: 'var(--text-muted)' }}
+                        axisLine={false}
+                        tickLine={false}
+                        interval={0}
+                      />
+                      <YAxis
+                        allowDecimals={false}
+                        tick={{ fontSize: 12, fill: 'var(--text-muted)' }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        contentStyle={tooltipStyle}
+                        cursor={{ fill: 'var(--content-bg)' }}
+                        separator=""
+                        labelFormatter={(_, payload) => payload?.[0]?.payload.full ?? ''}
+                        formatter={(value) => [fill(t.monthApplied, { count: Number(value) }), '']}
+                      />
+                      <Bar dataKey="count" fill="#4f6ef7" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
-              ))}
+              </div>
+
+              <div className="analytics-chart-card">
+                <div className="analytics-chart-header">
+                  <h2 className="analytics-chart-title">{t.dailyActivity}</h2>
+                  <span className="analytics-chart-meta">{fill(t.lastWeeks, { weeks: HEATMAP_WEEKS })}</span>
+                </div>
+                <ActivityHeatmap applications={applications} weeks={HEATMAP_WEEKS} />
+              </div>
             </div>
           )}
 

@@ -1,0 +1,91 @@
+.heatmap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.heatmap-scroll {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.heatmap-grid {
+  display: grid;
+  grid-auto-flow: row;
+  gap: 4px;
+  /* Cells grow with the card but stay square; below this the grid scrolls sideways */
+  min-width: 460px;
+}
+
+.heatmap-month,
+.heatmap-weekday {
+  font-size: 10px;
+  line-height: 1;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Month names may be wider than a cell; let them run over the next columns */
+.heatmap-month {
+  overflow: visible;
+  width: 0;
+  padding-bottom: 4px;
+}
+
+.heatmap-weekday {
+  padding-right: 6px;
+  align-self: center;
+}
+
+.heatmap-cell {
+  display: block;
+  aspect-ratio: 1;
+  border-radius: 3px;
+}
+
+.heatmap-legend .heatmap-cell {
+  width: 12px;
+}
+
+/* One hue, light to dark; mixing with the card color keeps the steps right in dark mode too */
+.heatmap-cell--0 {
+  background: var(--border-color);
+}
+
+.heatmap-cell--1 {
+  background: color-mix(in srgb, var(--sidebar-accent) 50%, var(--card-bg));
+}
+
+.heatmap-cell--2 {
+  background: color-mix(in srgb, var(--sidebar-accent) 68%, var(--card-bg));
+}
+
+.heatmap-cell--3 {
+  background: color-mix(in srgb, var(--sidebar-accent) 85%, var(--card-bg));
+}
+
+.heatmap-cell--4 {
+  background: var(--sidebar-accent);
+}
+
+.heatmap-grid .heatmap-cell:hover {
+  outline: 2px solid var(--text-secondary);
+  outline-offset: 1px;
+}
+
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.heatmap-legend span:first-child {
+  margin-right: 4px;
+}
+
+.heatmap-legend span:last-child {
+  margin-left: 4px;
+}
