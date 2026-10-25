@@ -1,10 +1,12 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Plus, Pencil, Trash2, Star } from 'lucide-react'
 import './Jobs.css'
 import { getApplications, deleteApplication, toggleStar, updateStatus } from '../api/applications'
 import type { JobApplicationDTO, ApplicationStatus } from '../api/types'
 import Modal from '../components/Modal'
 import ApplicationForm from '../components/ApplicationForm'
+import ShareBar from '../components/ShareBar'
 import { useToast } from '../context/ToastContext'
 import { useLanguage } from '../context/LanguageContext'
 import { getErrorMessage } from '../api/client'
@@ -19,7 +21,7 @@ const STATUS_COLORS: Record<ApplicationStatus, string> = {
   PHONE_SCREEN: 'var(--status-phone-screen)',
   INTERVIEW: 'var(--status-interview)',
   OFFER: 'var(--status-offer)',
-  REJECTED: 'var(--status-rejected)',
+  REJECTED: 'var(--status-declined)',
 }
 
 const STATUS_LABEL_KEYS: Record<ApplicationStatus, string> = {
@@ -100,30 +102,10 @@ function JobsStatIcon({ type }: { type: string }) {
   }
 }
 
-function JobsTrendLine({ direction }: { direction: 'up' | 'down' }) {
-  return (
-    <div className={`jobs-stat-card-trend jobs-stat-card-trend--${direction}`}>
-      <svg viewBox="0 0 32 20" fill="none">
-        {direction === 'up' ? (
-          <polyline
-            points="2,16 8,12 14,14 20,8 26,4 30,2"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        ) : (
-          <polyline
-            points="2,4 8,6 14,8 20,14 26,16 30,18"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        )}
-      </svg>
-    </div>
-  )
+const ALL_STATUSES = Object.keys(STATUS_LABEL_KEYS) as ApplicationStatus[]
+
+function isStatus(value: string | null): value is ApplicationStatus {
+  return ALL_STATUSES.includes(value as ApplicationStatus)
 }
 
 export default function Jobs() {
@@ -136,6 +118,13 @@ export default function Jobs() {
   const [companyFilter, setCompanyFilter] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [locationFilter, setLocationFilter] = useState('')
+  // Stage lives in the URL so dashboard cards can link straight to e.g. ?status=OFFER
+  const [searchParams, setSearchParams] = useSearchParams()
+  const statusParam = searchParams.get('status')
+  const statusFilter = isStatus(statusParam) ? statusParam : ''
+  const setStatusFilter = useCallback((status: string) => {
+    setSearchParams(status ? { status } : {}, { replace: true })
+  }, [setSearchParams])
   const [dateSort, setDateSort] = useState<SortDirection>('desc')
   const [currentPage, setCurrentPage] = useState(0)
   const pageSize = 20
@@ -257,37 +246,40 @@ export default function Jobs() {
       const matchesCompany = !companyFilter || app.company.name === companyFilter
       const matchesRole = !roleFilter || app.positionTitle === roleFilter
       const matchesLocation = !locationFilter || app.location === locationFilter
-      return matchesSearch && matchesCompany && matchesRole && matchesLocation
+      const matchesStatus = !statusFilter || app.status === statusFilter
+      return matchesSearch && matchesCompany && matchesRole && matchesLocation && matchesStatus
     })
-  }, [applications, search, companyFilter, roleFilter, locationFilter, dateSort])
+  }, [applications, search, companyFilter, roleFilter, locationFilter, statusFilter, dateSort])
 
   // Reset to first page when filters or sorting change
   useEffect(() => {
     setCurrentPage(0)
-  }, [search, companyFilter, roleFilter, locationFilter, dateSort])
+  }, [search, companyFilter, roleFilter, locationFilter, statusFilter, dateSort])
 
   const totalPages = Math.max(1, Math.ceil(filteredJobs.length / pageSize))
   const pagedJobs = filteredJobs.slice(currentPage * pageSize, (currentPage + 1) * pageSize)
 
   const topEmployers = useMemo(() => buildTopEmployers(applications), [applications])
 
-  const activeCount = applications.filter((a) => !['OFFER', 'REJECTED'].includes(a.status)).length
-  const closedCount = applications.filter((a) => ['OFFER', 'REJECTED'].includes(a.status)).length
+  // An offer is good news, so it counts as active rather than lumped in with rejections
+  const activeCount = applications.filter((a) => a.status !== 'REJECTED').length
+  const rejectedCount = applications.filter((a) => a.status === 'REJECTED').length
   const savedCount = applications.filter((a) => a.starred).length
 
   const jobsStatCards = [
-    { label: t.activeApplications, value: activeCount, icon: 'active' as const, trend: 'up' as const },
-    { label: t.savedJobs, value: savedCount, icon: 'saved' as const, trend: 'up' as const },
-    { label: t.closed, value: closedCount, icon: 'closed' as const, trend: 'down' as const },
+    { label: t.activeApplications, value: activeCount, icon: 'active' as const, color: '#10b981' },
+    { label: t.savedJobs, value: savedCount, icon: 'saved' as const, color: 'var(--sidebar-accent)' },
+    { label: t.rejections, value: rejectedCount, icon: 'closed' as const, color: 'var(--status-declined)' },
   ]
 
-  const hasActiveFilters = Boolean(search || companyFilter || roleFilter || locationFilter)
+  const hasActiveFilters = Boolean(search || companyFilter || roleFilter || locationFilter || statusFilter)
 
   const handleReset = () => {
     setSearch('')
     setCompanyFilter('')
     setRoleFilter('')
     setLocationFilter('')
+    setStatusFilter('')
   }
 
   if (loading) {
@@ -311,7 +303,9 @@ export default function Jobs() {
               <div className="jobs-stat-card-label">{card.label}</div>
               <div className="jobs-stat-card-value">{card.value}</div>
             </div>
-            <JobsTrendLine direction={card.trend} />
+            <div className="jobs-stat-card-share">
+              <ShareBar count={card.value} total={applications.length} color={card.color} />
+            </div>
           </div>
         ))}
       </div>
@@ -360,6 +354,17 @@ export default function Jobs() {
                   <option value="">{t.location}</option>
                   {locations.map((l) => (
                     <option key={l} value={l}>{l}</option>
+                  ))}
+                </select>
+                <select
+                  className="jobs-filter-select"
+                  aria-label={t.stage}
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="">{t.allStages}</option>
+                  {ALL_STATUSES.map((s) => (
+                    <option key={s} value={s}>{(t as any)[STATUS_LABEL_KEYS[s]]}</option>
                   ))}
                 </select>
               </div>

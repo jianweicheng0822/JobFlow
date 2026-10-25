@@ -62,6 +62,15 @@ const en = {
   activeApplications: 'Active Applications',
   savedJobs: 'Saved Jobs',
   closed: 'Closed',
+
+  // Stat card visuals
+  appliedLast7Days: '+{count} in the last 7 days',
+  noneLast7Days: 'None in the last 7 days yet',
+  weeklyTrendLabel: 'Applications per week, last 8 weeks: {values}',
+  weekPointTitle: '{start} – {end}: {count} applied',
+  shareOfAll: '{percent}% of all applications',
+  shareNeedsMore: 'Share shows after {n} applications',
+  allStages: 'All stages',
   jobPositions: 'Job Positions',
   newApplication: 'New Application',
   byCompany: 'By Company',

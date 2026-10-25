@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import Jobs from '../Jobs';
 import { ToastProvider } from '../../context/ToastProvider';
 import { LanguageProvider } from '../../context/LanguageProvider';
@@ -32,9 +33,22 @@ function makeApp(id: number, positionTitle: string, starred = false, status: App
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return (
-    <LanguageProvider>
-      <ToastProvider>{children}</ToastProvider>
-    </LanguageProvider>
+    <MemoryRouter initialEntries={['/jobs']}>
+      <LanguageProvider>
+        <ToastProvider>{children}</ToastProvider>
+      </LanguageProvider>
+    </MemoryRouter>
+  );
+}
+
+// Opens Jobs at a given URL, like following a dashboard card link
+function renderJobsAt(url: string) {
+  render(
+    <MemoryRouter initialEntries={[url]}>
+      <LanguageProvider>
+        <ToastProvider><Jobs /></ToastProvider>
+      </LanguageProvider>
+    </MemoryRouter>
   );
 }
 
@@ -161,7 +175,7 @@ describe('Jobs quick status change', () => {
 
     expect(statusSelectFor('Alpha').value).toBe('APPLIED');
     expect(statCard('Active Applications')).toBe('2');
-    expect(statCard('Closed')).toBe('0');
+    expect(statCard('Rejections')).toBe('0');
   });
 
   it('updates right away, locks the row while pending, then takes the server response', async () => {
@@ -171,22 +185,22 @@ describe('Jobs quick status change', () => {
     render(<Jobs />, { wrapper: Wrapper });
     await findTitle('Alpha');
 
-    fireEvent.change(statusSelectFor('Alpha'), { target: { value: 'OFFER' } });
+    fireEvent.change(statusSelectFor('Alpha'), { target: { value: 'REJECTED' } });
 
     // Optimistic: new status and counts before the server answers
-    expect(statusSelectFor('Alpha').value).toBe('OFFER');
+    expect(statusSelectFor('Alpha').value).toBe('REJECTED');
     expect(statCard('Active Applications')).toBe('1');
-    expect(statCard('Closed')).toBe('1');
-    expect(updateStatus).toHaveBeenCalledWith(1, 'OFFER');
+    expect(statCard('Rejections')).toBe('1');
+    expect(updateStatus).toHaveBeenCalledWith(1, 'REJECTED');
 
     // Both quick actions on this row are locked, other rows are not
     expect(statusSelectFor('Alpha')).toBeDisabled();
     expect(starButtonFor('Alpha')).toBeDisabled();
     expect(statusSelectFor('Bravo')).toBeEnabled();
 
-    req.resolve({ data: { ...makeApp(1, 'Alpha', false, 'OFFER'), lastAction: 'Moved to Offer' } });
+    req.resolve({ data: { ...makeApp(1, 'Alpha', false, 'REJECTED'), lastAction: 'Moved to Rejected' } });
     await waitFor(() => expect(statusSelectFor('Alpha')).toBeEnabled());
-    expect(statusSelectFor('Alpha').value).toBe('OFFER');
+    expect(statusSelectFor('Alpha').value).toBe('REJECTED');
   });
 
   it('rolls back only the status and shows a toast on failure', async () => {
@@ -199,7 +213,7 @@ describe('Jobs quick status change', () => {
 
     await waitFor(() => expect(statusSelectFor('Alpha')).toBeEnabled());
     expect(statusSelectFor('Alpha').value).toBe('APPLIED');
-    expect(statCard('Closed')).toBe('0');
+    expect(statCard('Rejections')).toBe('0');
     expect(screen.getByText('timeout of 10000ms exceeded')).toBeInTheDocument();
   });
 
@@ -269,5 +283,48 @@ describe('Jobs date sort', () => {
     fireEvent.click(within(header).getByRole('button'));
     expect(header).toHaveAttribute('aria-sort', 'ascending');
     expect(rowTitles()).toEqual(['Starred old', 'Starred new', 'Old', 'New', 'Undated']);
+  });
+});
+
+describe('Jobs stage filter and cards', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(getApplications).mockResolvedValue({
+      data: [
+        makeApp(1, 'Alpha', false, 'OFFER'),
+        makeApp(2, 'Bravo', false, 'REJECTED'),
+        makeApp(3, 'Charlie', true, 'APPLIED'),
+        makeApp(4, 'Delta', false, 'APPLIED'),
+        makeApp(5, 'Echo', false, 'INTERVIEW'),
+      ],
+    } as never);
+  });
+
+  it('opens filtered to the stage in the URL, and Reset shows everything again', async () => {
+    renderJobsAt('/jobs?status=OFFER');
+    await findTitle('Alpha');
+
+    expect(rowTitles()).toEqual(['Alpha']);
+    expect(screen.getByRole('combobox', { name: 'Stage' })).toHaveValue('OFFER');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+    expect(rowTitles()).toHaveLength(5);
+    expect(screen.getByRole('combobox', { name: 'Stage' })).toHaveValue('');
+  });
+
+  it('ignores an unknown stage in the URL', async () => {
+    renderJobsAt('/jobs?status=NOPE');
+    await findTitle('Alpha');
+    expect(rowTitles()).toHaveLength(5);
+  });
+
+  it('counts offers as active and shows rejections on their own', async () => {
+    render(<Jobs />, { wrapper: Wrapper });
+    await findTitle('Alpha');
+
+    expect(statCard('Active Applications')).toBe('4');
+    expect(statCard('Rejections')).toBe('1');
+    const rejectionsCard = screen.getByText('Rejections').closest('.jobs-stat-card') as HTMLElement;
+    expect(within(rejectionsCard).getByText('20% of all applications')).toBeInTheDocument();
   });
 });

@@ -223,10 +223,10 @@ describe('demo data stays current', () => {
 
   it('counts only INTERVIEW as interviews and computes the rates like the backend', () => {
     const stats = resolveMock('/applications/stats', 'get') as DashboardStatsDTO;
-    // Seed has one INTERVIEW, one PHONE_SCREEN and one OFFER out of 10
+    // Seed has one INTERVIEW, one PHONE_SCREEN and one OFFER out of 14
     expect(stats.interviews).toBe(1);
-    expect(stats.interviewRate).toBe(10);
-    expect(stats.offerRate).toBe(10);
+    expect(stats.interviewRate).toBe(7.1);
+    expect(stats.offerRate).toBe(7.1);
   });
 
   it('puts the seed interviews in the near future, soonest first', () => {

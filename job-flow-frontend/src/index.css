@@ -30,6 +30,8 @@
   --status-interview: #10b981;
   --status-offer: #8b5cf6;
   --status-rejected: #ef4444;
+  /* Rejected applications: a calm slate, so red stays for errors and deletes */
+  --status-declined: #64748b;
 }
 
 /* ===== Dark Theme ===== */

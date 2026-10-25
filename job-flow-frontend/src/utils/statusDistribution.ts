@@ -9,7 +9,7 @@ const STATUS_SLICES: { status: ApplicationStatus; labelKey: keyof Translations; 
   { status: 'PHONE_SCREEN', labelKey: 'statusPhoneScreen', color: '#06b6d4' },
   { status: 'INTERVIEW', labelKey: 'statusInterview', color: '#10b981' },
   { status: 'OFFER', labelKey: 'statusOffer', color: '#8b5cf6' },
-  { status: 'REJECTED', labelKey: 'statusRejected', color: '#ef4444' },
+  { status: 'REJECTED', labelKey: 'statusRejected', color: '#64748b' },
 ]
 
 export interface StatusSlice {

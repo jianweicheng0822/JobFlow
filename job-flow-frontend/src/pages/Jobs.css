@@ -61,7 +61,7 @@
 }
 
 .jobs-stat-card-icon--closed {
-  background: #6b7280;
+  background: var(--status-declined);
 }
 
 .jobs-stat-card-info {
@@ -83,24 +83,10 @@
   line-height: 1.1;
 }
 
-.jobs-stat-card-trend {
-  display: flex;
-  align-items: center;
-  margin-left: auto;
+.jobs-stat-card-share {
+  width: 45%;
+  max-width: 220px;
   flex-shrink: 0;
-}
-
-.jobs-stat-card-trend svg {
-  width: 32px;
-  height: 20px;
-}
-
-.jobs-stat-card-trend--up svg {
-  color: #10b981;
-}
-
-.jobs-stat-card-trend--down svg {
-  color: var(--status-rejected);
 }
 
 /* ===== Job Positions Table ===== */

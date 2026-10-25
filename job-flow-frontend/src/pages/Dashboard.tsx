@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { Star } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
 import './Dashboard.css'
@@ -8,6 +9,9 @@ import type { DashboardStatsDTO, JobApplicationDTO, InterviewDTO, ApplicationSta
 import { sortStarredFirst } from '../utils/sortStarredFirst'
 import { formatLastAction } from '../utils/formatLastAction'
 import { formatDateOnly } from '../utils/date'
+import { weeklyApplicationCounts, weeklyWindows } from '../utils/weeklyCounts'
+import Sparkline from '../components/Sparkline'
+import ShareBar from '../components/ShareBar'
 
 // ===== Types =====
 interface PipelineCard {
@@ -35,7 +39,7 @@ const STATUS_COLORS: Record<ApplicationStatus, string> = {
   PHONE_SCREEN: 'var(--status-phone-screen)',
   INTERVIEW: 'var(--status-interview)',
   OFFER: 'var(--status-offer)',
-  REJECTED: 'var(--status-rejected)',
+  REJECTED: 'var(--status-declined)',
 }
 
 // Maps status keys to translation keys
@@ -130,8 +134,9 @@ function StatIcon({ type }: { type: string }) {
     case 'rejected':
       return (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
+          <circle cx="12" cy="12" r="10" />
+          <line x1="15" y1="9" x2="9" y2="15" />
+          <line x1="9" y1="9" x2="15" y2="15" />
         </svg>
       )
     default:
@@ -139,36 +144,18 @@ function StatIcon({ type }: { type: string }) {
   }
 }
 
-// Mini sparkline SVG for trend indicator
-function TrendLine({ direction }: { direction: 'up' | 'down' }) {
-  return (
-    <div className={`stat-card-trend stat-card-trend--${direction}`}>
-      <svg viewBox="0 0 32 20" fill="none">
-        {direction === 'up' ? (
-          <polyline
-            points="2,16 8,12 14,14 20,8 26,4 30,2"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        ) : (
-          <polyline
-            points="2,4 8,6 14,8 20,14 26,16 30,18"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        )}
-      </svg>
-    </div>
-  )
+const TREND_WEEKS = 8
+
+// "2026-10-18" -> "Oct 18"
+function shortDate(day: string): string {
+  const [y, m, d] = day.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 export default function Dashboard() {
   const { t } = useLanguage()
   const [stats, setStats] = useState<DashboardStatsDTO | null>(null)
+  const [applications, setApplications] = useState<JobApplicationDTO[]>([])
   const [pipelineColumns, setPipelineColumns] = useState<PipelineColumn[]>([])
   const [recentApps, setRecentApps] = useState<JobApplicationDTO[]>([])
   const [interviews, setInterviews] = useState<InterviewDTO[]>([])
@@ -185,6 +172,7 @@ export default function Dashboard() {
           getUpcomingInterviews(),
         ])
         setStats(statsRes.data)
+        setApplications(appsRes.data)
         setPipelineColumns(buildPipelineColumns(appsRes.data, t))
         // Keep the "recently updated" set from the API, just bump starred ones up
         setRecentApps(sortStarredFirst(recentRes.data))
@@ -207,34 +195,72 @@ export default function Dashboard() {
     return <div className="dashboard"><div className="dashboard-error">{error}</div></div>
   }
 
-  const statCards = [
-    { label: t.totalApplications, value: stats?.totalApplications ?? 0, icon: 'total' as const, trend: 'up' as const },
-    { label: t.inReview, value: stats?.inReview ?? 0, icon: 'review' as const, trend: 'up' as const },
-    { label: t.interviews, value: stats?.interviews ?? 0, icon: 'interview' as const, trend: 'up' as const },
-    { label: t.offers, value: stats?.offers ?? 0, icon: 'offer' as const, trend: 'down' as const },
-    { label: t.rejections, value: stats?.rejections ?? 0, icon: 'rejected' as const, trend: 'up' as const },
+  const total = stats?.totalApplications ?? 0
+
+  // Real weekly counts for the total card; the last value is the last 7 days
+  const weekly = weeklyApplicationCounts(applications, TREND_WEEKS)
+  const lastWeek = weekly[weekly.length - 1]
+  const weekTitles = weeklyWindows(TREND_WEEKS).map((w, i) =>
+    t.weekPointTitle
+      .replace('{start}', shortDate(w.start))
+      .replace('{end}', shortDate(w.end))
+      .replace('{count}', String(weekly[i])),
+  )
+
+  // No history of status changes is stored, so these show each status's share
+  // of all applications right now, and open the matching list in Jobs
+  const statusCards = [
+    { label: t.inReview, value: stats?.inReview ?? 0, icon: 'review' as const, status: 'IN_REVIEW', color: 'var(--status-phone-screen)' },
+    { label: t.interviews, value: stats?.interviews ?? 0, icon: 'interview' as const, status: 'INTERVIEW', color: 'var(--status-interview)' },
+    { label: t.offers, value: stats?.offers ?? 0, icon: 'offer' as const, status: 'OFFER', color: 'var(--status-offer)' },
+    { label: t.rejections, value: stats?.rejections ?? 0, icon: 'rejected' as const, status: 'REJECTED', color: 'var(--status-declined)' },
   ]
 
   const quickStats = [
     { label: t.totalOffers, value: stats?.offers ?? 0, color: 'var(--status-offer)' },
-    { label: t.totalRejections, value: stats?.rejections ?? 0, color: 'var(--status-rejected)' },
+    { label: t.totalRejections, value: stats?.rejections ?? 0, color: 'var(--status-declined)' },
   ]
 
   return (
     <div className="dashboard">
       {/* Stat Cards */}
       <div className="stat-cards">
-        {statCards.map((card) => (
-          <div className="stat-card" key={card.label}>
-            <div className={`stat-card-icon stat-card-icon--${card.icon}`}>
-              <StatIcon type={card.icon} />
+        <div className="stat-card">
+          <div className="stat-card-top">
+            <div className="stat-card-icon stat-card-icon--total">
+              <StatIcon type="total" />
             </div>
             <div className="stat-card-info">
-              <div className="stat-card-label">{card.label}</div>
-              <div className="stat-card-value">{card.value}</div>
+              <div className="stat-card-label">{t.totalApplications}</div>
+              <div className="stat-card-value">{total}</div>
             </div>
-            <TrendLine direction={card.trend} />
           </div>
+          <div className="stat-card-footer">
+            <Sparkline
+              values={weekly}
+              label={t.weeklyTrendLabel.replace('{values}', weekly.join(', '))}
+              pointTitles={weekTitles}
+            />
+            <div className="stat-card-caption">
+              {lastWeek > 0 ? t.appliedLast7Days.replace('{count}', String(lastWeek)) : t.noneLast7Days}
+            </div>
+          </div>
+        </div>
+        {statusCards.map((card) => (
+          <Link to={`/jobs?status=${card.status}`} className="stat-card stat-card--link" key={card.status}>
+            <div className="stat-card-top">
+              <div className={`stat-card-icon stat-card-icon--${card.icon}`}>
+                <StatIcon type={card.icon} />
+              </div>
+              <div className="stat-card-info">
+                <div className="stat-card-label">{card.label}</div>
+                <div className="stat-card-value">{card.value}</div>
+              </div>
+            </div>
+            <div className="stat-card-footer">
+              <ShareBar count={card.value} total={total} color={card.color} />
+            </div>
+          </Link>
         ))}
       </div>
 

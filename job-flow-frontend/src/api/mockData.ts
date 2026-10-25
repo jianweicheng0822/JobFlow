@@ -123,6 +123,30 @@ function createSeedApplications(companies: CompanyDTO[]): JobApplicationDTO[] {
       appliedDate: '2026-06-10', lastAction: 'Rejected', notes: null,
       createdAt: '2026-06-10T09:00:00Z', updatedAt: '2026-07-01T15:00:00Z', starred: false,
     },
+    {
+      id: 11, positionTitle: 'Mobile Engineer', company: companies[1],
+      location: 'Stockholm', salary: '$118,000', status: 'APPLIED',
+      appliedDate: '2026-07-02', lastAction: 'Applied', notes: null,
+      createdAt: '2026-07-02T10:00:00Z', updatedAt: '2026-07-02T10:00:00Z', starred: false,
+    },
+    {
+      id: 12, positionTitle: 'Platform Engineer', company: companies[6],
+      location: 'Redmond, WA', salary: '$148,000', status: 'REJECTED',
+      appliedDate: '2026-06-26', lastAction: 'Rejected', notes: null,
+      createdAt: '2026-06-26T09:00:00Z', updatedAt: '2026-07-14T13:00:00Z', starred: false,
+    },
+    {
+      id: 13, positionTitle: 'iOS Engineer', company: companies[4],
+      location: 'Cupertino, CA', salary: '$165,000', status: 'IN_REVIEW',
+      appliedDate: '2026-07-21', lastAction: 'Resume reviewed', notes: null,
+      createdAt: '2026-07-21T11:00:00Z', updatedAt: '2026-07-24T10:00:00Z', starred: false,
+    },
+    {
+      id: 14, positionTitle: 'Data Engineer', company: companies[5],
+      location: 'Los Gatos, CA', salary: '$150,000', status: 'APPLIED',
+      appliedDate: '2026-07-19', lastAction: 'Applied', notes: null,
+      createdAt: '2026-07-19T15:00:00Z', updatedAt: '2026-07-19T15:00:00Z', starred: false,
+    },
   ];
   return seed.map((app) => ({
     ...app,

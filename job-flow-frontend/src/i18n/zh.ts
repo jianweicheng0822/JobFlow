@@ -62,6 +62,15 @@ const zh = {
   activeApplications: '进行中',
   savedJobs: '已收藏',
   closed: '已结束',
+
+  // Stat card visuals
+  appliedLast7Days: '最近 7 天 +{count}',
+  noneLast7Days: '最近 7 天还没有投递',
+  weeklyTrendLabel: '最近 8 周每周投递数：{values}',
+  weekPointTitle: '{start} – {end}：投递 {count} 条',
+  shareOfAll: '占全部申请的 {percent}%',
+  shareNeedsMore: '满 {n} 条申请后显示占比',
+  allStages: '全部阶段',
   jobPositions: '职位列表',
   newApplication: '新建申请',
   byCompany: '按公司',
