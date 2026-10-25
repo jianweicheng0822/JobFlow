@@ -212,26 +212,42 @@ describe('demo data stays current', () => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
 
-  it('dates applications relative to today, keeping their order and spacing', () => {
+  it('spreads applications over the last five months, relative to today', () => {
     const apps = resolveMock('/applications', 'get') as JobApplicationDTO[];
     const byId = Object.fromEntries(apps.map((a) => [a.id, a]));
 
+    expect(apps).toHaveLength(40);
     expect(apps.every((a) => (a.appliedDate ?? '') <= localToday())).toBe(true);
-    // Seed 9 (DevOps) is the most recent application, 5 days before the old anchor date
-    expect(byId[9].appliedDate).toBe(daysAgo(5));
-    // Seed 10 (UX Researcher) is still the oldest, 6 weeks earlier
-    expect(byId[10].appliedDate).toBe(daysAgo(47));
+    // Seed 9 is the newest, within the last week and a half whatever today is
+    expect(byId[9].appliedDate! >= daysAgo(10)).toBe(true);
+    // Seed 40 is the oldest, about five months back
+    expect(byId[40].appliedDate! <= daysAgo(140)).toBe(true);
+    expect(byId[40].appliedDate! >= daysAgo(160)).toBe(true);
+  });
+
+  it('never dates an application or a reply on a weekend', () => {
+    const apps = resolveMock('/applications', 'get') as JobApplicationDTO[];
+    const weekday = (day: string) => {
+      const [y, m, d] = day.split('-').map(Number);
+      return new Date(y, m - 1, d).getDay();
+    };
+
+    expect(apps.every((a) => ![0, 6].includes(weekday(a.appliedDate!)))).toBe(true);
+    expect(apps.every((a) => ![0, 6].includes(new Date(a.updatedAt).getDay()))).toBe(true);
+    // A reply never comes before the application
+    expect(apps.every((a) => a.updatedAt >= a.createdAt)).toBe(true);
   });
 
   it('counts only INTERVIEW as interviews and computes the rates like the backend', () => {
     const stats = resolveMock('/applications/stats', 'get') as DashboardStatsDTO;
-    // Seed: 14 apps, 5 still APPLIED, one INTERVIEW, one PHONE_SCREEN and one OFFER
-    expect(stats.interviews).toBe(1);
-    expect(stats.responded).toBe(9);
-    expect(stats.responseRate).toBe(64.3);
-    // Interview + offer; the phone screen doesn't count
-    expect(stats.interviewRate).toBe(14.3);
-    expect(stats.offerRate).toBe(7.1);
+    // Seed: 40 apps, 22 never heard back, two INTERVIEW, three PHONE_SCREEN and one OFFER
+    expect(stats.totalApplications).toBe(40);
+    expect(stats.interviews).toBe(2);
+    expect(stats.responded).toBe(18);
+    expect(stats.responseRate).toBe(45);
+    // Interview + offer; phone screens don't count
+    expect(stats.interviewRate).toBe(7.5);
+    expect(stats.offerRate).toBe(2.5);
   });
 
   it('builds the monthly activity from the seed applications', () => {
@@ -239,8 +255,9 @@ describe('demo data stays current', () => {
 
     expect(activity).toHaveLength(12);
     expect(activity[11].yearMonth).toBe(todayLocal().slice(0, 7));
-    // Every seed app was applied within the last 12 months
-    expect(activity.reduce((sum, m) => sum + m.count, 0)).toBe(14);
+    // Every seed app was applied within the last 12 months, across at least five of them
+    expect(activity.reduce((sum, m) => sum + m.count, 0)).toBe(40);
+    expect(activity.filter((m) => m.count > 0).length).toBeGreaterThanOrEqual(5);
   });
 
   it('crosses the new year when bucketing months', async () => {

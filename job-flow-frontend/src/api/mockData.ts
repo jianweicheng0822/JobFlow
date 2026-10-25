@@ -10,26 +10,29 @@ import type {
 import { todayLocal, browserTimeZone } from '../utils/date';
 
 // ===== Dates relative to today =====
-// The seed data was written around late July 2026. Shifting it by however many
-// days have passed since keeps the demo looking current whenever it's opened.
-const SEED_ANCHOR = '2026-07-27';
+// Seed jobs are placed "N days before this week's Friday", so the demo always
+// looks like a search that's still going on, and each job keeps its weekday no
+// matter which day the demo is opened. That keeps the heatmap's weekday spread
+// realistic (busy Mondays, quiet weekends) every day of the week.
 
-function daysSinceAnchor(now: Date = new Date()): number {
-  const [y, m, d] = SEED_ANCHOR.split('-').map(Number);
-  const anchor = new Date(y, m - 1, d);
+// The seed day for `daysBack`, as a local date. Weekends move to the nearest
+// weekday, and a day that hasn't happened yet this week moves back a week.
+function seedDay(daysBack: number, now: Date = new Date()): Date {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  return Math.round((today.getTime() - anchor.getTime()) / 86400000);
+  const friday = new Date(today);
+  friday.setDate(today.getDate() - ((today.getDay() + 6) % 7) + 4);
+  const d = new Date(friday);
+  d.setDate(friday.getDate() - daysBack);
+  if (d.getDay() === 6) d.setDate(d.getDate() - 1);
+  if (d.getDay() === 0) d.setDate(d.getDate() + 1);
+  while (d > today) d.setDate(d.getDate() - 7);
+  return d;
 }
 
-// "2026-07-15" or "2026-07-15T10:00:00Z", moved forward by `days`
-function shiftDate(value: string, days: number): string {
-  if (value.length === 10) {
-    const [y, m, d] = value.split('-').map(Number);
-    return todayLocal(new Date(y, m - 1, d + days));
-  }
-  const shifted = new Date(value);
-  shifted.setUTCDate(shifted.getUTCDate() + days);
-  return shifted.toISOString().replace('.000Z', 'Z');
+// "2026-10-08T14:05:00Z" for that local day and time, like the backend's timestamps
+function timestampOn(day: Date, hour: number, minute: number): string {
+  const d = new Date(day.getFullYear(), day.getMonth(), day.getDate(), hour, minute);
+  return d.toISOString().replace('.000Z', 'Z');
 }
 
 // Local wall-clock date-time `days` from today, in the backend's format ("2026-10-08T10:00:00")
@@ -57,103 +60,94 @@ function createSeedCompanies(): CompanyDTO[] {
     { id: 5, name: 'Apple', logoUrl: null, location: 'Cupertino, CA', website: 'https://apple.com' },
     { id: 6, name: 'Netflix', logoUrl: null, location: 'Los Gatos, CA', website: 'https://netflix.com' },
     { id: 7, name: 'Microsoft', logoUrl: null, location: 'Redmond, WA', website: 'https://microsoft.com' },
+    { id: 8, name: 'Stripe', logoUrl: null, location: 'San Francisco, CA', website: 'https://stripe.com' },
+    { id: 9, name: 'Airbnb', logoUrl: null, location: 'San Francisco, CA', website: 'https://airbnb.com' },
+    { id: 10, name: 'Shopify', logoUrl: null, location: 'Remote', website: 'https://shopify.com' },
+    { id: 11, name: 'Datadog', logoUrl: null, location: 'New York, NY', website: 'https://datadoghq.com' },
+    { id: 12, name: 'Figma', logoUrl: null, location: 'San Francisco, CA', website: 'https://figma.com' },
+    { id: 13, name: 'Uber', logoUrl: null, location: 'San Francisco, CA', website: 'https://uber.com' },
+    { id: 14, name: 'LinkedIn', logoUrl: null, location: 'Sunnyvale, CA', website: 'https://linkedin.com' },
+    { id: 15, name: 'Salesforce', logoUrl: null, location: 'San Francisco, CA', website: 'https://salesforce.com' },
   ];
 }
 
+// One row per seed job: [id, title, company, salary, applied, status, heard back,
+// last action, starred, notes]. Days are counted back as in seedDay. Status and
+// timing follow a real search: a slow start about 5 months ago, a busy middle,
+// and a quieter last few weeks with interviews and an offer. Most old
+// applications never got an answer, which is normal.
+type SeedRow = [
+  number, string, string, string, number, ApplicationStatus,
+  number?, string?, boolean?, string?,
+];
+
+const SEED_ROWS: SeedRow[] = [
+  // Last few weeks
+  [9, 'DevOps Engineer', 'Amazon', '$135,000', 3, 'APPLIED'],
+  [2, 'Frontend Engineer', 'Spotify', '$120,000', 9, 'APPLIED'],
+  [8, 'Data Analyst', 'Google', '$125,000', 14, 'IN_REVIEW', 6, 'Resume reviewed', true],
+  [13, 'iOS Engineer', 'Apple', '$165,000', 17, 'IN_REVIEW', 8, 'Recruiter reached out'],
+  [18, 'Software Engineer II', 'Datadog', '$145,000', 22, 'APPLIED'],
+  [16, 'Frontend Engineer', 'Airbnb', '$160,000', 24, 'IN_REVIEW', 10, 'Recruiter reached out'],
+  [4, 'Software Engineer', 'Amazon', '$155,000', 28, 'PHONE_SCREEN', 2, 'Phone screen scheduled'],
+  [3, 'Product Manager', 'Meta', '$160,000', 32, 'INTERVIEW', 3, 'Video interview scheduled'],
+  [17, 'Senior Frontend Developer', 'Shopify', '$140,000', 35, 'IN_REVIEW', 15, 'Resume reviewed'],
+  [14, 'Data Engineer', 'Netflix', '$150,000', 38, 'APPLIED'],
+  [11, 'Mobile Engineer', 'Spotify', '$118,000', 39, 'APPLIED'],
+  [15, 'Software Engineer, Payments', 'Stripe', '$175,000', 44, 'PHONE_SCREEN', 12, 'Phone screen done', true],
+  [19, 'Product Designer', 'Figma', '$150,000', 46, 'APPLIED'],
+  // The busy middle
+  [24, 'Full Stack Engineer', 'Stripe', '$165,000', 51, 'APPLIED'],
+  [25, 'Senior Software Engineer', 'Airbnb', '$180,000', 51, 'APPLIED'],
+  [21, 'Frontend Engineer', 'LinkedIn', '$150,000', 53, 'REJECTED', 35, 'Rejected'],
+  [6, 'Full Stack Developer', 'Netflix', '$165,000', 56, 'OFFER', 1, 'Offer received', true, 'Negotiating salary'],
+  [5, 'Senior Frontend Engineer', 'Apple', '$170,000', 58, 'INTERVIEW', 4, 'Onsite scheduled', true, 'Onsite round 2'],
+  [20, 'Backend Engineer', 'Uber', '$155,000', 60, 'PHONE_SCREEN', 30, 'Waiting to hear back'],
+  [26, 'Frontend Developer', 'Shopify', '$130,000', 63, 'APPLIED'],
+  [27, 'Site Reliability Engineer', 'Datadog', '$150,000', 59, 'APPLIED'],
+  [1, 'Senior UX Designer', 'Google', '$145,000', 64, 'APPLIED'],
+  [23, 'Machine Learning Engineer', 'Google', '$170,000', 67, 'REJECTED', 52, 'Rejected'],
+  [12, 'Platform Engineer', 'Microsoft', '$148,000', 72, 'REJECTED', 50, 'Rejected'],
+  [28, 'Software Engineer, Front End', 'Uber', '$150,000', 74, 'APPLIED'],
+  [22, 'Software Engineer', 'Salesforce', '$140,000', 80, 'REJECTED', 60, 'Rejected after phone screen'],
+  [29, 'Web Developer', 'LinkedIn', '$135,000', 86, 'APPLIED'],
+  // Getting going
+  [31, 'Frontend Engineer', 'Microsoft', '$135,000', 92, 'APPLIED'],
+  [32, 'UI Engineer', 'Netflix', '$155,000', 92, 'APPLIED'],
+  [7, 'Backend Engineer', 'Microsoft', '$150,000', 95, 'REJECTED', 70, 'Rejected after final round'],
+  [33, 'Software Engineer, Tableau', 'Salesforce', '$130,000', 102, 'APPLIED'],
+  [30, 'Data Scientist', 'Amazon', '$145,000', 109, 'REJECTED', 95, 'Rejected'],
+  [34, 'Product Engineer', 'Figma', '$155,000', 113, 'APPLIED'],
+  [35, 'Frontend Engineer, Growth', 'Spotify', '$115,000', 119, 'APPLIED'],
+  [36, 'React Developer', 'Shopify', '$125,000', 122, 'APPLIED'],
+  [38, 'Frontend Engineer', 'Datadog', '$140,000', 128, 'APPLIED'],
+  [39, 'Software Engineer', 'Google', '$155,000', 134, 'APPLIED'],
+  [37, 'Software Engineer', 'Apple', '$150,000', 134, 'REJECTED', 120, 'Rejected'],
+  [10, 'UX Researcher', 'Meta', '$130,000', 141, 'REJECTED', 128, 'Rejected'],
+  [40, 'UX Engineer', 'Airbnb', '$145,000', 150, 'APPLIED'],
+];
+
 function createSeedApplications(companies: CompanyDTO[]): JobApplicationDTO[] {
-  const offset = daysSinceAnchor();
-  const seed: JobApplicationDTO[] = [
-    {
-      id: 1, positionTitle: 'Senior UX Designer', company: companies[0],
-      location: 'Seattle, WA', salary: '$145,000', status: 'APPLIED',
-      appliedDate: '2026-07-15', lastAction: 'Applied', notes: null,
-      createdAt: '2026-07-15T10:00:00Z', updatedAt: '2026-07-15T10:00:00Z', starred: false,
-    },
-    {
-      id: 2, positionTitle: 'Frontend Engineer', company: companies[1],
-      location: 'Stockholm', salary: '$120,000', status: 'APPLIED',
-      appliedDate: '2026-07-18', lastAction: 'Applied', notes: null,
-      createdAt: '2026-07-18T09:00:00Z', updatedAt: '2026-07-18T09:00:00Z', starred: false,
-    },
-    {
-      id: 3, positionTitle: 'Product Manager', company: companies[2],
-      location: 'Menlo Park, CA', salary: '$160,000', status: 'IN_REVIEW',
-      appliedDate: '2026-07-10', lastAction: 'Recruiter contacted', notes: null,
-      createdAt: '2026-07-10T08:00:00Z', updatedAt: '2026-07-20T14:00:00Z', starred: false,
-    },
-    {
-      id: 4, positionTitle: 'Software Engineer', company: companies[3],
-      location: 'Seattle, WA', salary: '$155,000', status: 'PHONE_SCREEN',
-      appliedDate: '2026-07-05', lastAction: 'Phone screen scheduled', notes: null,
-      createdAt: '2026-07-05T11:00:00Z', updatedAt: '2026-07-22T09:00:00Z', starred: false,
-    },
-    {
-      id: 5, positionTitle: 'Senior Frontend Engineer', company: companies[4],
-      location: 'Cupertino, CA', salary: '$170,000', status: 'INTERVIEW',
-      appliedDate: '2026-06-28', lastAction: 'Interview Scheduled', notes: 'Onsite round 2',
-      createdAt: '2026-06-28T10:00:00Z', updatedAt: '2026-07-25T16:00:00Z', starred: true,
-    },
-    {
-      id: 6, positionTitle: 'Full Stack Developer', company: companies[5],
-      location: 'Los Gatos, CA', salary: '$140,000', status: 'OFFER',
-      appliedDate: '2026-06-15', lastAction: 'Offer received', notes: 'Negotiating salary',
-      createdAt: '2026-06-15T09:00:00Z', updatedAt: '2026-07-26T10:00:00Z', starred: false,
-    },
-    {
-      id: 7, positionTitle: 'Backend Engineer', company: companies[6],
-      location: 'Redmond, WA', salary: '$150,000', status: 'REJECTED',
-      appliedDate: '2026-06-20', lastAction: 'Rejected after final round', notes: null,
-      createdAt: '2026-06-20T08:00:00Z', updatedAt: '2026-07-18T12:00:00Z', starred: false,
-    },
-    {
-      id: 8, positionTitle: 'Data Analyst', company: companies[0],
-      location: 'Seattle, WA', salary: '$125,000', status: 'IN_REVIEW',
-      appliedDate: '2026-07-12', lastAction: 'Resume reviewed', notes: null,
-      createdAt: '2026-07-12T10:00:00Z', updatedAt: '2026-07-21T11:00:00Z', starred: true,
-    },
-    {
-      id: 9, positionTitle: 'DevOps Engineer', company: companies[3],
-      location: 'Seattle, WA', salary: '$135,000', status: 'APPLIED',
-      appliedDate: '2026-07-22', lastAction: 'Applied', notes: null,
-      createdAt: '2026-07-22T14:00:00Z', updatedAt: '2026-07-22T14:00:00Z', starred: false,
-    },
-    {
-      id: 10, positionTitle: 'UX Researcher', company: companies[2],
-      location: 'Menlo Park, CA', salary: '$130,000', status: 'REJECTED',
-      appliedDate: '2026-06-10', lastAction: 'Rejected', notes: null,
-      createdAt: '2026-06-10T09:00:00Z', updatedAt: '2026-07-01T15:00:00Z', starred: false,
-    },
-    {
-      id: 11, positionTitle: 'Mobile Engineer', company: companies[1],
-      location: 'Stockholm', salary: '$118,000', status: 'APPLIED',
-      appliedDate: '2026-07-02', lastAction: 'Applied', notes: null,
-      createdAt: '2026-07-02T10:00:00Z', updatedAt: '2026-07-02T10:00:00Z', starred: false,
-    },
-    {
-      id: 12, positionTitle: 'Platform Engineer', company: companies[6],
-      location: 'Redmond, WA', salary: '$148,000', status: 'REJECTED',
-      appliedDate: '2026-06-26', lastAction: 'Rejected', notes: null,
-      createdAt: '2026-06-26T09:00:00Z', updatedAt: '2026-07-14T13:00:00Z', starred: false,
-    },
-    {
-      id: 13, positionTitle: 'iOS Engineer', company: companies[4],
-      location: 'Cupertino, CA', salary: '$165,000', status: 'IN_REVIEW',
-      appliedDate: '2026-07-21', lastAction: 'Resume reviewed', notes: null,
-      createdAt: '2026-07-21T11:00:00Z', updatedAt: '2026-07-24T10:00:00Z', starred: false,
-    },
-    {
-      id: 14, positionTitle: 'Data Engineer', company: companies[5],
-      location: 'Los Gatos, CA', salary: '$150,000', status: 'APPLIED',
-      appliedDate: '2026-07-19', lastAction: 'Applied', notes: null,
-      createdAt: '2026-07-19T15:00:00Z', updatedAt: '2026-07-19T15:00:00Z', starred: false,
-    },
-  ];
-  return seed.map((app) => ({
-    ...app,
-    appliedDate: app.appliedDate && shiftDate(app.appliedDate, offset),
-    createdAt: shiftDate(app.createdAt, offset),
-    updatedAt: shiftDate(app.updatedAt, offset),
-  }));
+  return SEED_ROWS
+    .map(([id, positionTitle, companyName, salary, appliedBack, status, heardBack, lastAction, starred, notes]) => {
+      const company = companies.find((c) => c.name === companyName) ?? companies[0];
+      const appliedDay = seedDay(appliedBack);
+      // Spread the times over the working day so lists don't all say 9:00
+      const createdAt = timestampOn(appliedDay, 8 + ((id * 5) % 10), (id * 13) % 60);
+      const heardDay = heardBack === undefined ? null : seedDay(heardBack);
+      const updatedAt = heardDay && heardDay > appliedDay
+        ? timestampOn(heardDay, 9 + ((id * 3) % 8), (id * 7) % 60)
+        : createdAt;
+      return {
+        id, positionTitle, company, location: company.location, salary, status,
+        appliedDate: todayLocal(appliedDay),
+        lastAction: lastAction ?? 'Applied',
+        notes: notes ?? null,
+        createdAt, updatedAt,
+        starred: starred ?? false,
+      };
+    })
+    .sort((a, b) => a.id - b.id);
 }
 
 function createSeedInterviews(): InterviewDTO[] {
