@@ -179,24 +179,26 @@ function createSeedInterviews(): InterviewDTO[] {
   ];
 }
 
-function createSeedActivity(): ApplicationActivityDTO[] {
-  return [
-    { month: 'Jan', count: 3 },
-    { month: 'Feb', count: 5 },
-    { month: 'Mar', count: 8 },
-    { month: 'Apr', count: 6 },
-    { month: 'May', count: 10 },
-    { month: 'Jun', count: 7 },
-    { month: 'Jul', count: 4 },
-  ];
+// Same buckets as JobApplicationService.getActivity: the last 12 months by applied date, oldest first
+export function computeActivity(apps: JobApplicationDTO[], today: string = todayLocal()): ApplicationActivityDTO[] {
+  const [year, month] = today.split('-').map(Number);
+  const activity: ApplicationActivityDTO[] = [];
+  for (let i = 11; i >= 0; i--) {
+    const start = new Date(year, month - 1 - i, 1);
+    const yearMonth = todayLocal(start).slice(0, 7);
+    const count = apps.filter(a => a.appliedDate?.startsWith(yearMonth)).length;
+    activity.push({ yearMonth, count });
+  }
+  return activity;
 }
 
-// Same numbers as JobApplicationService.getStats: interviews means INTERVIEW only,
-// and rates are percentages with one decimal
+// Same numbers as JobApplicationService.getStats: anything past APPLIED is a response,
+// offers count toward the interview rate, and rates are percentages with one decimal
 function computeStats(apps: JobApplicationDTO[]): DashboardStatsDTO {
   const total = apps.length;
   const interviews = apps.filter(a => a.status === 'INTERVIEW').length;
   const offers = apps.filter(a => a.status === 'OFFER').length;
+  const responded = apps.filter(a => a.status !== 'APPLIED').length;
   const rate = (count: number) => (total > 0 ? Math.round((count * 1000) / total) / 10 : 0);
   return {
     totalApplications: total,
@@ -204,7 +206,9 @@ function computeStats(apps: JobApplicationDTO[]): DashboardStatsDTO {
     interviews,
     offers,
     rejections: apps.filter(a => a.status === 'REJECTED').length,
-    interviewRate: rate(interviews),
+    responded,
+    responseRate: rate(responded),
+    interviewRate: rate(interviews + offers),
     offerRate: rate(offers),
   };
 }
@@ -213,7 +217,6 @@ function computeStats(apps: JobApplicationDTO[]): DashboardStatsDTO {
 let companies: CompanyDTO[] = createSeedCompanies();
 let applications: JobApplicationDTO[] = createSeedApplications(companies);
 let interviews: InterviewDTO[] = createSeedInterviews();
-let activity: ApplicationActivityDTO[] = createSeedActivity();
 let stats: DashboardStatsDTO = computeStats(applications);
 
 // Reset all mock data back to initial seed state
@@ -230,7 +233,6 @@ export function resetMockData(): void {
   companies = createSeedCompanies();
   applications = createSeedApplications(companies);
   interviews = createSeedInterviews();
-  activity = createSeedActivity();
   stats = computeStats(applications);
 }
 
@@ -267,7 +269,7 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
         .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
         .slice(0, 10);
     }
-    if (url === '/applications/activity') return [...activity];
+    if (url === '/applications/activity') return computeActivity(applications);
     if (url === '/applications') {
       const statusFilter = params?.status as string | undefined;
       if (statusFilter) return applications.filter(a => a.status === statusFilter);

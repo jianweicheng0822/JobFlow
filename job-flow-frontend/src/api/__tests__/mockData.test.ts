@@ -5,7 +5,9 @@ import type {
   InterviewDTO,
   CompanyDTO,
   DashboardStatsDTO,
+  ApplicationActivityDTO,
 } from '../types';
+import { todayLocal } from '../../utils/date';
 
 // Use dynamic imports so each test gets a fresh copy of the mutable arrays
 let resolveMock: typeof ResolveMockFn;
@@ -223,10 +225,36 @@ describe('demo data stays current', () => {
 
   it('counts only INTERVIEW as interviews and computes the rates like the backend', () => {
     const stats = resolveMock('/applications/stats', 'get') as DashboardStatsDTO;
-    // Seed has one INTERVIEW, one PHONE_SCREEN and one OFFER out of 14
+    // Seed: 14 apps, 5 still APPLIED, one INTERVIEW, one PHONE_SCREEN and one OFFER
     expect(stats.interviews).toBe(1);
-    expect(stats.interviewRate).toBe(7.1);
+    expect(stats.responded).toBe(9);
+    expect(stats.responseRate).toBe(64.3);
+    // Interview + offer; the phone screen doesn't count
+    expect(stats.interviewRate).toBe(14.3);
     expect(stats.offerRate).toBe(7.1);
+  });
+
+  it('builds the monthly activity from the seed applications', () => {
+    const activity = resolveMock('/applications/activity', 'get') as ApplicationActivityDTO[];
+
+    expect(activity).toHaveLength(12);
+    expect(activity[11].yearMonth).toBe(todayLocal().slice(0, 7));
+    // Every seed app was applied within the last 12 months
+    expect(activity.reduce((sum, m) => sum + m.count, 0)).toBe(14);
+  });
+
+  it('crosses the new year when bucketing months', async () => {
+    const { computeActivity } = await import('../mockData');
+    const apps = [{ appliedDate: '2025-02-03' }, { appliedDate: '2026-01-10' }, { appliedDate: null }] as JobApplicationDTO[];
+
+    const activity = computeActivity(apps, '2026-01-15');
+
+    expect(activity.map((m) => m.yearMonth)).toEqual([
+      '2025-02', '2025-03', '2025-04', '2025-05', '2025-06', '2025-07',
+      '2025-08', '2025-09', '2025-10', '2025-11', '2025-12', '2026-01',
+    ]);
+    expect(activity[0].count).toBe(1);
+    expect(activity[11].count).toBe(1);
   });
 
   it('puts the seed interviews in the near future, soonest first', () => {

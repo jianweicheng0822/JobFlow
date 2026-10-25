@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import com.jobflow.exception.ApiException;
@@ -232,9 +233,7 @@ public class JobApplicationService {
         long total = jobApplicationRepository.countByUserId(userId);
         long interviews = jobApplicationRepository.countByUserIdAndStatus(userId, ApplicationStatus.INTERVIEW);
         long offers = jobApplicationRepository.countByUserIdAndStatus(userId, ApplicationStatus.OFFER);
-
-        double interviewRate = total > 0 ? Math.round(interviews * 1000.0 / total) / 10.0 : 0;
-        double offerRate = total > 0 ? Math.round(offers * 1000.0 / total) / 10.0 : 0;
+        long responded = total - jobApplicationRepository.countByUserIdAndStatus(userId, ApplicationStatus.APPLIED);
 
         return DashboardStatsDTO.builder()
             .totalApplications(total)
@@ -242,9 +241,15 @@ public class JobApplicationService {
             .interviews(interviews)
             .offers(offers)
             .rejections(jobApplicationRepository.countByUserIdAndStatus(userId, ApplicationStatus.REJECTED))
-            .interviewRate(interviewRate)
-            .offerRate(offerRate)
+            .responded(responded)
+            .responseRate(percent(responded, total))
+            .interviewRate(percent(interviews + offers, total))
+            .offerRate(percent(offers, total))
             .build();
+    }
+
+    private static double percent(long part, long total) {
+        return total > 0 ? Math.round(part * 1000.0 / total) / 10.0 : 0;
     }
 
     public List<ApplicationActivityDTO> getActivity(Long userId) {
@@ -258,8 +263,7 @@ public class JobApplicationService {
             LocalDate start = now.minusMonths(i).withDayOfMonth(1);
             LocalDate end = start.plusMonths(1).minusDays(1);
             long count = jobApplicationRepository.countByUserIdAndAppliedDateBetween(userId, start, end);
-            String month = start.getMonth().name().substring(0, 3);
-            activity.add(new ApplicationActivityDTO(month, count));
+            activity.add(new ApplicationActivityDTO(YearMonth.from(start).toString(), count));
         }
         return activity;
     }

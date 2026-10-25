@@ -545,6 +545,7 @@ class JobApplicationServiceTest {
         when(jobApplicationRepository.countByUserIdAndStatus(1L, ApplicationStatus.OFFER)).thenReturn(5L);
         when(jobApplicationRepository.countByUserIdAndStatus(1L, ApplicationStatus.IN_REVIEW)).thenReturn(30L);
         when(jobApplicationRepository.countByUserIdAndStatus(1L, ApplicationStatus.REJECTED)).thenReturn(10L);
+        when(jobApplicationRepository.countByUserIdAndStatus(1L, ApplicationStatus.APPLIED)).thenReturn(35L);
 
         DashboardStatsDTO stats = jobApplicationService.getStats(1L);
 
@@ -553,8 +554,26 @@ class JobApplicationServiceTest {
         assertThat(stats.getOffers()).isEqualTo(5);
         assertThat(stats.getInReview()).isEqualTo(30);
         assertThat(stats.getRejections()).isEqualTo(10);
-        assertThat(stats.getInterviewRate()).isEqualTo(20.0);
+        // Everything but the 35 still waiting counts as a response, rejections too
+        assertThat(stats.getResponded()).isEqualTo(65);
+        assertThat(stats.getResponseRate()).isEqualTo(65.0);
+        // Offers went through the interviews, so they count here as well
+        assertThat(stats.getInterviewRate()).isEqualTo(25.0);
         assertThat(stats.getOfferRate()).isEqualTo(5.0);
+    }
+
+    @Test
+    void getStats_ratesKeepOneDecimal() {
+        when(jobApplicationRepository.countByUserId(1L)).thenReturn(14L);
+        when(jobApplicationRepository.countByUserIdAndStatus(1L, ApplicationStatus.INTERVIEW)).thenReturn(1L);
+        when(jobApplicationRepository.countByUserIdAndStatus(1L, ApplicationStatus.OFFER)).thenReturn(1L);
+        when(jobApplicationRepository.countByUserIdAndStatus(1L, ApplicationStatus.APPLIED)).thenReturn(5L);
+
+        DashboardStatsDTO stats = jobApplicationService.getStats(1L);
+
+        assertThat(stats.getResponseRate()).isEqualTo(64.3);
+        assertThat(stats.getInterviewRate()).isEqualTo(14.3);
+        assertThat(stats.getOfferRate()).isEqualTo(7.1);
     }
 
     @Test
@@ -564,10 +583,13 @@ class JobApplicationServiceTest {
         when(jobApplicationRepository.countByUserIdAndStatus(1L, ApplicationStatus.OFFER)).thenReturn(0L);
         when(jobApplicationRepository.countByUserIdAndStatus(1L, ApplicationStatus.IN_REVIEW)).thenReturn(0L);
         when(jobApplicationRepository.countByUserIdAndStatus(1L, ApplicationStatus.REJECTED)).thenReturn(0L);
+        when(jobApplicationRepository.countByUserIdAndStatus(1L, ApplicationStatus.APPLIED)).thenReturn(0L);
 
         DashboardStatsDTO stats = jobApplicationService.getStats(1L);
 
         assertThat(stats.getTotalApplications()).isEqualTo(0);
+        assertThat(stats.getResponded()).isEqualTo(0);
+        assertThat(stats.getResponseRate()).isEqualTo(0);
         assertThat(stats.getInterviewRate()).isEqualTo(0);
         assertThat(stats.getOfferRate()).isEqualTo(0);
     }
@@ -869,8 +891,9 @@ class JobApplicationServiceTest {
         List<ApplicationActivityDTO> activity = jobApplicationService.getActivity(1L);
 
         assertThat(activity).hasSize(12);
-        assertThat(activity.get(0).getMonth()).isEqualTo("NOV");
-        assertThat(activity.get(11).getMonth()).isEqualTo("OCT");
+        // Oldest first, with the year so last November isn't mixed up with this one
+        assertThat(activity.get(0).getYearMonth()).isEqualTo("2025-11");
+        assertThat(activity.get(11).getYearMonth()).isEqualTo("2026-10");
         verify(jobApplicationRepository).countByUserIdAndAppliedDateBetween(1L, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31));
     }
 

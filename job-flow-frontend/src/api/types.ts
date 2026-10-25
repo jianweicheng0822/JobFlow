@@ -53,12 +53,17 @@ export interface DashboardStatsDTO {
   interviews: number;
   offers: number;
   rejections: number;
+  // Applications past APPLIED, rejections included
+  responded: number;
+  // Percentages with one decimal; interviewRate counts offers too
+  responseRate: number;
   interviewRate: number;
   offerRate: number;
 }
 
 export interface ApplicationActivityDTO {
-  month: string;
+  // "2026-10"
+  yearMonth: string;
   count: number;
 }
 

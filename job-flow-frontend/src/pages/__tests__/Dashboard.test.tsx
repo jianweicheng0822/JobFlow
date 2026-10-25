@@ -32,7 +32,10 @@ const app: JobApplicationDTO = {
 
 vi.mock('../../api/applications', () => ({
   getStats: vi.fn().mockResolvedValue({
-    data: { totalApplications: 1, inReview: 0, interviews: 0, offers: 0, rejections: 0, interviewRate: 0, offerRate: 0 },
+    data: {
+      totalApplications: 1, inReview: 0, interviews: 0, offers: 0, rejections: 0,
+      responded: 0, responseRate: 0, interviewRate: 0, offerRate: 0,
+    },
   }),
   getApplications: vi.fn(() => Promise.resolve({ data: [app] })),
   getRecentApplications: vi.fn(() => Promise.resolve({ data: [app] })),
@@ -95,7 +98,10 @@ describe('Dashboard stat cards', () => {
 
   it('shows each status as a share of all applications and links to that list', async () => {
     vi.mocked(getStats).mockResolvedValueOnce({
-      data: { totalApplications: 10, inReview: 2, interviews: 1, offers: 1, rejections: 3, interviewRate: 10, offerRate: 10 },
+      data: {
+        totalApplications: 10, inReview: 2, interviews: 1, offers: 1, rejections: 3,
+        responded: 7, responseRate: 70, interviewRate: 20, offerRate: 10,
+      },
     } as never);
     render(<Dashboard />, { wrapper: Wrapper });
 

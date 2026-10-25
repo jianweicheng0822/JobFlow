@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class ApplicationActivityDTO {
-    private String month;
+    // ISO year-month like "2026-10"; the frontend formats it for the user's language
+    private String yearMonth;
     private long count;
 }
