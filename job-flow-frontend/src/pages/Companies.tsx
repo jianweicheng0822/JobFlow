@@ -9,20 +9,9 @@ import CompanyForm from '../components/CompanyForm'
 import { useToast } from '../context/ToastContext'
 import { useLanguage } from '../context/LanguageContext'
 import { getErrorMessage } from '../api/client'
+import { companyColor as getCompanyColor } from '../utils/companyColor'
 
 // ===== Helpers =====
-const COMPANY_COLORS: Record<string, string> = {
-  'TechCorp Inc.': '#10b981',
-  'Spotify': '#1DB954',
-  'Google': '#4285F4',
-  'Meta': '#0668E1',
-  'Amazon': '#ff9900',
-}
-
-function getCompanyColor(name: string): string {
-  return COMPANY_COLORS[name] || '#6b7280'
-}
-
 interface CompanyView {
   id: number
   name: string

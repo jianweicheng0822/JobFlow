@@ -12,6 +12,7 @@ import { formatDateOnly } from '../utils/date'
 import { weeklyApplicationCounts, weeklyWindows } from '../utils/weeklyCounts'
 import Sparkline from '../components/Sparkline'
 import ShareBar from '../components/ShareBar'
+import { companyColor as getCompanyColor } from '../utils/companyColor'
 
 // ===== Types =====
 interface PipelineCard {
@@ -50,18 +51,6 @@ const STATUS_LABEL_KEYS: Record<ApplicationStatus, string> = {
   INTERVIEW: 'statusInterview',
   OFFER: 'statusOffer',
   REJECTED: 'statusRejected',
-}
-
-const COMPANY_COLORS: Record<string, string> = {
-  'TechCorp Inc.': '#4f6ef7',
-  'Spotify': '#1DB954',
-  'Google': '#4285F4',
-  'Meta': '#0668E1',
-  'Amazon': '#FF9900',
-}
-
-function getCompanyColor(name: string): string {
-  return COMPANY_COLORS[name] || '#6b7280'
 }
 
 const AVATAR_COLORS = ['#4f6ef7', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#ec4899']

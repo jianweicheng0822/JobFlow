@@ -13,6 +13,7 @@ import { getErrorMessage } from '../api/client'
 import { sortStarredFirst } from '../utils/sortStarredFirst'
 import { sortByAppliedDate, type SortDirection } from '../utils/sortByAppliedDate'
 import { formatDateOnly } from '../utils/date'
+import { companyColor as getCompanyColor } from '../utils/companyColor'
 
 // ===== Helpers =====
 const STATUS_COLORS: Record<ApplicationStatus, string> = {
@@ -34,18 +35,6 @@ const STATUS_LABEL_KEYS: Record<ApplicationStatus, string> = {
 }
 
 const STATUS_ORDER = Object.keys(STATUS_LABEL_KEYS) as ApplicationStatus[]
-
-const COMPANY_COLORS: Record<string, string> = {
-  'TechCorp Inc.': '#10b981',
-  'Spotify': '#1DB954',
-  'Google': '#4285F4',
-  'Meta': '#0668E1',
-  'Amazon': '#ff9900',
-}
-
-function getCompanyColor(name: string): string {
-  return COMPANY_COLORS[name] || '#6b7280'
-}
 
 
 interface TopEmployer {
