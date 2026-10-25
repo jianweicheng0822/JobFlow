@@ -11,6 +11,7 @@ import GmailImportModal from '../components/GmailImportModal'
 import './SettingsPage.css'
 import TimeZoneSetting from '../components/TimeZoneSetting'
 import { useAuthProviders } from '../hooks/useAuthProviders'
+import { getStoredTheme, applyTheme, type Theme } from '../utils/theme'
 
 const AVATAR_STORAGE_KEY = 'jobflow-avatar'
 
@@ -65,13 +66,10 @@ export default function SettingsPage() {
   const [scanError, setScanError] = useState<string | null>(null)
 
   // Theme
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    return (localStorage.getItem('jobflow-theme') as 'light' | 'dark') || 'light'
-  })
+  const [theme, setTheme] = useState<Theme>(getStoredTheme)
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-    localStorage.setItem('jobflow-theme', theme)
+    applyTheme(theme)
   }, [theme])
 
   // Sync form when user changes
