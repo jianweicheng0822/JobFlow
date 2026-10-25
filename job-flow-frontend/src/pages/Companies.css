@@ -121,6 +121,11 @@
   opacity: 0.9;
 }
 
+.companies-filter-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 /* ===== Company Cards Grid ===== */
 .companies-grid {
   display: grid;

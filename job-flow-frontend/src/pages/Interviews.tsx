@@ -167,6 +167,8 @@ export default function Interviews() {
     { label: t.completed, value: completedCount, icon: 'completed' as const, colorClass: 'completed' },
   ]
 
+  const hasActiveFilters = Boolean(search || typeFilter)
+
   const handleReset = () => {
     setSearch('')
     setTypeFilter('')
@@ -235,11 +237,11 @@ export default function Interviews() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <button className="interviews-add-btn" onClick={handleReset}>
+            <button className="interviews-add-btn" onClick={handleReset} disabled={!hasActiveFilters}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
               </svg>
-              {t.filter}
+              {t.reset}
             </button>
           </div>
         </div>

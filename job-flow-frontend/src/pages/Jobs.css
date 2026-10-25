@@ -232,6 +232,11 @@
   opacity: 0.9;
 }
 
+.jobs-filter-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .jobs-table-empty {
   text-align: center;
   padding: 32px 12px !important;

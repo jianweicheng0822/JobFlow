@@ -277,6 +277,8 @@ export default function Jobs() {
     { label: t.closed, value: closedCount, icon: 'closed' as const, trend: 'down' as const },
   ]
 
+  const hasActiveFilters = Boolean(search || companyFilter || roleFilter || locationFilter)
+
   const handleReset = () => {
     setSearch('')
     setCompanyFilter('')
@@ -371,11 +373,11 @@ export default function Jobs() {
                     onChange={(e) => setSearch(e.target.value)}
                   />
                 </div>
-                <button className="jobs-filter-btn" onClick={handleReset}>
+                <button className="jobs-filter-btn" onClick={handleReset} disabled={!hasActiveFilters}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
                   </svg>
-                  {t.filter}
+                  {t.reset}
                 </button>
               </div>
             </div>

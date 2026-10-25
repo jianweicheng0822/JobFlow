@@ -213,3 +213,33 @@ describe('Jobs quick status change', () => {
     expect(statusSelectFor('Alpha')).toBeEnabled();
   });
 });
+
+describe('Jobs filter reset', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(getApplications).mockResolvedValue({
+      data: [makeApp(1, 'Alpha'), makeApp(2, 'Bravo')],
+    } as never);
+  });
+
+  it('is disabled until a filter is set, then clears search and dropdowns', async () => {
+    render(<Jobs />, { wrapper: Wrapper });
+    await findTitle('Alpha');
+
+    const reset = screen.getByRole('button', { name: 'Reset' });
+    expect(reset).toBeDisabled();
+
+    const search = screen.getByPlaceholderText('Search...');
+    const companySelect = screen.getByDisplayValue('By Company') as HTMLSelectElement;
+    fireEvent.change(search, { target: { value: 'alpha' } });
+    fireEvent.change(companySelect, { target: { value: 'Company 1' } });
+    expect(rowTitles()).toEqual(['Alpha']);
+    expect(reset).toBeEnabled();
+
+    fireEvent.click(reset);
+    expect(search).toHaveValue('');
+    expect(companySelect.value).toBe('');
+    expect(rowTitles()).toEqual(['Alpha', 'Bravo']);
+    expect(reset).toBeDisabled();
+  });
+});

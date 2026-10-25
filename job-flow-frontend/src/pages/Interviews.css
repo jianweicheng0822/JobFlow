@@ -128,6 +128,11 @@
   opacity: 0.9;
 }
 
+.interviews-add-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 /* ===== Filter Bar ===== */
 .interviews-filter-bar {
   display: flex;
