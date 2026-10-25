@@ -113,14 +113,6 @@
   gap: 4px;
 }
 
-.analytics-stat-sub--up {
-  color: #10b981;
-}
-
-.analytics-stat-sub--down {
-  color: #ef4444;
-}
-
 /* ===== Chart Cards ===== */
 .analytics-chart-card {
   background: var(--card-bg);
@@ -153,6 +145,19 @@
   align-items: center;
   gap: 6px;
   font-size: 13px;
+  text-decoration: none;
+  padding: 2px 4px;
+  border-radius: 6px;
+}
+
+.analytics-legend-item:hover .analytics-legend-label {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
+.analytics-legend-item:focus-visible {
+  outline: 2px solid var(--sidebar-accent);
+  outline-offset: 2px;
 }
 
 .analytics-legend-dot {

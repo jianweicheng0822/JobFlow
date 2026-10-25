@@ -13,8 +13,8 @@ describe('buildStatusDistribution', () => {
     const slices = buildStatusDistribution(apps('APPLIED', 'PHONE_SCREEN', 'PHONE_SCREEN'), en);
 
     expect(slices).toEqual([
-      { name: 'Applied', value: 1, color: '#4f6ef7' },
-      { name: 'Phone Screen', value: 2, color: '#06b6d4' },
+      { status: 'APPLIED', name: 'Applied', value: 1, color: '#4f6ef7' },
+      { status: 'PHONE_SCREEN', name: 'Phone Screen', value: 2, color: '#06b6d4' },
     ]);
   });
 

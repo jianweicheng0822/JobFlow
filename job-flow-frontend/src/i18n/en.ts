@@ -129,6 +129,11 @@ const en = {
   applicationTrend: 'Application Trend',
   statusDistribution: 'Status Distribution',
   applicationsByCompany: 'Applications by Company',
+  respondedOf: '{count} of {total} heard back',
+  interviewedOf: '{count} of {total} reached interviews',
+  offeredOf: '{count} of {total} got an offer',
+  rateNeedsMore: 'Rate shows after {n} applications',
+  showStatusJobs: 'Show {status} jobs',
 
   // Login Page
   welcomeBack: 'Welcome back',

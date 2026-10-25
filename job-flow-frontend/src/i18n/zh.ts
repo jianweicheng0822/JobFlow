@@ -129,6 +129,11 @@ const zh = {
   applicationTrend: '申请趋势',
   statusDistribution: '状态分布',
   applicationsByCompany: '各公司申请数',
+  respondedOf: '{total} 条中 {count} 条有回复',
+  interviewedOf: '{total} 条中 {count} 条进入面试',
+  offeredOf: '{total} 条中 {count} 条拿到录用',
+  rateNeedsMore: '满 {n} 条申请后显示比例',
+  showStatusJobs: '查看「{status}」的职位',
 
   // Login Page
   welcomeBack: '欢迎回来',

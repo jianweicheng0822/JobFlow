@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useLanguage } from '../context/LanguageContext'
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -10,6 +11,7 @@ import './Analytics.css'
 import { getStats, getApplications } from '../api/applications'
 import type { DashboardStatsDTO, JobApplicationDTO } from '../api/types'
 import { buildStatusDistribution } from '../utils/statusDistribution'
+import { MIN_APPS_FOR_SHARE } from '../components/ShareBar'
 
 type AnalyticsTab = 'overview' | 'status' | 'company'
 
@@ -45,8 +47,14 @@ const TAB_LABEL_KEYS: Record<AnalyticsTab, string> = {
   company: 'company',
 }
 
+// "{count} of {total} ..." with the numbers filled in
+function fill(template: string, values: Record<string, string | number>) {
+  return Object.entries(values).reduce((text, [key, value]) => text.replace(`{${key}}`, String(value)), template)
+}
+
 export default function Analytics() {
   const { t } = useLanguage()
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<AnalyticsTab>('overview')
   const [stats, setStats] = useState<DashboardStatsDTO | null>(null)
   const [companyData, setCompanyData] = useState<{ company: string; count: number }[]>([])
@@ -83,16 +91,27 @@ export default function Analytics() {
   }
 
   const total = stats?.totalApplications ?? 0
-  const interviewCount = stats?.interviews ?? 0
-  const responseCount = total - (stats?.rejections ?? 0)
-  const responseRate = total > 0 ? Math.round((responseCount / total) * 100) : 0
-  const interviewRate = total > 0 ? Math.round((interviewCount / total) * 100) : 0
+  const responded = stats?.responded ?? 0
+  const interviewed = (stats?.interviews ?? 0) + (stats?.offers ?? 0)
+  const offers = stats?.offers ?? 0
+  // A rate over a handful of applications says more about luck than about the search
+  const showRates = total >= MIN_APPS_FOR_SHARE
+  const rateValue = (rate: number, count: number) => (showRates ? `${Math.round(rate)}%` : `${count} / ${total}`)
+  const rateNeedsMore = fill(t.rateNeedsMore, { n: MIN_APPS_FOR_SHARE })
 
   const statSummary = [
-    { label: t.totalApplications, value: String(total), trend: 'up' as const },
-    { label: t.responseRate, value: `${responseRate}%`, trend: 'up' as const },
-    { label: t.interviewRate, value: `${interviewRate}%`, trend: interviewRate > 0 ? 'up' as const : 'down' as const },
-    { label: t.offers, value: String(stats?.offers ?? 0), trend: 'up' as const },
+    { label: t.totalApplications, value: String(total), sub: null },
+    {
+      label: t.responseRate,
+      value: rateValue(stats?.responseRate ?? 0, responded),
+      sub: showRates ? fill(t.respondedOf, { count: responded, total }) : rateNeedsMore,
+    },
+    {
+      label: t.interviewRate,
+      value: rateValue(stats?.interviewRate ?? 0, interviewed),
+      sub: showRates ? fill(t.interviewedOf, { count: interviewed, total }) : rateNeedsMore,
+    },
+    { label: t.offers, value: String(offers), sub: total > 0 ? fill(t.offeredOf, { count: offers, total }) : null },
   ]
 
   const statusData = buildStatusDistribution(applications, t)
@@ -129,9 +148,7 @@ export default function Analytics() {
                 <div className="analytics-stat-card" key={stat.label}>
                   <span className="analytics-stat-label">{stat.label}</span>
                   <span className="analytics-stat-value">{stat.value}</span>
-                  <span className={`analytics-stat-sub analytics-stat-sub--${stat.trend}`}>
-                    {stat.trend === 'up' ? '↑' : '↓'}
-                  </span>
+                  {stat.sub && <span className="analytics-stat-sub">{stat.sub}</span>}
                 </div>
               ))}
             </div>
@@ -154,7 +171,12 @@ export default function Analytics() {
                       dataKey="value"
                     >
                       {statusData.map((entry) => (
-                        <Cell key={entry.name} fill={entry.color} />
+                        <Cell
+                          key={entry.status}
+                          fill={entry.color}
+                          cursor="pointer"
+                          onClick={() => navigate(`/jobs?status=${entry.status}`)}
+                        />
                       ))}
                     </Pie>
                     <Tooltip contentStyle={tooltipStyle} />
@@ -162,12 +184,18 @@ export default function Analytics() {
                 </ResponsiveContainer>
               </div>
               <div className="analytics-legend">
+                {/* Legend entries double as keyboard-friendly links for the slices */}
                 {statusData.map((item) => (
-                  <div className="analytics-legend-item" key={item.name}>
+                  <Link
+                    className="analytics-legend-item"
+                    key={item.status}
+                    to={`/jobs?status=${item.status}`}
+                    aria-label={`${fill(t.showStatusJobs, { status: item.name })} (${item.value})`}
+                  >
                     <span className="analytics-legend-dot" style={{ background: item.color }} />
                     <span className="analytics-legend-label">{item.name}</span>
                     <span className="analytics-legend-value">{item.value}</span>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>

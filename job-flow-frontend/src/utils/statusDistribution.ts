@@ -13,6 +13,7 @@ const STATUS_SLICES: { status: ApplicationStatus; labelKey: keyof Translations; 
 ]
 
 export interface StatusSlice {
+  status: ApplicationStatus
   name: string
   value: number
   color: string
@@ -26,6 +27,6 @@ export function buildStatusDistribution(apps: JobApplicationDTO[], t: Translatio
     counts[app.status] = (counts[app.status] ?? 0) + 1
   })
   return STATUS_SLICES
-    .map(({ status, labelKey, color }) => ({ name: t[labelKey], value: counts[status] ?? 0, color }))
+    .map(({ status, labelKey, color }) => ({ status, name: t[labelKey], value: counts[status] ?? 0, color }))
     .filter((slice) => slice.value > 0)
 }
