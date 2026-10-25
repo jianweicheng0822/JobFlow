@@ -9,6 +9,7 @@ import { useToast } from '../context/ToastContext'
 import { useLanguage } from '../context/LanguageContext'
 import { getErrorMessage } from '../api/client'
 import { sortStarredFirst } from '../utils/sortStarredFirst'
+import { sortByAppliedDate, type SortDirection } from '../utils/sortByAppliedDate'
 import { formatDateOnly } from '../utils/date'
 
 // ===== Helpers =====
@@ -135,6 +136,7 @@ export default function Jobs() {
   const [companyFilter, setCompanyFilter] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [locationFilter, setLocationFilter] = useState('')
+  const [dateSort, setDateSort] = useState<SortDirection>('desc')
   const [currentPage, setCurrentPage] = useState(0)
   const pageSize = 20
 
@@ -246,8 +248,10 @@ export default function Jobs() {
   const locations = useMemo(() => [...new Set(applications.map((a) => a.location).filter(Boolean) as string[])], [applications])
 
   const filteredJobs = useMemo(() => {
-    // Starred jobs float to the top, before paging, so they always land on page 1
-    return sortStarredFirst(applications).filter((app) => {
+    // Sort by date first; the starred pass is stable, so starred jobs float to the
+    // top with the date order kept inside each group. Done before paging so
+    // starred jobs always land on page 1.
+    return sortStarredFirst(sortByAppliedDate(applications, dateSort)).filter((app) => {
       const q = search.toLowerCase()
       const matchesSearch = !q || app.positionTitle.toLowerCase().includes(q) || app.company.name.toLowerCase().includes(q)
       const matchesCompany = !companyFilter || app.company.name === companyFilter
@@ -255,12 +259,12 @@ export default function Jobs() {
       const matchesLocation = !locationFilter || app.location === locationFilter
       return matchesSearch && matchesCompany && matchesRole && matchesLocation
     })
-  }, [applications, search, companyFilter, roleFilter, locationFilter])
+  }, [applications, search, companyFilter, roleFilter, locationFilter, dateSort])
 
-  // Reset to first page when filters change
+  // Reset to first page when filters or sorting change
   useEffect(() => {
     setCurrentPage(0)
-  }, [search, companyFilter, roleFilter, locationFilter])
+  }, [search, companyFilter, roleFilter, locationFilter, dateSort])
 
   const totalPages = Math.max(1, Math.ceil(filteredJobs.length / pageSize))
   const pagedJobs = filteredJobs.slice(currentPage * pageSize, (currentPage + 1) * pageSize)
@@ -389,7 +393,15 @@ export default function Jobs() {
                     <th>{t.jobTitle}</th>
                     <th>{t.companyLogo}</th>
                     <th>{t.location}</th>
-                    <th>{t.dateAppliedSort} ↕</th>
+                    <th aria-sort={dateSort === 'asc' ? 'ascending' : 'descending'}>
+                      <button
+                        type="button"
+                        className="jobs-sort-btn"
+                        onClick={() => setDateSort((d) => (d === 'desc' ? 'asc' : 'desc'))}
+                      >
+                        {t.dateAppliedSort} <span aria-hidden="true">{dateSort === 'desc' ? '↓' : '↑'}</span>
+                      </button>
+                    </th>
                     <th>{t.stage}</th>
                     <th>{t.actions}</th>
                   </tr>

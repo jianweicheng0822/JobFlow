@@ -243,3 +243,31 @@ describe('Jobs filter reset', () => {
     expect(reset).toBeDisabled();
   });
 });
+
+describe('Jobs date sort', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(getApplications).mockResolvedValue({
+      data: [
+        { ...makeApp(1, 'Old'), appliedDate: '2026-09-01' },
+        { ...makeApp(2, 'New'), appliedDate: '2026-10-20' },
+        { ...makeApp(3, 'Starred old', true), appliedDate: '2026-08-15' },
+        { ...makeApp(4, 'Undated'), appliedDate: null },
+        { ...makeApp(5, 'Starred new', true), appliedDate: '2026-10-10' },
+      ],
+    } as never);
+  });
+
+  it('shows newest first, flips on click, and keeps starred jobs on top', async () => {
+    render(<Jobs />, { wrapper: Wrapper });
+    await findTitle('Old');
+
+    const header = screen.getByRole('columnheader', { name: /date applied/i });
+    expect(header).toHaveAttribute('aria-sort', 'descending');
+    expect(rowTitles()).toEqual(['Starred new', 'Starred old', 'New', 'Old', 'Undated']);
+
+    fireEvent.click(within(header).getByRole('button'));
+    expect(header).toHaveAttribute('aria-sort', 'ascending');
+    expect(rowTitles()).toEqual(['Starred old', 'Starred new', 'Old', 'New', 'Undated']);
+  });
+});

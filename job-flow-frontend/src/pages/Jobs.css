@@ -264,6 +264,19 @@
   white-space: nowrap;
 }
 
+.jobs-sort-btn {
+  padding: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.jobs-sort-btn:hover {
+  color: var(--text-primary);
+}
+
 .jobs-table tbody td {
   padding: 12px;
   color: var(--text-primary);
