@@ -3,10 +3,12 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import OAuthButtons from '../components/OAuthButtons'
+import { useLeaveDemo } from '../hooks/useLeaveDemo'
 import './LoginPage.css'
 import { getErrorMessage } from '../api/client'
 
 export default function LoginPage() {
+  useLeaveDemo()
   const { login, tryDemo } = useAuth()
   const { t } = useLanguage()
   const navigate = useNavigate()

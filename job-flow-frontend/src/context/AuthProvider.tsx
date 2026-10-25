@@ -30,7 +30,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     authApi.getMe()
-      .then((res) => signIn(toUser(res.data)))
+      // Skip it if the token changed meanwhile, e.g. the login page ended a demo session
+      .then((res) => { if (localStorage.getItem('jobflow-token') === token) signIn(toUser(res.data)) })
       .catch(() => localStorage.removeItem('jobflow-token'))
       .finally(() => setLoading(false))
   }, [signIn])

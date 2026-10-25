@@ -282,6 +282,8 @@ const en = {
 
   // Demo mode
   demoModeNotAvailable: 'This feature is not available in demo mode.',
+  demoBannerMessage: "You're exploring a demo with sample data. Changes last until you refresh the page.",
+  demoBannerSignUp: 'Sign up to keep your data →',
 
   // OAuth Callback
   signingYouIn: 'Signing you in...',

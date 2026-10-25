@@ -1,0 +1,34 @@
+.demo-banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 32px;
+  font-size: 13px;
+  color: var(--text-primary);
+  /* A light tint of the accent that works on both themes */
+  background: color-mix(in srgb, var(--sidebar-accent) 12%, var(--topbar-bg));
+  border-bottom: 1px solid color-mix(in srgb, var(--sidebar-accent) 25%, var(--border-color));
+}
+
+.demo-banner-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--sidebar-accent);
+}
+
+.demo-banner-link {
+  padding: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--sidebar-accent);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.demo-banner-link:hover {
+  text-decoration: underline;
+}

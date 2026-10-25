@@ -282,6 +282,8 @@ const zh = {
 
   // Demo mode
   demoModeNotAvailable: '此功能在 Demo 模式下不可用。',
+  demoBannerMessage: '你正在体验 Demo，使用的是示例数据。修改只会保留到刷新页面为止。',
+  demoBannerSignUp: '注册账号保存你的数据 →',
 
   // OAuth Callback
   signingYouIn: '正在登录...',
