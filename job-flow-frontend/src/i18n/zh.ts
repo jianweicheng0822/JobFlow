@@ -317,6 +317,8 @@ const zh = {
   // OAuth Callback
   signingYouIn: '正在登录...',
   oauthFailed: '登录未完成，请重试。',
+  oauthCancelled: '已取消登录。',
+  oauthEmailInUse: '这个邮箱已经注册过 JobFlow 账号，请用之前的方式登录（比如邮箱密码）。',
 
   // Last action (Dashboard "Recently Updated"); see utils/formatLastAction.ts
   movedTo: '状态更新为「{status}」',

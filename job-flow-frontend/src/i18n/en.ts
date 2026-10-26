@@ -317,6 +317,8 @@ const en = {
   // OAuth Callback
   signingYouIn: 'Signing you in...',
   oauthFailed: "Couldn't finish signing in. Please try again.",
+  oauthCancelled: 'Sign-in was cancelled.',
+  oauthEmailInUse: 'This email already has a JobFlow account. Sign in the way you did before (for example with your password).',
 
   // Last action (Dashboard "Recently Updated"); see utils/formatLastAction.ts
   movedTo: 'Moved to {status}',

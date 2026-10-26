@@ -1,6 +1,7 @@
 package com.jobflow.config;
 
 import com.jobflow.security.JwtAuthenticationFilter;
+import com.jobflow.security.OAuth2LoginFailureHandler;
 import com.jobflow.security.OAuth2LoginSuccessHandler;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+    private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
 
     // Optional: only present when at least one OAuth provider is configured (OAuthClientConfig)
     private final ClientRegistrationRepository clientRegistrationRepository;
@@ -48,10 +50,12 @@ public class SecurityConfig {
     @Autowired
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
                           OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler,
+                          OAuth2LoginFailureHandler oAuth2LoginFailureHandler,
                           @Autowired(required = false) ClientRegistrationRepository clientRegistrationRepository,
                           @Value("${app.frontend-url}") String frontendUrl) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.oAuth2LoginSuccessHandler = oAuth2LoginSuccessHandler;
+        this.oAuth2LoginFailureHandler = oAuth2LoginFailureHandler;
         this.clientRegistrationRepository = clientRegistrationRepository;
         this.frontendUrl = frontendUrl;
     }
@@ -83,6 +87,7 @@ public class SecurityConfig {
                 .authorizationEndpoint(auth -> auth
                     .authorizationRequestResolver(customAuthorizationRequestResolver()))
                 .successHandler(oAuth2LoginSuccessHandler)
+                .failureHandler(oAuth2LoginFailureHandler)
             );
         }
 

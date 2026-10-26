@@ -4,6 +4,7 @@ import com.jobflow.controller.AuthController;
 import com.jobflow.dto.AuthResponse;
 import com.jobflow.security.JwtAuthenticationFilter;
 import com.jobflow.security.JwtService;
+import com.jobflow.security.OAuth2LoginFailureHandler;
 import com.jobflow.security.OAuth2LoginSuccessHandler;
 import com.jobflow.service.AuthService;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -29,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 // Runs the real SecurityConfig against AuthController without a database,
 // so it works without Docker (unlike the *IntegrationTest classes)
 @WebMvcTest(AuthController.class)
-@Import({SecurityConfig.class, JwtAuthenticationFilter.class, OAuthClientConfig.class})
+@Import({SecurityConfig.class, JwtAuthenticationFilter.class, OAuth2LoginFailureHandler.class, OAuthClientConfig.class})
 @ActiveProfiles("test")
 class AuthEndpointSecurityTest {
 

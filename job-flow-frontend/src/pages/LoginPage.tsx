@@ -1,7 +1,7 @@
-import { useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useLanguage } from '../context/LanguageContext'
+import { useLanguage, type Translations } from '../context/LanguageContext'
 import OAuthButtons from '../components/OAuthButtons'
 import { useLeaveDemo } from '../hooks/useLeaveDemo'
 import './LoginPage.css'
@@ -13,12 +13,21 @@ export default function LoginPage() {
   const { t } = useLanguage()
   const navigate = useNavigate()
   const location = useLocation()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const oauthError = searchParams.get('oauthError')
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  // Set when an OAuth sign-in bounced back here (e.g. an expired code)
-  const [error, setError] = useState<string>(() => (location.state as { error?: string } | null)?.error ?? '')
+  // Set when an OAuth sign-in bounced back here: the backend sends ?oauthError=<code>,
+  // OAuthCallback passes a message in state (e.g. an expired code)
+  const [error, setError] = useState<string>(() =>
+    oauthErrorMessage(oauthError, t) ?? (location.state as { error?: string } | null)?.error ?? '')
   const [loading, setLoading] = useState(false)
+
+  // Drop the code from the address bar so a reload doesn't show the message again
+  useEffect(() => {
+    if (oauthError) setSearchParams({}, { replace: true })
+  }, [oauthError, setSearchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -106,4 +115,13 @@ export default function LoginPage() {
       </div>
     </div>
   )
+}
+
+function oauthErrorMessage(code: string | null, t: Translations): string | null {
+  switch (code) {
+    case null: return null
+    case 'cancelled': return t.oauthCancelled
+    case 'email_in_use': return t.oauthEmailInUse
+    default: return t.oauthFailed
+  }
 }
