@@ -45,6 +45,10 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
     @Query("DELETE FROM JobApplication ja WHERE ja.company.id = :companyId")
     void deleteByCompanyId(Long companyId);
 
+    @Modifying
+    @Query("DELETE FROM JobApplication ja WHERE ja.user.id = :userId")
+    void deleteByUserId(Long userId);
+
     long countByUserId(Long userId);
 
     long countByUserIdAndStatus(Long userId, ApplicationStatus status);

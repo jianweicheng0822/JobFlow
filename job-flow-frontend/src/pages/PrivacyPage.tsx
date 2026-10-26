@@ -53,7 +53,8 @@ const content: Record<Language, { title: string; updated: string; back: string; 
       {
         title: 'Deleting your data',
         body: [
-          `To have your account and everything in it deleted, or for any question about your data, email ${CONTACT_EMAIL} from the address you signed up with.`,
+          'You can delete your account at any time under Settings > Account. That removes your account and everything in it right away, and revokes Gmail access if you linked it.',
+          `For any question about your data, email ${CONTACT_EMAIL} from the address you signed up with.`,
         ],
       },
     ],
@@ -96,7 +97,8 @@ const content: Record<Language, { title: string; updated: string; back: string; 
       {
         title: '删除数据',
         body: [
-          `如需删除你的账号及其中的所有数据，或对数据有任何疑问，请用注册时的邮箱发邮件到 ${CONTACT_EMAIL}。`,
+          '你可以随时在「设置 > 账号」中注销账号。账号及其中的所有数据会立即删除；如果关联过 Gmail，授权也会一并撤销。',
+          `对数据有任何疑问，请用注册时的邮箱发邮件到 ${CONTACT_EMAIL}。`,
         ],
       },
     ],

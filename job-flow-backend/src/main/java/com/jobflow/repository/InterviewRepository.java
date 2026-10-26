@@ -26,6 +26,11 @@ public interface InterviewRepository extends JpaRepository<Interview, Long> {
     @Query("DELETE FROM Interview i WHERE i.jobApplication.id IN :appIds")
     void deleteByJobApplicationIdIn(List<Long> appIds);
 
+    @Modifying
+    @Query("DELETE FROM Interview i WHERE i.jobApplication.id IN "
+        + "(SELECT a.id FROM JobApplication a WHERE a.user.id = :userId)")
+    void deleteByUserId(Long userId);
+
     // Coarse first pass for reminders. Interview times are each user's local wall-clock
     // time, so the scheduler decides what's actually due per user (see UserClock).
     // User and company are fetched along so the per-user check doesn't hit the DB again.

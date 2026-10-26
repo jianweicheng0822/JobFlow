@@ -20,4 +20,8 @@ public interface EmailImportLogRepository extends JpaRepository<EmailImportLog, 
     @Modifying
     @Query("DELETE FROM EmailImportLog e WHERE e.jobApplication.id IN :appIds")
     void deleteByJobApplicationIdIn(List<Long> appIds);
+
+    @Modifying
+    @Query("DELETE FROM EmailImportLog e WHERE e.user.id = :userId")
+    void deleteByUserId(Long userId);
 }

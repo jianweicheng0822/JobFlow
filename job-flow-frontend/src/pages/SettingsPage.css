@@ -273,6 +273,46 @@
   color: #1e40af;
 }
 
+/* ===== Delete account ===== */
+.settings-danger {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.settings-danger-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--status-rejected);
+  margin-bottom: 6px;
+}
+
+.settings-danger-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.settings-actions--start {
+  justify-content: flex-start;
+}
+
+.settings-btn-danger {
+  padding: 10px 24px;
+  background: transparent;
+  color: var(--status-rejected);
+  border: 1px solid var(--status-rejected);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-btn-danger:hover {
+  background: var(--status-rejected);
+  color: white;
+}
+
 /* ===== Toggle Switch ===== */
 .settings-toggle-list {
   display: flex;

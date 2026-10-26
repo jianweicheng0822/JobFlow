@@ -11,6 +11,7 @@ import GmailImportModal from '../components/GmailImportModal'
 import { getStoredAvatar, storeAvatar } from '../utils/avatar'
 import './SettingsPage.css'
 import TimeZoneSetting from '../components/TimeZoneSetting'
+import DeleteAccountSection from '../components/DeleteAccountSection'
 import { useAuthProviders } from '../hooks/useAuthProviders'
 import { getStoredTheme, applyTheme, type Theme } from '../utils/theme'
 
@@ -359,6 +360,7 @@ export default function SettingsPage() {
               </div>
             </>
           )}
+          <DeleteAccountSection />
         </div>
       )}
 

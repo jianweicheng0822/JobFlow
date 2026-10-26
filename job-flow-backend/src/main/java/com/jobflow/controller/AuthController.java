@@ -4,11 +4,13 @@ import com.jobflow.config.MailSettings;
 import com.jobflow.config.OAuthProviders;
 import com.jobflow.dto.AuthResponse;
 import com.jobflow.dto.ChangePasswordRequest;
+import com.jobflow.dto.DeleteAccountRequest;
 import com.jobflow.dto.LoginRequest;
 import com.jobflow.dto.OAuthExchangeRequest;
 import com.jobflow.dto.RegisterRequest;
 import com.jobflow.dto.UpdateProfileRequest;
 import com.jobflow.dto.UpdateTimeZoneRequest;
+import com.jobflow.service.AccountDeletionService;
 import com.jobflow.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ public class AuthController {
     private final AuthService authService;
     private final OAuthProviders oAuthProviders;
     private final MailSettings mailSettings;
+    private final AccountDeletionService accountDeletionService;
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
@@ -81,5 +84,12 @@ public class AuthController {
     public void changePassword(Authentication authentication,
                                @Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(authentication.getName(), request);
+    }
+
+    // Body on a DELETE: needs the password (or the email, for OAuth-only accounts) to confirm
+    @DeleteMapping("/me")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteAccount(Authentication authentication, @RequestBody DeleteAccountRequest request) {
+        accountDeletionService.deleteAccount(authentication.getName(), request);
     }
 }

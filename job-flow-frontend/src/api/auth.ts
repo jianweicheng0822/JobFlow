@@ -35,6 +35,12 @@ export interface ChangePasswordRequest {
   newPassword: string
 }
 
+// Password for accounts that have one, otherwise the account email
+export interface DeleteAccountRequest {
+  password?: string
+  confirmEmail?: string
+}
+
 export const login = (data: LoginRequest) =>
   client.post<AuthResponse>('/auth/login', data)
 
@@ -65,6 +71,9 @@ export const updateProfile = (data: UpdateProfileRequest) =>
 
 export const changePassword = (data: ChangePasswordRequest) =>
   client.put<void>('/auth/password', data)
+
+export const deleteAccount = (data: DeleteAccountRequest) =>
+  client.delete<void>('/auth/me', { data })
 
 export const updateTimeZone = (timeZone: string) =>
   client.put<AuthResponse>('/auth/time-zone', { timeZone })
