@@ -8,24 +8,29 @@ import com.jobflow.exception.NotFoundException;
 import jakarta.validation.ConstraintViolation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-// Known client mistakes get a 400/404 with a message the user can act on.
+// Known client mistakes get a 4xx with a message the user can act on.
 // handleGeneral is only the safety net for real bugs and never leaks internals.
 //
 // Every body keeps an English "message"; most also carry a stable "code" plus
@@ -101,6 +106,32 @@ public class GlobalExceptionHandler {
         return body(HttpStatus.BAD_REQUEST, "Bad Request",
                 "Missing required parameter '" + ex.getParameterName() + "'",
                 "MISSING_PARAMETER", params("field", ex.getParameterName()), null);
+    }
+
+    // The request never matched an endpoint. These used to fall through to handleGeneral
+    // as a 500 with a stack trace, though nothing on our side went wrong.
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNoRoute(NoResourceFoundException ex) {
+        log.warn("No endpoint for {} /{}", ex.getHttpMethod(), ex.getResourcePath());
+        return body(HttpStatus.NOT_FOUND, "Not Found", "No endpoint at this path", "NOT_FOUND", null, null);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<Map<String, Object>> handleWrongMethod(HttpRequestMethodNotSupportedException ex) {
+        log.warn("Method not allowed: {}", ex.getMessage());
+        ResponseEntity<Map<String, Object>> response = body(HttpStatus.METHOD_NOT_ALLOWED, "Method Not Allowed",
+                ex.getMethod() + " is not supported here", "METHOD_NOT_ALLOWED", params("method", ex.getMethod()), null);
+        Set<HttpMethod> allowed = ex.getSupportedHttpMethods();
+        return allowed == null ? response
+                : ResponseEntity.status(response.getStatusCode()).allow(allowed.toArray(HttpMethod[]::new)).body(response.getBody());
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<Map<String, Object>> handleWrongContentType(HttpMediaTypeNotSupportedException ex) {
+        log.warn("Unsupported content type: {}", ex.getContentType());
+        return body(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported Media Type",
+                "Send the request body as application/json", "UNSUPPORTED_MEDIA_TYPE", null, null);
     }
 
     // Gmail and friends: not the user's fault and not ours, so 502 with a retry hint
