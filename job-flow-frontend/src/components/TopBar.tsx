@@ -41,28 +41,24 @@ export default function TopBar() {
   const [showResults, setShowResults] = useState(false)
   const [applications, setApplications] = useState<JobApplicationDTO[]>([])
   const [companies, setCompanies] = useState<CompanyDTO[]>([])
-  const [loaded, setLoaded] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
 
   const displayName = user?.name || 'User'
   const initials = getInitials(displayName)
   const avatarSrc = user?.avatarUrl || avatar
 
-  // Fetch data on first focus
+  // Fetch fresh data on every focus so jobs added since last time show up too
   const handleSearchFocus = async () => {
     setShowResults(true)
-    if (!loaded) {
-      try {
-        const [appsRes, compsRes] = await Promise.all([
-          getApplications(),
-          getCompanies(),
-        ])
-        setApplications(appsRes.data)
-        setCompanies(compsRes.data)
-        setLoaded(true)
-      } catch {
-        // Silently fail — search just won't show results
-      }
+    try {
+      const [appsRes, compsRes] = await Promise.all([
+        getApplications(),
+        getCompanies(),
+      ])
+      setApplications(appsRes.data)
+      setCompanies(compsRes.data)
+    } catch {
+      // Silently fail — search just won't show results
     }
   }
 
@@ -166,7 +162,7 @@ export default function TopBar() {
                           onClick={() => {
                             setShowResults(false)
                             setQuery('')
-                            navigate('/jobs')
+                            navigate(`/jobs?open=${app.id}`)
                           }}
                         >
                           <div className="topbar-search-item-title">{app.positionTitle}</div>
@@ -187,7 +183,7 @@ export default function TopBar() {
                           onClick={() => {
                             setShowResults(false)
                             setQuery('')
-                            navigate('/companies')
+                            navigate(`/jobs?company=${encodeURIComponent(c.name)}`)
                           }}
                         >
                           <div className="topbar-search-item-title">{c.name}</div>

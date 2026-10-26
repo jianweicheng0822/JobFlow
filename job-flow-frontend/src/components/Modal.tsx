@@ -12,7 +12,8 @@ export default function Modal({ title, onClose, children }: ModalProps) {
   // Close on Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      // An open dropdown inside the modal handles Escape itself and marks it handled
+      if (e.key === 'Escape' && !e.defaultPrevented) onClose();
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);

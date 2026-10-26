@@ -51,6 +51,13 @@ export default function AutocompleteInput({
           setShowDropdown(true);
         }}
         onFocus={() => setShowDropdown(true)}
+        onKeyDown={(e) => {
+          // First Escape closes the suggestions, not the whole modal
+          if (e.key === 'Escape' && showDropdown && visible.length > 0) {
+            e.preventDefault();
+            setShowDropdown(false);
+          }
+        }}
         placeholder={placeholder}
         autoComplete="off"
       />

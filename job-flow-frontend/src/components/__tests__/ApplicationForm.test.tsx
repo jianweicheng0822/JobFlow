@@ -5,6 +5,7 @@ import { ToastProvider } from '../../context/ToastProvider';
 import { LanguageProvider } from '../../context/LanguageProvider';
 import type { JobApplicationDTO } from '../../api/types';
 import { updateApplication } from '../../api/applications';
+import { getCompanies } from '../../api/companies';
 
 // Mock API modules
 vi.mock('../../api/companies', () => ({
@@ -137,5 +138,31 @@ describe('ApplicationForm', () => {
       vi.useRealTimers();
       process.env.TZ = originalTZ;
     }
+  });
+});
+
+describe('ApplicationForm while fixing mistakes', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('drops a required message as soon as the field is filled in', () => {
+    render(<ApplicationForm onSuccess={vi.fn()} onCancel={vi.fn()} />, { wrapper: Wrapper });
+    fireEvent.click(screen.getByRole('button', { name: /create application/i }));
+
+    fireEvent.change(screen.getByPlaceholderText(/frontend developer/i), { target: { value: 'Engineer' } });
+
+    expect(screen.queryByText('Position title is required')).not.toBeInTheDocument();
+    expect(screen.getByText('Company is required')).toBeInTheDocument();
+  });
+
+  it("fills in the company's location when one is picked and location is empty", async () => {
+    render(<ApplicationForm onSuccess={vi.fn()} onCancel={vi.fn()} />, { wrapper: Wrapper });
+    const company = screen.getByPlaceholderText(/search or enter a new company/i);
+
+    // Wait for the company list to load before typing
+    await waitFor(() => expect(vi.mocked(getCompanies)).toHaveBeenCalled());
+    fireEvent.change(company, { target: { value: 'Ac' } });
+    fireEvent.mouseDown(await screen.findByText('Acme'));
+
+    expect(screen.getByPlaceholderText(/san francisco/i)).toHaveValue('NYC');
   });
 });

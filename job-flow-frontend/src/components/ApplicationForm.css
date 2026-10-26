@@ -109,8 +109,18 @@
   color: white;
 }
 
+.autocomplete-anchor {
+  position: relative;
+}
+
+.autocomplete-anchor > .app-form-input {
+  width: 100%;
+}
+
 .autocomplete-dropdown {
   position: absolute;
+  top: 100%;
+  left: 0;
   z-index: 10;
   width: 100%;
   max-height: 180px;
@@ -152,4 +162,15 @@
   .app-form-row {
     grid-template-columns: 1fr;
   }
+}
+
+/* Keep Save/Cancel in view on short screens; the negative margin and padding
+   reach over the modal body's own 24px bottom padding */
+.modal-body .app-form > .app-form-actions {
+  position: sticky;
+  bottom: -24px;
+  margin: 8px 0 -24px;
+  padding: 12px 0 24px;
+  background: var(--card-bg);
+  border-top: 1px solid var(--border-color);
 }

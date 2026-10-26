@@ -75,6 +75,15 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
     c.name.toLowerCase().includes(companyInput.toLowerCase())
   );
 
+  // Drop a field's "required" message as soon as the user starts fixing it
+  function clearError(field: string) {
+    setErrors((prev) => {
+      if (!prev[field]) return prev;
+      const { [field]: _removed, ...rest } = prev;
+      return rest;
+    });
+  }
+
   function validate(): boolean {
     const newErrors: Record<string, string> = {};
     if (!positionTitle.trim()) newErrors.positionTitle = t.positionRequired;
@@ -132,7 +141,10 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
         </label>
         <AutocompleteInput
           value={positionTitle}
-          onChange={setPositionTitle}
+          onChange={(value) => {
+            setPositionTitle(value);
+            clearError('positionTitle');
+          }}
           suggestions={JOB_TITLES}
           placeholder={t.positionPlaceholder}
         />
@@ -143,6 +155,8 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
         <label className="app-form-label">
           {t.company} <span className="required">*</span>
         </label>
+        {/* Anchor for the suggestions so they open under the input, not over the label */}
+        <div className="autocomplete-anchor">
         <input
           className="app-form-input"
           type="text"
@@ -151,8 +165,16 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
             setCompanyInput(e.target.value);
             setSelectedCompanyId(null);
             setShowDropdown(true);
+            clearError('company');
           }}
           onFocus={() => setShowDropdown(true)}
+          onKeyDown={(e) => {
+            // First Escape closes the suggestions, not the whole modal
+            if (e.key === 'Escape' && showDropdown && companyInput.trim()) {
+              e.preventDefault();
+              setShowDropdown(false);
+            }
+          }}
           placeholder={t.companyPlaceholder}
           autoComplete="off"
         />
@@ -166,6 +188,9 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
                   setCompanyInput(c.name);
                   setSelectedCompanyId(c.id);
                   setShowDropdown(false);
+                  clearError('company');
+                  // Most jobs are at the company's usual office; don't overwrite one the user typed
+                  if (!location.trim() && c.location) setLocation(c.location);
                 }}
               >
                 {c.name}
@@ -179,6 +204,7 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
             )}
           </div>
         )}
+        </div>
         {errors.company && <span className="app-form-error">{errors.company}</span>}
       </div>
 
