@@ -14,7 +14,7 @@ A full-stack job application tracker with JWT + OAuth2 authentication, Kanban pi
 
 ## Screenshots
 
-<a href="docs/dashboard.png"><img src="docs/dashboard.png" alt="Dashboard"></a>
+<img src="docs/demo.gif" alt="JobFlow demo: try the demo, drag a card across the pipeline, search and star jobs, browse interviews and analytics, then switch to dark mode and Chinese">
 
 <table>
   <tr>
@@ -30,8 +30,8 @@ A full-stack job application tracker with JWT + OAuth2 authentication, Kanban pi
     <td align="center"><strong>Settings</strong><br><a href="docs/settings.png"><img src="docs/settings.png" alt="Settings" width="400"></a></td>
   </tr>
   <tr>
+    <td align="center"><strong>Dashboard</strong><br><a href="docs/dashboard.png"><img src="docs/dashboard.png" alt="Dashboard" width="400"></a></td>
     <td align="center"><strong>Dark Mode</strong><br><a href="docs/dashboard-dark.png"><img src="docs/dashboard-dark.png" alt="Dashboard in dark mode" width="400"></a></td>
-    <td></td>
   </tr>
 </table>
 
