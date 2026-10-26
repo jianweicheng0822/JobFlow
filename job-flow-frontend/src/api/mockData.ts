@@ -30,9 +30,13 @@ function seedDay(daysBack: number, now: Date = new Date()): Date {
 }
 
 // "2026-10-08T14:05:00Z" for that local day and time, like the backend's timestamps
+// A seed day can be today, and today's 4 PM is still ahead early in the morning,
+// so anything later than a few minutes ago is pulled back to then. Otherwise a
+// job the user just edited wouldn't come out on top of "recently updated".
 function timestampOn(day: Date, hour: number, minute: number): string {
   const d = new Date(day.getFullYear(), day.getMonth(), day.getDate(), hour, minute);
-  return d.toISOString().replace('.000Z', 'Z');
+  const latest = new Date(Date.now() - 5 * 60_000);
+  return (d > latest ? latest : d).toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
 // Local wall-clock date-time `days` from today, in the backend's format ("2026-10-08T10:00:00")

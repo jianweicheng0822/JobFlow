@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { resolveMock as ResolveMockFn, isDemoMode as IsDemoModeFn } from '../mockData';
 import type {
   JobApplicationDTO,
@@ -340,5 +340,28 @@ describe('demo interview history', () => {
     // The offer came after more than one round
     const offer = apps.find((a) => a.status === 'OFFER')!;
     expect(past.filter((i) => i.jobApplicationId === offer.id).length).toBeGreaterThan(1);
+  });
+});
+
+describe('seed timestamps', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('are never in the future, even early on a Monday morning', async () => {
+    // Monday 1:24 AM: seed days that land on today would otherwise get afternoon times
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 9, 26, 1, 24));
+    vi.resetModules();
+    const mod = await import('../mockData');
+
+    const apps = mod.resolveMock('/applications', 'get') as JobApplicationDTO[];
+    const now = Date.now();
+    for (const app of apps) {
+      expect(Date.parse(app.createdAt)).toBeLessThanOrEqual(now);
+      expect(Date.parse(app.updatedAt)).toBeLessThanOrEqual(now);
+    }
+
+    mod.resolveMock('/applications/10/status', 'patch', undefined, { status: 'OFFER' });
+    const recent = mod.resolveMock('/applications/recent', 'get') as JobApplicationDTO[];
+    expect(recent[0].id).toBe(10);
   });
 });
