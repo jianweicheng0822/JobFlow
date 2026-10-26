@@ -66,7 +66,7 @@ const en = {
 
   // Jobs Page
   activeApplications: 'Active Applications',
-  savedJobs: 'Saved Jobs',
+  starred: 'Starred',
   closed: 'Closed',
 
   // Stat card visuals

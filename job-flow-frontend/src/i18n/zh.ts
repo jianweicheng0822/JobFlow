@@ -66,7 +66,7 @@ const zh = {
 
   // Jobs Page
   activeApplications: '进行中',
-  savedJobs: '已收藏',
+  starred: '星标',
   closed: '已结束',
 
   // Stat card visuals

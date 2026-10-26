@@ -5,6 +5,12 @@
   gap: 24px;
 }
 
+.jobs-page-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
 .jobs-loading,
 .jobs-error {
   display: flex;
@@ -56,7 +62,7 @@
   background: #10b981;
 }
 
-.jobs-stat-card-icon--saved {
+.jobs-stat-card-icon--starred {
   background: var(--sidebar-accent);
 }
 

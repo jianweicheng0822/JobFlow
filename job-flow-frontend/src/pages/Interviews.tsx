@@ -176,6 +176,8 @@ export default function Interviews() {
 
   return (
     <div className="interviews-page">
+      <h1 className="interviews-page-title">{t.interviews}</h1>
+
       {/* Stat Cards */}
       <div className="interviews-stat-cards">
         {statCards.map((card) => (

@@ -5,6 +5,12 @@
   gap: 24px;
 }
 
+.interviews-page-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
 .interviews-loading,
 .interviews-error {
   display: flex;

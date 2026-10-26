@@ -72,10 +72,10 @@ function JobsStatIcon({ type }: { type: string }) {
           <polyline points="10 9 9 9 8 9" />
         </svg>
       )
-    case 'saved':
+    case 'starred':
       return (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
         </svg>
       )
     case 'closed':
@@ -282,11 +282,11 @@ export default function Jobs() {
   // An offer is good news, so it counts as active rather than lumped in with rejections
   const activeCount = applications.filter((a) => a.status !== 'REJECTED').length
   const rejectedCount = applications.filter((a) => a.status === 'REJECTED').length
-  const savedCount = applications.filter((a) => a.starred).length
+  const starredCount = applications.filter((a) => a.starred).length
 
   const jobsStatCards = [
     { label: t.activeApplications, value: activeCount, icon: 'active' as const, color: '#10b981' },
-    { label: t.savedJobs, value: savedCount, icon: 'saved' as const, color: 'var(--sidebar-accent)' },
+    { label: t.starred, value: starredCount, icon: 'starred' as const, color: 'var(--sidebar-accent)' },
     { label: t.rejections, value: rejectedCount, icon: 'closed' as const, color: 'var(--status-declined)' },
   ]
 
@@ -310,6 +310,8 @@ export default function Jobs() {
 
   return (
     <div className="jobs-page">
+      <h1 className="jobs-page-title">{t.jobs}</h1>
+
       {/* Stat Cards */}
       <div className="jobs-stat-cards">
         {jobsStatCards.map((card) => (

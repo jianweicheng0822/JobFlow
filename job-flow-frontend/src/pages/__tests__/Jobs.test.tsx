@@ -65,8 +65,8 @@ function statCard(label: string) {
   return screen.getByText(label).nextElementSibling?.textContent;
 }
 
-function savedCount() {
-  return statCard('Saved Jobs');
+function starredCount() {
+  return statCard('Starred');
 }
 
 function statusSelectFor(title: string) {
@@ -105,7 +105,7 @@ describe('Jobs star feature', () => {
     await findTitle('Alpha');
 
     expect(rowTitles()).toEqual(['Bravo', 'Alpha', 'Charlie']);
-    expect(savedCount()).toBe('1');
+    expect(starredCount()).toBe('1');
     expect(starButtonFor('Bravo')).toHaveAttribute('aria-pressed', 'true');
     expect(starButtonFor('Alpha')).toHaveAttribute('aria-pressed', 'false');
   });
@@ -123,7 +123,7 @@ describe('Jobs star feature', () => {
     expect(starButtonFor('Charlie')).toHaveAttribute('aria-pressed', 'true');
     expect(starButtonFor('Charlie')).toBeDisabled();
     expect(rowTitles()).toEqual(['Bravo', 'Charlie', 'Alpha']);
-    expect(savedCount()).toBe('2');
+    expect(starredCount()).toBe('2');
 
     fireEvent.click(starButtonFor('Charlie'));
     expect(toggleStar).toHaveBeenCalledTimes(1);
@@ -132,7 +132,7 @@ describe('Jobs star feature', () => {
     req.resolve({ data: makeApp(3, 'Charlie', true) });
     await waitFor(() => expect(starButtonFor('Charlie')).toBeEnabled());
     expect(starButtonFor('Charlie')).toHaveAttribute('aria-pressed', 'true');
-    expect(savedCount()).toBe('2');
+    expect(starredCount()).toBe('2');
   });
 
   it('rolls back and shows a toast when the request fails or times out', async () => {
@@ -146,7 +146,7 @@ describe('Jobs star feature', () => {
     await waitFor(() => expect(starButtonFor('Alpha')).toBeEnabled());
     expect(starButtonFor('Alpha')).toHaveAttribute('aria-pressed', 'false');
     expect(rowTitles()).toEqual(['Bravo', 'Alpha', 'Charlie']);
-    expect(savedCount()).toBe('1');
+    expect(starredCount()).toBe('1');
     expect(screen.getByText('timeout of 10000ms exceeded')).toBeInTheDocument();
   });
 
@@ -161,7 +161,7 @@ describe('Jobs star feature', () => {
     await waitFor(() => expect(starButtonFor('Bravo')).toBeEnabled());
     expect(starButtonFor('Bravo')).toHaveAttribute('aria-pressed', 'false');
     expect(rowTitles()).toEqual(['Alpha', 'Bravo', 'Charlie']);
-    expect(savedCount()).toBe('0');
+    expect(starredCount()).toBe('0');
   });
 });
 
