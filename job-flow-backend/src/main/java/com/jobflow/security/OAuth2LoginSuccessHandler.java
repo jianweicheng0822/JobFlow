@@ -16,12 +16,15 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
 public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private static final Duration LOGIN_CODE_TTL = Duration.ofSeconds(60);
+    // Shown by the login page; OAuth2LoginFailureHandler sends the other codes
+    static final String EMAIL_IN_USE = "email_in_use";
 
     private final UserRepository userRepository;
     private final OneTimeCodeService oneTimeCodeService;
@@ -37,21 +40,33 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         String registrationId = extractRegistrationId(request);
         AuthProvider provider = AuthProvider.valueOf(registrationId.toUpperCase());
 
-        String email = extractEmail(oAuth2User, provider);
+        String providerId = extractProviderId(oAuth2User, provider);
+        String verifiedEmail = extractVerifiedEmail(oAuth2User, provider);
+        // Without a verified email we still need a unique address, but it never matches anyone else
+        String email = verifiedEmail != null ? verifiedEmail : placeholderEmail(oAuth2User, provider);
         String name = extractName(oAuth2User, provider);
         String avatarUrl = extractAvatar(oAuth2User, provider);
-        String providerId = extractProviderId(oAuth2User, provider);
 
-        // Find existing user or create a new one
-        User user = userRepository.findByEmail(email).orElseGet(() ->
-            userRepository.save(User.builder()
-                .email(email)
-                .name(name)
-                .avatarUrl(avatarUrl)
-                .provider(provider)
-                .providerId(providerId)
-                .build())
-        );
+        User user = userRepository.findByProviderAndProviderId(provider, providerId).orElse(null);
+        if (user == null) {
+            Optional<User> sameEmail = userRepository.findByEmail(email);
+            if (sameEmail.isEmpty()) {
+                user = userRepository.save(User.builder()
+                    .email(email)
+                    .name(name)
+                    .avatarUrl(avatarUrl)
+                    .provider(provider)
+                    .providerId(providerId)
+                    .build());
+            } else if (canSignInByEmail(sameEmail.get(), provider, verifiedEmail)) {
+                user = sameEmail.get();
+            } else {
+                // Someone else holds this email; see canSignInByEmail for why we don't merge
+                getRedirectStrategy().sendRedirect(request, response,
+                    frontendUrl + "/login?oauthError=" + EMAIL_IN_USE);
+                return;
+            }
+        }
 
         // Update avatar if it changed
         if (avatarUrl != null && !avatarUrl.equals(user.getAvatarUrl())) {
@@ -75,14 +90,42 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         return uri.substring(uri.lastIndexOf('/') + 1);
     }
 
-    private String extractEmail(OAuth2User user, AuthProvider provider) {
+    /**
+     * Whether a sign-in that didn't match by provider account may land in the account that
+     * already has this email. Only when both sides proved they own it:
+     * - password accounts never qualify, because signing up doesn't verify the email. Anyone
+     *   could register a victim's address first and wait for them to sign in with Google.
+     * - another account at the same provider means a different person (e.g. a reused address).
+     */
+    private boolean canSignInByEmail(User existing, AuthProvider provider, String verifiedEmail) {
+        return verifiedEmail != null
+            && existing.getProvider() != AuthProvider.LOCAL
+            && existing.getProvider() != provider;
+    }
+
+    // Null unless the provider vouches for the address
+    private String extractVerifiedEmail(OAuth2User user, AuthProvider provider) {
+        String email = user.getAttribute("email");
+        if (email == null || email.isBlank()) {
+            return null;
+        }
         return switch (provider) {
-            case GITHUB -> {
-                String email = user.getAttribute("email");
-                // GitHub may not expose email publicly; fall back to login-based email
-                yield email != null ? email : user.getAttribute("login") + "@github.com";
-            }
-            default -> user.getAttribute("email");
+            // GitHub only lets users make a verified address public
+            case GITHUB -> email;
+            default -> isTrue(user.getAttribute("email_verified")) ? email : null;
+        };
+    }
+
+    private static boolean isTrue(Object value) {
+        return Boolean.TRUE.equals(value) || "true".equals(value);
+    }
+
+    // GitHub's own no-reply format, so it can't be anybody's real inbox
+    private String placeholderEmail(OAuth2User user, AuthProvider provider) {
+        String providerId = extractProviderId(user, provider);
+        return switch (provider) {
+            case GITHUB -> providerId + "+" + user.getAttribute("login") + "@users.noreply.github.com";
+            default -> providerId + "@" + provider.name().toLowerCase() + ".invalid";
         };
     }
 
