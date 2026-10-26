@@ -12,6 +12,7 @@ import com.jobflow.repository.UserRepository;
 import com.jobflow.security.JwtService;
 import com.jobflow.security.TokenVersions;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.jobflow.exception.ApiException;
@@ -39,7 +40,15 @@ public class AuthService {
                 .provider(AuthProvider.LOCAL)
                 .build();
 
-        userRepository.save(user);
+        try {
+            userRepository.save(user);
+        } catch (DataIntegrityViolationException e) {
+            // Two sign-ups with the same email at once: both pass the check above, the unique key stops one
+            if (userRepository.existsByEmail(request.getEmail())) {
+                throw ApiException.badRequest("EMAIL_TAKEN", "Email is already registered");
+            }
+            throw e;
+        }
 
         String token = jwtService.generateToken(user);
         return buildAuthResponse(user, token);

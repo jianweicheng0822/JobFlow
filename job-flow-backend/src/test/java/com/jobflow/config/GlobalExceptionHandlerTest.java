@@ -19,6 +19,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.jobflow.model.ApplicationStatus;
 
+import java.sql.SQLException;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -87,15 +88,50 @@ class GlobalExceptionHandlerTest {
     // --- DataIntegrityViolationException ---
 
     @Test
-    void handleDataIntegrity_returns409() {
-        DataIntegrityViolationException ex = new DataIntegrityViolationException("Duplicate entry");
+    void handleDataIntegrity_unknownCause_returns409() {
+        DataIntegrityViolationException ex = new DataIntegrityViolationException("Something");
 
         ResponseEntity<Map<String, Object>> response = handler.handleDataIntegrity(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(response.getBody()).containsEntry("status", 409);
         assertThat(response.getBody()).containsEntry("error", "Conflict");
-        assertThat(response.getBody().get("message").toString()).contains("data constraint");
+        assertThat(response.getBody()).containsEntry("code", "DATA_CONFLICT");
+    }
+
+    @Test
+    void handleDataIntegrity_valueTooLong_returns400() {
+        // What MySQL sends for a string longer than its column
+        SQLException tooLong = new SQLException("Data too long for column 'name' at row 1", "22001", 1406);
+
+        ResponseEntity<Map<String, Object>> response =
+                handler.handleDataIntegrity(new DataIntegrityViolationException("could not execute statement", tooLong));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).containsEntry("code", "VALUE_TOO_LONG");
+    }
+
+    @Test
+    void handleDataIntegrity_duplicateKey_returns409AlreadyExists() {
+        SQLException duplicate = new SQLException("Duplicate entry 'a@test.com' for key 'uk_users_email'", "23000", 1062);
+
+        ResponseEntity<Map<String, Object>> response =
+                handler.handleDataIntegrity(new DataIntegrityViolationException("could not execute statement", duplicate));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).containsEntry("code", "ALREADY_EXISTS");
+        // The constraint name and the value stay out of the response
+        assertThat(response.getBody().toString()).doesNotContain("uk_users_email").doesNotContain("a@test.com");
+    }
+
+    @Test
+    void handleDataIntegrity_foreignKey_staysDataConflict() {
+        SQLException fk = new SQLException("Cannot delete or update a parent row", "23000", 1451);
+
+        ResponseEntity<Map<String, Object>> response =
+                handler.handleDataIntegrity(new DataIntegrityViolationException("could not execute statement", fk));
+
+        assertThat(response.getBody()).containsEntry("code", "DATA_CONFLICT");
     }
 
     // --- General Exception ---

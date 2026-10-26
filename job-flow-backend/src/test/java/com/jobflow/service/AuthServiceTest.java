@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
@@ -94,6 +95,23 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.register(request))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("already registered");
+    }
+
+    @Test
+    void register_losingASignUpRace_stillSaysEmailTaken() {
+        RegisterRequest request = new RegisterRequest();
+        request.setName("Alice");
+        request.setEmail("alice@test.com");
+        request.setPassword("password123");
+
+        // Free when checked, taken by the time we save
+        when(userRepository.existsByEmail("alice@test.com")).thenReturn(false, true);
+        when(passwordEncoder.encode("password123")).thenReturn("encodedPassword");
+        when(userRepository.save(any(User.class))).thenThrow(new DataIntegrityViolationException("Duplicate entry"));
+
+        assertThatThrownBy(() -> authService.register(request))
+                .isInstanceOf(ApiException.class)
+                .extracting("code").isEqualTo("EMAIL_TAKEN");
     }
 
     @Test

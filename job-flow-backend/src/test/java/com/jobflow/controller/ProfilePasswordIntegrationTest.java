@@ -105,6 +105,53 @@ class ProfilePasswordIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.bio").value("Managing products"));
     }
 
+    // --- Length limits: a clear 400 naming the field, not a 409 from the database ---
+
+    @Test
+    void updateProfile_tooLongFields_are400WithTheFieldName() throws Exception {
+        String[][] cases = {
+                {"name", "x".repeat(256)},
+                {"jobTitle", "x".repeat(256)},
+                {"bio", "x".repeat(5001)},
+        };
+        for (String[] c : cases) {
+            java.util.Map<String, String> body = new java.util.HashMap<>(java.util.Map.of("name", "Alice"));
+            body.put(c[0], c[1]);
+            String json = objectMapper.writeValueAsString(body);
+            mockMvc.perform(put("/api/auth/profile")
+                            .header("Authorization", "Bearer " + aliceToken)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(json))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("FIELD_TOO_LONG"))
+                    .andExpect(jsonPath("$.params.field").value(c[0]));
+        }
+    }
+
+    @Test
+    void register_tooLongNameOrPassword_is400() throws Exception {
+        RegisterRequest longName = new RegisterRequest();
+        longName.setName("x".repeat(256));
+        longName.setEmail("bob@test.com");
+        longName.setPassword("password123");
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(longName)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.params.field").value("name"));
+
+        RegisterRequest longPassword = new RegisterRequest();
+        longPassword.setName("Bob");
+        longPassword.setEmail("bob@test.com");
+        longPassword.setPassword("x".repeat(73));
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(longPassword)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("FIELD_TOO_LONG"))
+                .andExpect(jsonPath("$.params.max").value(72));
+    }
+
     // --- Password change tests ---
 
     private String changePassword(String token, String json) throws Exception {

@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -141,12 +142,30 @@ public class GlobalExceptionHandler {
         return body(HttpStatus.BAD_GATEWAY, "Bad Gateway", ex.getMessage(), ex.getCode(), null, null);
     }
 
+    // Validation should catch these first; this is the backstop, so at least say what kind
+    // of constraint it was instead of blaming "dependent data" for everything
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, Object>> handleDataIntegrity(DataIntegrityViolationException ex) {
         log.warn("Data integrity violation", ex);
+        SQLException sql = sqlCause(ex);
+        if (sql != null && "22001".equals(sql.getSQLState())) {
+            return body(HttpStatus.BAD_REQUEST, "Bad Request", "A value is too long", "VALUE_TOO_LONG", null, null);
+        }
+        if (sql != null && (sql.getErrorCode() == MYSQL_DUPLICATE_KEY || "23505".equals(sql.getSQLState()))) {
+            return body(HttpStatus.CONFLICT, "Conflict", "This already exists", "ALREADY_EXISTS", null, null);
+        }
         return body(HttpStatus.CONFLICT, "Conflict",
                 "Operation failed due to a data constraint. The record may have dependent data.",
                 "DATA_CONFLICT", null, null);
+    }
+
+    private static final int MYSQL_DUPLICATE_KEY = 1062;
+
+    private static SQLException sqlCause(Throwable ex) {
+        for (Throwable t = ex; t != null; t = t.getCause()) {
+            if (t instanceof SQLException sql) return sql;
+        }
+        return null;
     }
 
     @ExceptionHandler(Exception.class)
