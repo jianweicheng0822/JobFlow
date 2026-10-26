@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import com.jobflow.exception.ApiException;
 
 import static com.jobflow.util.TextUtils.blankToNull;
@@ -39,6 +40,8 @@ public class JobApplicationService {
     private final EmailImportLogRepository emailImportLogRepository;
     private final InterviewRepository interviewRepository;
     private final UserClock userClock;
+
+    static final int MAX_PAGE_SIZE = 100;
 
     // open-in-view is off, so anything that reaches app.getCompany() runs in a transaction.
     // create() doesn't on purpose: it calls findOrCreateByName, which opens its own new
@@ -61,15 +64,23 @@ public class JobApplicationService {
             default -> "updatedAt";
         };
         Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        if (page < 0) {
+            throw invalidParam("page", page);
+        }
+        // A cap so one request can't ask for every row at once
+        if (size < 1 || size > MAX_PAGE_SIZE) {
+            throw invalidParam("size", size);
+        }
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
 
         Page<JobApplication> result;
         boolean hasKeyword = keyword != null && !keyword.isBlank();
+        String pattern = hasKeyword ? likeLiteral(keyword.trim()) : null;
 
         if (hasKeyword && status != null) {
-            result = jobApplicationRepository.searchByKeywordAndStatus(userId, keyword.trim(), status, pageable);
+            result = jobApplicationRepository.searchByKeywordAndStatus(userId, pattern, status, pageable);
         } else if (hasKeyword) {
-            result = jobApplicationRepository.searchByKeyword(userId, keyword.trim(), pageable);
+            result = jobApplicationRepository.searchByKeyword(userId, pattern, pageable);
         } else if (status != null) {
             result = jobApplicationRepository.findByUserIdAndStatus(userId, status, pageable);
         } else {
@@ -83,6 +94,18 @@ public class JobApplicationService {
             .totalElements(result.getTotalElements())
             .totalPages(result.getTotalPages())
             .build();
+    }
+
+    private static ApiException invalidParam(String field, int value) {
+        return ApiException.badRequest("INVALID_VALUE", "Invalid value '" + value + "' for '" + field + "'",
+                Map.of("field", field, "value", String.valueOf(value)));
+    }
+
+    // The keyword as a LIKE pattern that matches it literally, so "%" or "_" in a search
+    // doesn't act as a wildcard. '!' is the escape character (see the repository queries);
+    // a backslash would need different quoting depending on MySQL's sql_mode.
+    static String likeLiteral(String keyword) {
+        return keyword.replace("!", "!!").replace("%", "!%").replace("_", "!_");
     }
 
     @Transactional(readOnly = true)
