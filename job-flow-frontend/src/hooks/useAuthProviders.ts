@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getAuthProviders, type AuthProviders } from '../api/auth'
 
-const NONE: AuthProviders = { google: false, github: false, gmail: false }
+const NONE: AuthProviders = { google: false, github: false, gmail: false, emailReminders: false }
 
 /**
  * Which OAuth sign-in options and integrations this server supports.

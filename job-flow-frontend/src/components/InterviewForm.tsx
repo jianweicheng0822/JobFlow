@@ -10,6 +10,7 @@ import type {
   CreateInterviewRequest,
 } from '../api/types';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuthProviders } from '../hooks/useAuthProviders';
 import './ApplicationForm.css';
 
 const TYPE_VALUES: InterviewType[] = ['PHONE', 'VIDEO', 'ONSITE'];
@@ -28,6 +29,8 @@ interface InterviewFormProps {
 export default function InterviewForm({ interview, onSuccess, onCancel }: InterviewFormProps) {
   const isEdit = !!interview;
   const { t } = useLanguage();
+  // Nothing would ever send the reminder on a server without mail settings
+  const canRemind = useAuthProviders()?.emailReminders === true;
 
   const [applications, setApplications] = useState<JobApplicationDTO[]>([]);
   const [loading, setLoading] = useState(false);
@@ -144,18 +147,20 @@ export default function InterviewForm({ interview, onSuccess, onCancel }: Interv
         />
       </div>
 
-      <div className="app-form-field">
-        <label className="app-form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <input
-            type="checkbox"
-            checked={reminderEnabled}
-            onChange={(e) => setReminderEnabled(e.target.checked)}
-          />
-          {t.enableReminder || 'Enable email reminder'}
-        </label>
-      </div>
+      {canRemind && (
+        <div className="app-form-field">
+          <label className="app-form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              type="checkbox"
+              checked={reminderEnabled}
+              onChange={(e) => setReminderEnabled(e.target.checked)}
+            />
+            {t.enableReminder || 'Enable email reminder'}
+          </label>
+        </div>
+      )}
 
-      {reminderEnabled && (
+      {canRemind && reminderEnabled && (
         <div className="app-form-field">
           <label className="app-form-label">{t.remindBefore || 'Remind me before'}</label>
           <select

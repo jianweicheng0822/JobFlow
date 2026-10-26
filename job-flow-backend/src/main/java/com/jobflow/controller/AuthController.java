@@ -1,5 +1,6 @@
 package com.jobflow.controller;
 
+import com.jobflow.config.MailSettings;
 import com.jobflow.config.OAuthProviders;
 import com.jobflow.dto.AuthResponse;
 import com.jobflow.dto.ChangePasswordRequest;
@@ -25,6 +26,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final OAuthProviders oAuthProviders;
+    private final MailSettings mailSettings;
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
@@ -43,7 +45,8 @@ public class AuthController {
         return Map.of(
                 "google", oAuthProviders.isGoogleEnabled(),
                 "github", oAuthProviders.isGithubEnabled(),
-                "gmail", oAuthProviders.isGmailEnabled());
+                "gmail", oAuthProviders.isGmailEnabled(),
+                "emailReminders", mailSettings.isConfigured());
     }
 
     // The OAuth redirect lands on the frontend with a one-time code; it trades it in here

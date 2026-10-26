@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 // Runs the real SecurityConfig against AuthController without a database,
 // so it works without Docker (unlike the *IntegrationTest classes)
 @WebMvcTest(AuthController.class)
-@Import({SecurityConfig.class, JwtAuthenticationFilter.class, OAuth2LoginFailureHandler.class, OAuthClientConfig.class})
+@Import({SecurityConfig.class, JwtAuthenticationFilter.class, OAuth2LoginFailureHandler.class, OAuthClientConfig.class, MailSettings.class})
 @ActiveProfiles("test")
 class AuthEndpointSecurityTest {
 

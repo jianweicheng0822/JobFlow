@@ -33,7 +33,9 @@ class OAuthConfiguredIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.google").value(true))
                 .andExpect(jsonPath("$.github").value(true))
-                .andExpect(jsonPath("$.gmail").value(true));
+                .andExpect(jsonPath("$.gmail").value(true))
+                // No MAIL_* in tests
+                .andExpect(jsonPath("$.emailReminders").value(false));
     }
 
     @Test

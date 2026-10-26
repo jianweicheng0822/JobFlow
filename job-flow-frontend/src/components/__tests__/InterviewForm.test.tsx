@@ -5,6 +5,7 @@ import { LanguageProvider } from '../../context/LanguageProvider';
 import type { InterviewDTO, JobApplicationDTO } from '../../api/types';
 import { AxiosError, type AxiosResponse } from 'axios';
 import { updateInterview } from '../../api/interviews';
+import { getAuthProviders } from '../../api/auth';
 
 // Mock API modules
 vi.mock('../../api/applications', () => ({
@@ -29,6 +30,16 @@ vi.mock('../../api/interviews', () => ({
   updateInterview: vi.fn().mockResolvedValue({ data: {} }),
 }));
 
+vi.mock('../../api/auth', () => ({
+  getAuthProviders: vi.fn(),
+}));
+
+function serverCanMail(emailReminders: boolean) {
+  vi.mocked(getAuthProviders).mockResolvedValue({
+    data: { google: false, github: false, gmail: false, emailReminders },
+  } as never);
+}
+
 function Wrapper({ children }: { children: React.ReactNode }) {
   return <LanguageProvider>{children}</LanguageProvider>;
 }
@@ -39,6 +50,7 @@ describe('InterviewForm', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    serverCanMail(true);
   });
 
   it('renders all form fields', async () => {
@@ -146,5 +158,19 @@ describe('InterviewForm', () => {
 
     expect(await screen.findByText('Interview type is required')).toBeInTheDocument();
     expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it('offers an email reminder when the server can send mail', async () => {
+    render(<InterviewForm onSuccess={onSuccess} onCancel={onCancel} />, { wrapper: Wrapper });
+
+    expect(await screen.findByText('Enable email reminder')).toBeInTheDocument();
+  });
+
+  it('hides the reminder when the server has no mail settings', async () => {
+    serverCanMail(false);
+    render(<InterviewForm onSuccess={onSuccess} onCancel={onCancel} />, { wrapper: Wrapper });
+
+    await waitFor(() => expect(getAuthProviders).toHaveBeenCalled());
+    expect(screen.queryByText('Enable email reminder')).not.toBeInTheDocument();
   });
 });

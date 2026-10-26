@@ -1,7 +1,9 @@
 package com.jobflow.service;
 
+import com.jobflow.config.MailSettings;
 import com.jobflow.model.*;
 import com.jobflow.repository.InterviewRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -34,6 +36,9 @@ class InterviewReminderSchedulerTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private MailSettings mailSettings;
+
     @Spy
     private UserClock userClock = new UserClock(Clock.fixed(NOW, ZoneOffset.UTC));
 
@@ -59,6 +64,11 @@ class InterviewReminderSchedulerTest {
             .reminderHoursBefore(hoursBefore)
             .reminderSent(false)
             .build();
+    }
+
+    @BeforeEach
+    void mailIsConfigured() {
+        lenient().when(mailSettings.isConfigured()).thenReturn(true);
     }
 
     private void candidates(Interview... interviews) {
@@ -151,5 +161,14 @@ class InterviewReminderSchedulerTest {
         scheduler.sendPendingReminders();
 
         verifyNoInteractions(emailService);
+    }
+
+    @Test
+    void mailNotConfigured_doesNothing() {
+        when(mailSettings.isConfigured()).thenReturn(false);
+
+        scheduler.sendPendingReminders();
+
+        verifyNoInteractions(interviewRepository, emailService);
     }
 }

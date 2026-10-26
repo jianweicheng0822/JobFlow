@@ -357,7 +357,7 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
     }
     if (url === '/auth/me') return demoUser();
     // Demo shows every feature; the backend decides for real accounts
-    if (url === '/auth/providers') return { google: true, github: true, gmail: true };
+    if (url === '/auth/providers') return { google: true, github: true, gmail: true, emailReminders: true };
     if (url === '/gmail/status') return { gmailConnected: false, provider: '' };
     if (url === '/gmail/link') return { authUrl: '' };
   }

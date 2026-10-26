@@ -23,7 +23,7 @@ describe('OAuthButtons', () => {
   });
 
   it('shows Google and GitHub when both are configured', async () => {
-    serverHas({ google: true, github: true, gmail: true });
+    serverHas({ google: true, github: true, gmail: true, emailReminders: false });
     renderButtons();
 
     expect(await screen.findByRole('link', { name: /google/i })).toHaveAttribute('href', '/oauth2/authorization/google');
@@ -32,7 +32,7 @@ describe('OAuthButtons', () => {
   });
 
   it('shows only the configured provider', async () => {
-    serverHas({ google: false, github: true, gmail: false });
+    serverHas({ google: false, github: true, gmail: false, emailReminders: false });
     renderButtons();
 
     expect(await screen.findByRole('link', { name: /github/i })).toBeInTheDocument();
@@ -40,7 +40,7 @@ describe('OAuthButtons', () => {
   });
 
   it('renders nothing, not even the divider, when none are configured', async () => {
-    serverHas({ google: false, github: false, gmail: false });
+    serverHas({ google: false, github: false, gmail: false, emailReminders: false });
     const { container } = renderButtons();
 
     await waitFor(() => expect(authApi.getAuthProviders).toHaveBeenCalled());

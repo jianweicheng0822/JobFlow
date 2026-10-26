@@ -1,5 +1,6 @@
 package com.jobflow.service;
 
+import com.jobflow.config.MailSettings;
 import com.jobflow.model.Interview;
 import com.jobflow.model.JobApplication;
 import com.jobflow.repository.InterviewRepository;
@@ -23,10 +24,14 @@ public class InterviewReminderScheduler {
     private final InterviewRepository interviewRepository;
     private final EmailService emailService;
     private final UserClock userClock;
+    private final MailSettings mailSettings;
 
     @Scheduled(fixedRate = 600_000) // every 10 minutes
     @Transactional
     public void sendPendingReminders() {
+        if (!mailSettings.isConfigured()) {
+            return;
+        }
         // Every zone is within +-14h of UTC and reminders go out at most 24h early, so
         // [-1 day, +2 days] around UTC now catches anything that could be due anywhere
         LocalDateTime utcNow = userClock.nowUtc();

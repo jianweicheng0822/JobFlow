@@ -46,6 +46,8 @@ export interface AuthProviders {
   google: boolean
   github: boolean
   gmail: boolean
+  // Server can send mail; interview reminders depend on it
+  emailReminders: boolean
 }
 
 export const getAuthProviders = () =>

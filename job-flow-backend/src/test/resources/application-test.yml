@@ -18,6 +18,9 @@ spring:
   mail:
     host: localhost
     port: 25
+    # Keep a developer's real MAIL_* from .env out of tests; reminders use a mocked sender
+    username: ""
+    password: ""
 
   autoconfigure:
     exclude:
