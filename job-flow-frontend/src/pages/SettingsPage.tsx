@@ -8,12 +8,11 @@ import { isDemoMode } from '../api/mockData'
 import * as authApi from '../api/auth'
 import * as gmailApi from '../api/gmail'
 import GmailImportModal from '../components/GmailImportModal'
+import { getStoredAvatar, storeAvatar } from '../utils/avatar'
 import './SettingsPage.css'
 import TimeZoneSetting from '../components/TimeZoneSetting'
 import { useAuthProviders } from '../hooks/useAuthProviders'
 import { getStoredTheme, applyTheme, type Theme } from '../utils/theme'
-
-const AVATAR_STORAGE_KEY = 'jobflow-avatar'
 
 type SettingsTab = 'profile' | 'account' | 'appearance' | 'integrations'
 
@@ -34,7 +33,7 @@ export default function SettingsPage() {
   const visibleTabs = tabDefs.filter((tab) => tab.key !== 'integrations' || showIntegrations)
 
   const [avatar, setAvatar] = useState<string | null>(() => {
-    return localStorage.getItem(AVATAR_STORAGE_KEY)
+    return getStoredAvatar(user?.email)
   })
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -141,9 +140,9 @@ export default function SettingsPage() {
     const reader = new FileReader()
     reader.onload = () => {
       const dataUrl = reader.result as string
-      localStorage.setItem(AVATAR_STORAGE_KEY, dataUrl)
       setAvatar(dataUrl)
       if (user) {
+        storeAvatar(user.email, dataUrl)
         updateUser({ ...user, avatarUrl: dataUrl })
       }
     }
@@ -158,7 +157,7 @@ export default function SettingsPage() {
         jobTitle: jobTitle.trim() || undefined,
         bio: bio.trim() || undefined,
       })
-      const localAvatar = localStorage.getItem(AVATAR_STORAGE_KEY)
+      const localAvatar = getStoredAvatar(res.data.email)
       updateUser({
         name: res.data.name,
         email: res.data.email,

@@ -6,9 +6,8 @@ import { useLanguage } from '../context/LanguageContext'
 import { getApplications } from '../api/applications'
 import { getCompanies } from '../api/companies'
 import type { JobApplicationDTO, CompanyDTO } from '../api/types'
+import { getStoredAvatar, storeAvatar } from '../utils/avatar'
 import './TopBar.css'
-
-const AVATAR_STORAGE_KEY = 'jobflow-avatar'
 
 function getInitials(name: string): string {
   return name
@@ -32,7 +31,7 @@ export default function TopBar() {
   const navigate = useNavigate()
 
   const [avatar, setAvatar] = useState<string | null>(() => {
-    return localStorage.getItem(AVATAR_STORAGE_KEY)
+    return getStoredAvatar(user?.email)
   })
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -116,9 +115,9 @@ export default function TopBar() {
     const reader = new FileReader()
     reader.onload = () => {
       const dataUrl = reader.result as string
-      localStorage.setItem(AVATAR_STORAGE_KEY, dataUrl)
       setAvatar(dataUrl)
       if (user) {
+        storeAvatar(user.email, dataUrl)
         updateUser({ ...user, avatarUrl: dataUrl })
       }
     }
