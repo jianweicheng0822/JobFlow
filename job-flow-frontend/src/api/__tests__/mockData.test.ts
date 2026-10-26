@@ -321,3 +321,24 @@ describe('isDemoMode', () => {
     expect(isDemoMode()).toBe(false);
   });
 });
+
+describe('demo interview history', () => {
+  it('has past interviews that line up with each job', () => {
+    const apps = resolveMock('/applications', 'get') as JobApplicationDTO[];
+    const interviews = resolveMock('/interviews', 'get') as InterviewDTO[];
+    const past = interviews.filter((i) => new Date(i.interviewDate) <= new Date());
+
+    expect(past.length).toBeGreaterThanOrEqual(8);
+    for (const iv of past) {
+      const app = apps.find((a) => a.id === iv.jobApplicationId)!;
+      expect(app.positionTitle).toBe(iv.positionTitle);
+      expect(app.company.name).toBe(iv.companyName);
+      // Never interviewed before applying, and never for a job still at "Applied"
+      expect(iv.interviewDate.slice(0, 10) >= app.appliedDate!).toBe(true);
+      expect(app.status).not.toBe('APPLIED');
+    }
+    // The offer came after more than one round
+    const offer = apps.find((a) => a.status === 'OFFER')!;
+    expect(past.filter((i) => i.jobApplicationId === offer.id).length).toBeGreaterThan(1);
+  });
+});

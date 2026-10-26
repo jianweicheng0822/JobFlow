@@ -150,8 +150,46 @@ function createSeedApplications(companies: CompanyDTO[]): JobApplicationDTO[] {
     .sort((a, b) => a.id - b.id);
 }
 
-function createSeedInterviews(): InterviewDTO[] {
+// Local wall-clock date-time on a seed day, in the backend's format
+function localDateTimeOnSeedDay(daysBack: number, hour: number, minute = 0): string {
+  return `${todayLocal(seedDay(daysBack))}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+}
+
+// Interviews that already happened, matching where each job stands: the Netflix
+// offer went through three rounds, the Microsoft rejection came after an onsite,
+// and so on. [id, application, type, days back, hour, notes]
+type PastInterviewRow = [number, number, InterviewType, number, number, string];
+
+const PAST_INTERVIEW_ROWS: PastInterviewRow[] = [
+  [4, 6, 'PHONE', 45, 11, 'Recruiter call, team and comp overview'],
+  [5, 6, 'VIDEO', 30, 13, 'Live coding: React + system design'],
+  [6, 6, 'ONSITE', 14, 10, 'Final round, 4 interviews'],
+  [7, 5, 'PHONE', 44, 15, 'Hiring manager screen'],
+  [8, 5, 'VIDEO', 23, 11, 'Onsite round 1 (virtual): coding + behavioral'],
+  [9, 3, 'PHONE', 18, 16, 'Recruiter screen'],
+  [10, 15, 'PHONE', 12, 14, 'Technical phone screen, went well'],
+  [11, 20, 'PHONE', 31, 10, 'Recruiter screen, said they would follow up'],
+  [12, 7, 'PHONE', 85, 15, 'Technical phone screen'],
+  [13, 7, 'ONSITE', 74, 9, 'Final round in Redmond'],
+  [14, 22, 'PHONE', 63, 13, 'Phone screen, LeetCode medium'],
+];
+
+function createPastInterviews(apps: JobApplicationDTO[]): InterviewDTO[] {
+  return PAST_INTERVIEW_ROWS.map(([id, appId, interviewType, daysBack, hour, notes]) => {
+    const app = apps.find((a) => a.id === appId)!;
+    const interviewDate = localDateTimeOnSeedDay(daysBack, hour);
+    return {
+      id, jobApplicationId: appId, positionTitle: app.positionTitle, companyName: app.company.name,
+      interviewDate, interviewType, notes,
+      reminderEnabled: false, reminderHoursBefore: 24, reminderSent: false,
+      daysUntil: daysUntilLocal(interviewDate),
+    };
+  });
+}
+
+function createSeedInterviews(apps: JobApplicationDTO[]): InterviewDTO[] {
   return [
+    ...createPastInterviews(apps),
     {
       id: 1, jobApplicationId: 5, positionTitle: 'Senior Frontend Engineer',
       companyName: 'Apple', interviewDate: localDateTimeIn(2, 10),
@@ -210,7 +248,7 @@ function computeStats(apps: JobApplicationDTO[]): DashboardStatsDTO {
 // Mutable working copies that CRUD operations modify
 let companies: CompanyDTO[] = createSeedCompanies();
 let applications: JobApplicationDTO[] = createSeedApplications(companies);
-let interviews: InterviewDTO[] = createSeedInterviews();
+let interviews: InterviewDTO[] = createSeedInterviews(applications);
 let stats: DashboardStatsDTO = computeStats(applications);
 
 // Reset all mock data back to initial seed state
@@ -226,7 +264,7 @@ export function resetMockData(): void {
   demoTimeZone = browserTimeZone();
   companies = createSeedCompanies();
   applications = createSeedApplications(companies);
-  interviews = createSeedInterviews();
+  interviews = createSeedInterviews(applications);
   stats = computeStats(applications);
 }
 
