@@ -523,7 +523,7 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
     return demoUser();
   }
   if (method === 'put' && url === '/auth/password') {
-    return {};
+    return demoUser();
   }
   // Demo data is only in memory; the sign-out that follows resets it anyway
   if (method === 'delete' && url === '/auth/me') {

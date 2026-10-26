@@ -1,6 +1,7 @@
 package com.jobflow.controller;
 
 import com.jobflow.config.RateLimitInterceptor;
+import com.jobflow.security.TokenVersions;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -26,6 +27,7 @@ import java.util.Map;
  * test. Isolation comes from resetting state before each test instead:
  * - every table is emptied (and its ids restart at 1), schema and Flyway history stay
  * - the rate limiter forgets earlier requests, since all tests call from 127.0.0.1
+ * - the token version cache is emptied, since user ids start over at 1
  * Mocks from @MockBean are reset by Spring after each test. TestIsolationIntegrationTest
  * fails if any of this stops holding.
  */
@@ -54,6 +56,9 @@ public abstract class BaseIntegrationTest {
     @Autowired
     private RateLimitInterceptor rateLimitInterceptor;
 
+    @Autowired
+    private TokenVersions tokenVersions;
+
     @BeforeEach
     protected void resetDatabase() {
         jdbcTemplate.execute((ConnectionCallback<Void>) connection -> {
@@ -75,5 +80,7 @@ public abstract class BaseIntegrationTest {
 
         Map<?, ?> buckets = (Map<?, ?>) ReflectionTestUtils.getField(rateLimitInterceptor, "buckets");
         buckets.clear();
+
+        ((Map<?, ?>) ReflectionTestUtils.getField(tokenVersions, "versions")).clear();
     }
 }

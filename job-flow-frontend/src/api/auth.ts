@@ -69,8 +69,9 @@ export const getMe = () =>
 export const updateProfile = (data: UpdateProfileRequest) =>
   client.put<AuthResponse>('/auth/profile', data)
 
+// Signs out every other session; the response has a new token for this one
 export const changePassword = (data: ChangePasswordRequest) =>
-  client.put<void>('/auth/password', data)
+  client.put<AuthResponse>('/auth/password', data)
 
 export const deleteAccount = (data: DeleteAccountRequest) =>
   client.delete<void>('/auth/me', { data })

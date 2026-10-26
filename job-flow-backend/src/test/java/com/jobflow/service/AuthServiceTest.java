@@ -1,6 +1,7 @@
 package com.jobflow.service;
 
 import com.jobflow.dto.AuthResponse;
+import com.jobflow.dto.ChangePasswordRequest;
 import com.jobflow.dto.LoginRequest;
 import com.jobflow.dto.RegisterRequest;
 import com.jobflow.model.AuthProvider;
@@ -8,6 +9,7 @@ import com.jobflow.model.OneTimeCodePurpose;
 import com.jobflow.model.User;
 import com.jobflow.repository.UserRepository;
 import com.jobflow.security.JwtService;
+import com.jobflow.security.TokenVersions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +44,9 @@ class AuthServiceTest {
     @Mock
     private OneTimeCodeService oneTimeCodeService;
 
+    @Mock
+    private TokenVersions tokenVersions;
+
     @InjectMocks
     private AuthService authService;
 
@@ -68,7 +73,7 @@ class AuthServiceTest {
         when(userRepository.existsByEmail("alice@test.com")).thenReturn(false);
         when(passwordEncoder.encode("password123")).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(testUser);
-        when(jwtService.generateToken("alice@test.com")).thenReturn("jwt-token");
+        when(jwtService.generateToken(any(User.class))).thenReturn("jwt-token");
 
         AuthResponse response = authService.register(request);
 
@@ -99,7 +104,7 @@ class AuthServiceTest {
 
         when(userRepository.findByEmail("alice@test.com")).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("password123", "encodedPassword")).thenReturn(true);
-        when(jwtService.generateToken("alice@test.com")).thenReturn("jwt-token");
+        when(jwtService.generateToken(any(User.class))).thenReturn("jwt-token");
 
         AuthResponse response = authService.login(request);
 
@@ -136,9 +141,9 @@ class AuthServiceTest {
 
     @Test
     void getCurrentUser_success() {
-        when(userRepository.findByEmail("alice@test.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
-        AuthResponse response = authService.getCurrentUser("alice@test.com");
+        AuthResponse response = authService.getCurrentUser(1L);
 
         assertThat(response.getEmail()).isEqualTo("alice@test.com");
         assertThat(response.getName()).isEqualTo("Alice");
@@ -149,10 +154,10 @@ class AuthServiceTest {
 
     @Test
     void updateTimeZone_savesAndReturnsIt() {
-        when(userRepository.findByEmail("alice@test.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        AuthResponse response = authService.updateTimeZone("alice@test.com", " Asia/Shanghai ");
+        AuthResponse response = authService.updateTimeZone(1L, " Asia/Shanghai ");
 
         assertThat(testUser.getTimeZone()).isEqualTo("Asia/Shanghai");
         assertThat(response.getTimeZone()).isEqualTo("Asia/Shanghai");
@@ -160,9 +165,9 @@ class AuthServiceTest {
 
     @Test
     void updateTimeZone_unknownZone_isRejectedAndNothingSaved() {
-        when(userRepository.findByEmail("alice@test.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
-        assertThatThrownBy(() -> authService.updateTimeZone("alice@test.com", "Not/A_Zone"))
+        assertThatThrownBy(() -> authService.updateTimeZone(1L, "Not/A_Zone"))
                 .isInstanceOf(ApiException.class)
                 .hasMessage("Unknown time zone: Not/A_Zone");
         verify(userRepository, never()).save(any(User.class));
@@ -171,9 +176,9 @@ class AuthServiceTest {
     @Test
     void getCurrentUser_includesTimeZone() {
         testUser.setTimeZone("America/Denver");
-        when(userRepository.findByEmail("alice@test.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
-        assertThat(authService.getCurrentUser("alice@test.com").getTimeZone()).isEqualTo("America/Denver");
+        assertThat(authService.getCurrentUser(1L).getTimeZone()).isEqualTo("America/Denver");
     }
 
     // --- error codes ---
@@ -193,9 +198,9 @@ class AuthServiceTest {
 
     @Test
     void unknownTimeZone_hasCodeAndTheZoneAsParam() {
-        when(userRepository.findByEmail("alice@test.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
-        assertThatThrownBy(() -> authService.updateTimeZone("alice@test.com", "Not/A_Zone"))
+        assertThatThrownBy(() -> authService.updateTimeZone(1L, "Not/A_Zone"))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("code", "UNKNOWN_TIME_ZONE")
                 .hasFieldOrPropertyWithValue("params", java.util.Map.of("timeZone", "Not/A_Zone"));
@@ -203,9 +208,9 @@ class AuthServiceTest {
 
     @Test
     void missingUser_isNotFoundWithCode() {
-        when(userRepository.findByEmail("ghost@test.com")).thenReturn(Optional.empty());
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> authService.getCurrentUser("ghost@test.com"))
+        assertThatThrownBy(() -> authService.getCurrentUser(99L))
                 .isInstanceOf(com.jobflow.exception.NotFoundException.class)
                 .hasFieldOrPropertyWithValue("code", "USER_NOT_FOUND");
     }
@@ -215,7 +220,7 @@ class AuthServiceTest {
     @Test
     void exchangeOAuthCode_validCode_returnsJwtForThatUser() {
         when(oneTimeCodeService.consume("good-code", OneTimeCodePurpose.OAUTH_LOGIN)).thenReturn(Optional.of(testUser));
-        when(jwtService.generateToken("alice@test.com")).thenReturn("jwt-token");
+        when(jwtService.generateToken(any(User.class))).thenReturn("jwt-token");
 
         AuthResponse response = authService.exchangeOAuthCode("good-code");
 
@@ -230,6 +235,39 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.exchangeOAuthCode("bad-code"))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("code", "INVALID_OAUTH_CODE");
-        verify(jwtService, never()).generateToken(anyString());
+        verify(jwtService, never()).generateToken(any(User.class));
+    }
+
+    // --- password change ---
+
+    @Test
+    void changePassword_revokesOtherSessionsAndReturnsAFreshToken() {
+        ChangePasswordRequest request = new ChangePasswordRequest();
+        request.setCurrentPassword("password123");
+        request.setNewPassword("newPassword456");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches("password123", "encodedPassword")).thenReturn(true);
+        when(passwordEncoder.matches("newPassword456", "encodedPassword")).thenReturn(false);
+        when(passwordEncoder.encode("newPassword456")).thenReturn("newHash");
+        when(jwtService.generateToken(testUser)).thenReturn("fresh-token");
+
+        AuthResponse response = authService.changePassword(1L, request);
+
+        assertThat(testUser.getPassword()).isEqualTo("newHash");
+        verify(tokenVersions).revokeAll(testUser);
+        assertThat(response.getToken()).isEqualTo("fresh-token");
+    }
+
+    @Test
+    void changePassword_wrongCurrentPassword_revokesNothing() {
+        ChangePasswordRequest request = new ChangePasswordRequest();
+        request.setCurrentPassword("wrong");
+        request.setNewPassword("newPassword456");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches("wrong", "encodedPassword")).thenReturn(false);
+
+        assertThatThrownBy(() -> authService.changePassword(1L, request))
+                .hasFieldOrPropertyWithValue("code", "CURRENT_PASSWORD_INCORRECT");
+        verify(tokenVersions, never()).revokeAll(any());
     }
 }

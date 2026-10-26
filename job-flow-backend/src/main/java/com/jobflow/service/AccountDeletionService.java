@@ -9,6 +9,7 @@ import com.jobflow.repository.EmailImportLogRepository;
 import com.jobflow.repository.InterviewRepository;
 import com.jobflow.repository.JobApplicationRepository;
 import com.jobflow.repository.UserRepository;
+import com.jobflow.security.TokenVersions;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -32,18 +33,18 @@ public class AccountDeletionService {
     private final CompanyRepository companyRepository;
     private final PasswordEncoder passwordEncoder;
     private final GoogleTokenRevoker googleTokenRevoker;
+    private final TokenVersions tokenVersions;
     private final PlatformTransactionManager transactionManager;
 
-    public void deleteAccount(String email, DeleteAccountRequest request) {
+    public void deleteAccount(Long userId, DeleteAccountRequest request) {
         // Revoke after the commit: a slow call to Google shouldn't hold the transaction open,
         // and a failed one shouldn't keep the account around
         String gmailToken = new TransactionTemplate(transactionManager).execute(status -> {
-            User user = userRepository.findByEmail(email).orElseThrow(NotFoundException::user);
+            User user = userRepository.findById(userId).orElseThrow(NotFoundException::user);
             confirm(user, request);
             String token = user.getGoogleRefreshToken() != null ? user.getGoogleRefreshToken() : user.getGoogleAccessToken();
 
             // Children first, in foreign key order; one-time codes go with the user (ON DELETE CASCADE)
-            Long userId = user.getId();
             interviewRepository.deleteByUserId(userId);
             emailImportLogRepository.deleteByUserId(userId);
             jobApplicationRepository.deleteByUserId(userId);
@@ -51,7 +52,8 @@ public class AccountDeletionService {
             userRepository.delete(user);
             return token;
         });
-        log.info("Deleted account {}", email);
+        tokenVersions.forget(userId);
+        log.info("Deleted account {}", userId);
 
         if (gmailToken != null) {
             googleTokenRevoker.revoke(gmailToken);

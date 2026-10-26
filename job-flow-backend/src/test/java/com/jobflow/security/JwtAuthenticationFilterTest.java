@@ -13,6 +13,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.io.IOException;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -22,6 +23,9 @@ class JwtAuthenticationFilterTest {
 
     @Mock
     private JwtService jwtService;
+
+    @Mock
+    private TokenVersions tokenVersions;
 
     @Mock
     private FilterChain filterChain;
@@ -40,64 +44,58 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    void validToken_setsAuthentication() throws ServletException, IOException {
+    void currentToken_authenticatesAsTheUserId() throws ServletException, IOException {
         request.addHeader("Authorization", "Bearer valid-token");
-        when(jwtService.validateToken("valid-token")).thenReturn(true);
-        when(jwtService.getEmailFromToken("valid-token")).thenReturn("user@example.com");
+        when(jwtService.parse("valid-token")).thenReturn(Optional.of(new JwtService.TokenClaims(7L, 2)));
+        when(tokenVersions.isCurrent(7L, 2)).thenReturn(true);
 
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
 
-        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNotNull();
-        assertThat(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).isEqualTo("user@example.com");
+        assertThat(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).isEqualTo(7L);
         verify(filterChain).doFilter(request, response);
     }
 
     @Test
-    void invalidToken_doesNotSetAuthentication() throws ServletException, IOException {
+    void revokedToken_doesNotAuthenticate() throws ServletException, IOException {
+        // Signed fine, but issued before a password change (or the user is gone)
+        request.addHeader("Authorization", "Bearer old-token");
+        when(jwtService.parse("old-token")).thenReturn(Optional.of(new JwtService.TokenClaims(7L, 1)));
+        when(tokenVersions.isCurrent(7L, 1)).thenReturn(false);
+
+        jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
+    void invalidToken_doesNotAuthenticateOrCheckVersions() throws ServletException, IOException {
         request.addHeader("Authorization", "Bearer invalid-token");
-        when(jwtService.validateToken("invalid-token")).thenReturn(false);
+        when(jwtService.parse("invalid-token")).thenReturn(Optional.empty());
 
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        verifyNoInteractions(tokenVersions);
         verify(filterChain).doFilter(request, response);
     }
 
     @Test
-    void noAuthorizationHeader_doesNotSetAuthentication() throws ServletException, IOException {
+    void noAuthorizationHeader_doesNotAuthenticate() throws ServletException, IOException {
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        verifyNoInteractions(jwtService);
         verify(filterChain).doFilter(request, response);
     }
 
     @Test
-    void nonBearerHeader_doesNotSetAuthentication() throws ServletException, IOException {
+    void nonBearerHeader_doesNotAuthenticate() throws ServletException, IOException {
         request.addHeader("Authorization", "Basic abc123");
 
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         verify(filterChain).doFilter(request, response);
-    }
-
-    @Test
-    void emptyBearerToken_doesNotSetAuthentication() throws ServletException, IOException {
-        request.addHeader("Authorization", "Bearer ");
-        // "Bearer " substring(7) = "" which is empty, but StringUtils.hasText would have matched
-        // Actually the header "Bearer " -> extractToken returns "" -> validateToken("") called
-
-        jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
-
-        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
-        verify(filterChain).doFilter(request, response);
-    }
-
-    @Test
-    void filterAlwaysContinuesChain() throws ServletException, IOException {
-        // Even without a token, filter chain must continue
-        jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
-
-        verify(filterChain, times(1)).doFilter(request, response);
     }
 }

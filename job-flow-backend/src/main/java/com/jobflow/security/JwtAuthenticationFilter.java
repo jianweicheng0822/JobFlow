@@ -19,6 +19,7 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final TokenVersions tokenVersions;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -26,10 +27,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String token = extractToken(request);
 
-        if (token != null && jwtService.validateToken(token)) {
-            String email = jwtService.getEmailFromToken(token);
-            var authentication = new UsernamePasswordAuthenticationToken(email, null, List.of());
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+        if (token != null) {
+            jwtService.parse(token)
+                    .filter(claims -> tokenVersions.isCurrent(claims.userId(), claims.version()))
+                    .ifPresent(claims -> {
+                        // The principal is the user id; controllers take it with @AuthenticationPrincipal
+                        var authentication = new UsernamePasswordAuthenticationToken(claims.userId(), null, List.of());
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                    });
         }
 
         filterChain.doFilter(request, response);

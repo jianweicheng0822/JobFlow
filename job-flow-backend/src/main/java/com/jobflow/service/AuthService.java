@@ -10,6 +10,7 @@ import com.jobflow.model.OneTimeCodePurpose;
 import com.jobflow.model.User;
 import com.jobflow.repository.UserRepository;
 import com.jobflow.security.JwtService;
+import com.jobflow.security.TokenVersions;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final OneTimeCodeService oneTimeCodeService;
+    private final TokenVersions tokenVersions;
 
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -39,7 +41,7 @@ public class AuthService {
 
         userRepository.save(user);
 
-        String token = jwtService.generateToken(user.getEmail());
+        String token = jwtService.generateToken(user);
         return buildAuthResponse(user, token);
     }
 
@@ -51,7 +53,7 @@ public class AuthService {
             throw ApiException.badRequest("INVALID_CREDENTIALS", "Invalid email or password");
         }
 
-        String token = jwtService.generateToken(user.getEmail());
+        String token = jwtService.generateToken(user);
         return buildAuthResponse(user, token);
     }
 
@@ -60,17 +62,17 @@ public class AuthService {
     public AuthResponse exchangeOAuthCode(String code) {
         User user = oneTimeCodeService.consume(code, OneTimeCodePurpose.OAUTH_LOGIN)
                 .orElseThrow(() -> ApiException.badRequest("INVALID_OAUTH_CODE", "Sign-in link is invalid or has expired"));
-        return buildAuthResponse(user, jwtService.generateToken(user.getEmail()));
+        return buildAuthResponse(user, jwtService.generateToken(user));
     }
 
-    public AuthResponse getCurrentUser(String email) {
-        User user = userRepository.findByEmail(email)
+    public AuthResponse getCurrentUser(Long userId) {
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> NotFoundException.user());
         return buildAuthResponse(user, null);
     }
 
-    public AuthResponse updateProfile(String currentEmail, UpdateProfileRequest request) {
-        User user = userRepository.findByEmail(currentEmail)
+    public AuthResponse updateProfile(Long userId, UpdateProfileRequest request) {
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> NotFoundException.user());
 
         user.setName(request.getName());
@@ -81,16 +83,17 @@ public class AuthService {
         return buildAuthResponse(user, null);
     }
 
-    public AuthResponse updateTimeZone(String email, String timeZone) {
-        User user = userRepository.findByEmail(email)
+    public AuthResponse updateTimeZone(Long userId, String timeZone) {
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> NotFoundException.user());
         user.setTimeZone(UserClock.requireValidZone(timeZone));
         userRepository.save(user);
         return buildAuthResponse(user, null);
     }
 
-    public void changePassword(String email, ChangePasswordRequest request) {
-        User user = userRepository.findByEmail(email)
+    // Signs the user out everywhere else; the returned token keeps this browser signed in
+    public AuthResponse changePassword(Long userId, ChangePasswordRequest request) {
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> NotFoundException.user());
 
         // OAuth users setting password for the first time: skip current password check
@@ -107,7 +110,8 @@ public class AuthService {
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-        userRepository.save(user);
+        tokenVersions.revokeAll(user);
+        return buildAuthResponse(user, jwtService.generateToken(user));
     }
 
     private AuthResponse buildAuthResponse(User user, String token) {

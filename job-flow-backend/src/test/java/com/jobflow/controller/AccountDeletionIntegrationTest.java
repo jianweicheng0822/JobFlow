@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -80,7 +81,7 @@ class AccountDeletionIntegrationTest extends BaseIntegrationTest {
 
     private ResultActions deleteAs(User user, String body) throws Exception {
         return mockMvc.perform(delete("/api/auth/me")
-                .header("Authorization", "Bearer " + jwtService.generateToken(user.getEmail()))
+                .header("Authorization", "Bearer " + jwtService.generateToken(user))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body));
     }
@@ -110,6 +111,10 @@ class AccountDeletionIntegrationTest extends BaseIntegrationTest {
                         .content("{\"email\":\"alice@test.com\",\"password\":\"password123\"}"))
                 .andExpect(status().isBadRequest());
         verify(googleTokenRevoker, never()).revoke(any());
+
+        // Alice's token (same id and version) is now just rejected, not a 404 from a missing user
+        mockMvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + jwtService.generateToken(alice)))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

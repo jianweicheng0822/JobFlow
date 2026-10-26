@@ -16,7 +16,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -59,37 +59,37 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<AuthResponse> getCurrentUser(Authentication authentication) {
-        if (authentication == null) {
+    public ResponseEntity<AuthResponse> getCurrentUser(@AuthenticationPrincipal Long userId) {
+        if (userId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        return ResponseEntity.ok(authService.getCurrentUser(authentication.getName()));
+        return ResponseEntity.ok(authService.getCurrentUser(userId));
     }
 
     @PutMapping("/profile")
-    public AuthResponse updateProfile(Authentication authentication,
+    public AuthResponse updateProfile(@AuthenticationPrincipal Long userId,
                                       @Valid @RequestBody UpdateProfileRequest request) {
-        return authService.updateProfile(authentication.getName(), request);
+        return authService.updateProfile(userId, request);
     }
 
     // Set from the browser on first login, and from Settings after that
     @PutMapping("/time-zone")
-    public AuthResponse updateTimeZone(Authentication authentication,
+    public AuthResponse updateTimeZone(@AuthenticationPrincipal Long userId,
                                        @Valid @RequestBody UpdateTimeZoneRequest request) {
-        return authService.updateTimeZone(authentication.getName(), request.getTimeZone());
+        return authService.updateTimeZone(userId, request.getTimeZone());
     }
 
+    // Other sessions are signed out; the response carries a fresh token for this one
     @PutMapping("/password")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void changePassword(Authentication authentication,
-                               @Valid @RequestBody ChangePasswordRequest request) {
-        authService.changePassword(authentication.getName(), request);
+    public AuthResponse changePassword(@AuthenticationPrincipal Long userId,
+                                       @Valid @RequestBody ChangePasswordRequest request) {
+        return authService.changePassword(userId, request);
     }
 
     // Body on a DELETE: needs the password (or the email, for OAuth-only accounts) to confirm
     @DeleteMapping("/me")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteAccount(Authentication authentication, @RequestBody DeleteAccountRequest request) {
-        accountDeletionService.deleteAccount(authentication.getName(), request);
+    public void deleteAccount(@AuthenticationPrincipal Long userId, @RequestBody DeleteAccountRequest request) {
+        accountDeletionService.deleteAccount(userId, request);
     }
 }

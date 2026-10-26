@@ -211,10 +211,12 @@ export default function SettingsPage() {
 
     setPasswordLoading(true)
     try {
-      await authApi.changePassword({
+      const res = await authApi.changePassword({
         currentPassword: needsCurrentPassword ? currentPassword : '',
         newPassword,
       })
+      // The old token was just revoked along with every other session
+      if (res.data.token) localStorage.setItem('jobflow-token', res.data.token)
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')

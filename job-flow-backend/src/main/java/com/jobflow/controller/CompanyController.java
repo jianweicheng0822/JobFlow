@@ -3,13 +3,10 @@ package com.jobflow.controller;
 import jakarta.validation.Valid;
 import com.jobflow.dto.CompanyDTO;
 import com.jobflow.dto.CreateCompanyRequest;
-import com.jobflow.model.User;
-import com.jobflow.repository.UserRepository;
 import com.jobflow.service.CompanyService;
-import com.jobflow.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,40 +17,32 @@ import java.util.List;
 public class CompanyController {
 
     private final CompanyService companyService;
-    private final UserRepository userRepository;
 
     @GetMapping
-    public List<CompanyDTO> getAll(Authentication authentication) {
-        return companyService.findAll(getUserId(authentication));
+    public List<CompanyDTO> getAll(@AuthenticationPrincipal Long userId) {
+        return companyService.findAll(userId);
     }
 
     @GetMapping("/{id}")
-    public CompanyDTO getById(@PathVariable Long id, Authentication authentication) {
-        return companyService.findById(getUserId(authentication), id);
+    public CompanyDTO getById(@PathVariable Long id, @AuthenticationPrincipal Long userId) {
+        return companyService.findById(userId, id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CompanyDTO create(@Valid @RequestBody CreateCompanyRequest request, Authentication authentication) {
-        return companyService.create(getUserId(authentication), request);
+    public CompanyDTO create(@Valid @RequestBody CreateCompanyRequest request, @AuthenticationPrincipal Long userId) {
+        return companyService.create(userId, request);
     }
 
     @PutMapping("/{id}")
     public CompanyDTO update(@PathVariable Long id, @Valid @RequestBody CreateCompanyRequest request,
-                             Authentication authentication) {
-        return companyService.update(getUserId(authentication), id, request);
+                             @AuthenticationPrincipal Long userId) {
+        return companyService.update(userId, id, request);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id, Authentication authentication) {
-        companyService.delete(getUserId(authentication), id);
-    }
-
-    private Long getUserId(Authentication authentication) {
-        String email = authentication.getName();
-        User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> NotFoundException.user());
-        return user.getId();
+    public void delete(@PathVariable Long id, @AuthenticationPrincipal Long userId) {
+        companyService.delete(userId, id);
     }
 }

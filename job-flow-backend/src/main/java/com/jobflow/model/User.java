@@ -55,6 +55,11 @@ public class User {
     @Column(length = 64)
     private String timeZone;
 
+    // Bumped to sign the user out everywhere; see TokenVersions
+    @Column(nullable = false)
+    @Builder.Default
+    private int tokenVersion = 0;
+
     @Column(updatable = false)
     private LocalDateTime createdAt;
 

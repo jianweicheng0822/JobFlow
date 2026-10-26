@@ -6,6 +6,7 @@ import com.jobflow.security.JwtAuthenticationFilter;
 import com.jobflow.security.JwtService;
 import com.jobflow.security.OAuth2LoginFailureHandler;
 import com.jobflow.security.OAuth2LoginSuccessHandler;
+import com.jobflow.security.TokenVersions;
 import com.jobflow.service.AccountDeletionService;
 import com.jobflow.service.AuthService;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -19,8 +20,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Optional;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -47,6 +51,9 @@ class AuthEndpointSecurityTest {
 
     @MockBean
     private JwtService jwtService;
+
+    @MockBean
+    private TokenVersions tokenVersions;
 
     @MockBean
     private OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
@@ -96,9 +103,9 @@ class AuthEndpointSecurityTest {
 
     @Test
     void timeZone_withValidToken_reachesTheController() throws Exception {
-        when(jwtService.validateToken("good-token")).thenReturn(true);
-        when(jwtService.getEmailFromToken("good-token")).thenReturn("a@test.com");
-        when(authService.updateTimeZone(anyString(), anyString()))
+        when(jwtService.parse("good-token")).thenReturn(Optional.of(new JwtService.TokenClaims(1L, 0)));
+        when(tokenVersions.isCurrent(1L, 0)).thenReturn(true);
+        when(authService.updateTimeZone(eq(1L), anyString()))
                 .thenReturn(AuthResponse.builder().email("a@test.com").timeZone("UTC").build());
 
         mockMvc.perform(put("/api/auth/time-zone")

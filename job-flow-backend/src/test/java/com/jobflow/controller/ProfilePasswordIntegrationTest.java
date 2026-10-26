@@ -7,13 +7,19 @@ import com.jobflow.model.User;
 import com.jobflow.repository.UserRepository;
 import com.jobflow.security.JwtService;
 import com.jobflow.security.OAuth2LoginSuccessHandler;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -31,6 +37,9 @@ class ProfilePasswordIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private JwtService jwtService;
+
+    @Value("${app.jwt.secret}")
+    private String jwtSecret;
 
     @MockBean
     private OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
@@ -98,17 +107,22 @@ class ProfilePasswordIntegrationTest extends BaseIntegrationTest {
 
     // --- Password change tests ---
 
-    @Test
-    void changePassword_withCorrectCurrent_succeeds() throws Exception {
-        String json = """
-                {"currentPassword": "password123", "newPassword": "newpass456"}
-                """;
-
-        mockMvc.perform(put("/api/auth/password")
-                        .header("Authorization", "Bearer " + aliceToken)
+    private String changePassword(String token, String json) throws Exception {
+        MvcResult result = mockMvc.perform(put("/api/auth/password")
+                        .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andReturn();
+        return objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asText();
+    }
+
+    @Test
+    void changePassword_withCorrectCurrent_succeeds() throws Exception {
+        changePassword(aliceToken, """
+                {"currentPassword": "password123", "newPassword": "newpass456"}
+                """);
 
         // Verify can login with new password
         String loginJson = """
@@ -123,7 +137,27 @@ class ProfilePasswordIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void changePassword_withWrongCurrent_fails() throws Exception {
+    void changePassword_signsOutOtherSessions_butKeepsThisOne() throws Exception {
+        String otherDeviceToken = objectMapper.readTree(mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\": \"alice@test.com\", \"password\": \"password123\"}"))
+                .andReturn().getResponse().getContentAsString()).get("token").asText();
+
+        String freshToken = changePassword(aliceToken, """
+                {"currentPassword": "password123", "newPassword": "newpass456"}
+                """);
+
+        for (String old : new String[] {aliceToken, otherDeviceToken}) {
+            mockMvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + old))
+                    .andExpect(status().isUnauthorized());
+        }
+        mockMvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + freshToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("alice@test.com"));
+    }
+
+    @Test
+    void changePassword_withWrongCurrent_failsAndKeepsSessions() throws Exception {
         String json = """
                 {"currentPassword": "wrongpassword", "newPassword": "newpass456"}
                 """;
@@ -133,6 +167,9 @@ class ProfilePasswordIntegrationTest extends BaseIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + aliceToken))
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -148,32 +185,37 @@ class ProfilePasswordIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void oldEmailSubjectToken_isUnauthorized() throws Exception {
+        // Tokens issued before the switch to user ids: signed with the right key, wrong shape
+        String oldToken = Jwts.builder()
+                .subject("alice@test.com")
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 60_000))
+                .signWith(Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8)))
+                .compact();
+
+        mockMvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + oldToken))
+                .andExpect(status().isUnauthorized());
+    }
+
     // --- OAuth user password tests ---
 
     @Test
     void oauthUser_canSetPasswordWithoutCurrent() throws Exception {
         // Create an OAuth user directly (null password)
-        User oauthUser = User.builder()
+        User oauthUser = userRepository.save(User.builder()
                 .name("OAuthUser")
                 .email("oauth@test.com")
                 .password(null)
                 .provider(AuthProvider.GOOGLE)
                 .providerId("google-123")
-                .build();
-        userRepository.save(oauthUser);
-
-        String oauthToken = jwtService.generateToken("oauth@test.com");
+                .build());
 
         // Set password without providing currentPassword
-        String json = """
+        changePassword(jwtService.generateToken(oauthUser), """
                 {"newPassword": "mynewpass123"}
-                """;
-
-        mockMvc.perform(put("/api/auth/password")
-                        .header("Authorization", "Bearer " + oauthToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isNoContent());
+                """);
 
         // Verify can now login with the new password
         String loginJson = """
@@ -190,27 +232,18 @@ class ProfilePasswordIntegrationTest extends BaseIntegrationTest {
     @Test
     void oauthUser_afterSettingPassword_needsCurrentToChange() throws Exception {
         // Create an OAuth user directly (null password)
-        User oauthUser = User.builder()
+        User oauthUser = userRepository.save(User.builder()
                 .name("OAuthUser2")
                 .email("oauth2@test.com")
                 .password(null)
                 .provider(AuthProvider.GOOGLE)
                 .providerId("google-456")
-                .build();
-        userRepository.save(oauthUser);
-
-        String oauthToken = jwtService.generateToken("oauth2@test.com");
+                .build());
 
         // First: set password without currentPassword
-        String setJson = """
+        String token = changePassword(jwtService.generateToken(oauthUser), """
                 {"newPassword": "firstpass123"}
-                """;
-
-        mockMvc.perform(put("/api/auth/password")
-                        .header("Authorization", "Bearer " + oauthToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(setJson))
-                .andExpect(status().isNoContent());
+                """);
 
         // Now: trying to change without currentPassword should fail
         String changeJson = """
@@ -218,20 +251,14 @@ class ProfilePasswordIntegrationTest extends BaseIntegrationTest {
                 """;
 
         mockMvc.perform(put("/api/auth/password")
-                        .header("Authorization", "Bearer " + oauthToken)
+                        .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(changeJson))
                 .andExpect(status().isBadRequest());
 
         // Providing the correct currentPassword should succeed
-        String correctJson = """
+        changePassword(token, """
                 {"currentPassword": "firstpass123", "newPassword": "secondpass456"}
-                """;
-
-        mockMvc.perform(put("/api/auth/password")
-                        .header("Authorization", "Bearer " + oauthToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(correctJson))
-                .andExpect(status().isNoContent());
+                """);
     }
 }

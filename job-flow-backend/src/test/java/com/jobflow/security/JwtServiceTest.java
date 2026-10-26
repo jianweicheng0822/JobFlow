@@ -1,5 +1,6 @@
 package com.jobflow.security;
 
+import com.jobflow.model.User;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +17,7 @@ class JwtServiceTest {
     private static final long EXPIRATION_MS = 3600000; // 1 hour
 
     private JwtService jwtService;
+    private final User alice = User.builder().id(42L).email("alice@test.com").tokenVersion(3).build();
 
     @BeforeEach
     void setUp() {
@@ -23,55 +25,67 @@ class JwtServiceTest {
     }
 
     @Test
-    void generateToken_returnsNonNullToken() {
-        String token = jwtService.generateToken("alice@test.com");
-        assertThat(token).isNotNull().isNotBlank();
+    void token_carriesUserIdAndVersion() {
+        String token = jwtService.generateToken(alice);
+
+        assertThat(jwtService.parse(token)).contains(new JwtService.TokenClaims(42L, 3));
     }
 
     @Test
-    void getEmailFromToken_returnsCorrectEmail() {
-        String email = "alice@test.com";
-        String token = jwtService.generateToken(email);
+    void token_doesNotContainTheEmail() {
+        String payload = new String(java.util.Base64.getUrlDecoder()
+                .decode(jwtService.generateToken(alice).split("\\.")[1]), StandardCharsets.UTF_8);
 
-        assertThat(jwtService.getEmailFromToken(token)).isEqualTo(email);
+        assertThat(payload).doesNotContain("alice@test.com").contains("\"sub\":\"42\"");
     }
 
     @Test
-    void validateToken_returnsTrueForValidToken() {
-        String token = jwtService.generateToken("alice@test.com");
-        assertThat(jwtService.validateToken(token)).isTrue();
-    }
-
-    @Test
-    void validateToken_returnsFalseForTamperedToken() {
-        String token = jwtService.generateToken("alice@test.com");
+    void tamperedToken_isRejected() {
+        String token = jwtService.generateToken(alice);
         // Flip a character in the signature portion
         String tampered = token.substring(0, token.length() - 5) + "XXXXX";
 
-        assertThat(jwtService.validateToken(tampered)).isFalse();
+        assertThat(jwtService.parse(tampered)).isEmpty();
     }
 
     @Test
-    void validateToken_returnsFalseForDifferentKey() {
-        String differentSecret = "anotherSecretKeyThatIsAlsoAtLeast256BitsLongForHS256Algorithm!";
-        JwtService otherService = new JwtService(differentSecret, EXPIRATION_MS);
+    void tokenSignedWithAnotherKey_isRejected() {
+        JwtService otherService = new JwtService("anotherSecretKeyThatIsAlsoAtLeast256BitsLongForHS256Algorithm!", EXPIRATION_MS);
 
-        String token = otherService.generateToken("alice@test.com");
-        assertThat(jwtService.validateToken(token)).isFalse();
+        assertThat(jwtService.parse(otherService.generateToken(alice))).isEmpty();
     }
 
     @Test
-    void validateToken_returnsFalseForExpiredToken() {
-        // Build a token that's already expired using jjwt directly
-        var key = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
+    void expiredToken_isRejected() {
         Date now = new Date();
-        String expiredToken = Jwts.builder()
-                .subject("alice@test.com")
+        String expiredToken = signed(Jwts.builder()
+                .subject("42")
+                .claim("ver", 3)
                 .issuedAt(new Date(now.getTime() - 7200000))
-                .expiration(new Date(now.getTime() - 3600000)) // expired 1 hour ago
-                .signWith(key)
-                .compact();
+                .expiration(new Date(now.getTime() - 3600000))); // expired 1 hour ago
 
-        assertThat(jwtService.validateToken(expiredToken)).isFalse();
+        assertThat(jwtService.parse(expiredToken)).isEmpty();
+    }
+
+    @Test
+    void oldEmailSubjectToken_isRejected() {
+        // What tokens looked like before they carried an id and version
+        Date now = new Date();
+        String oldToken = signed(Jwts.builder()
+                .subject("alice@test.com")
+                .issuedAt(now)
+                .expiration(new Date(now.getTime() + EXPIRATION_MS)));
+
+        assertThat(jwtService.parse(oldToken)).isEmpty();
+    }
+
+    @Test
+    void garbage_isRejected() {
+        assertThat(jwtService.parse("")).isEmpty();
+        assertThat(jwtService.parse("not-a-jwt")).isEmpty();
+    }
+
+    private static String signed(io.jsonwebtoken.JwtBuilder builder) {
+        return builder.signWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8))).compact();
     }
 }

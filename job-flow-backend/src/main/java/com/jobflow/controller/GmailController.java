@@ -20,7 +20,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
@@ -61,9 +61,9 @@ public class GmailController {
     private static final Duration LINK_STATE_TTL = Duration.ofMinutes(10);
 
     @GetMapping("/link")
-    public Map<String, String> getGmailLinkUrl(Authentication authentication) {
+    public Map<String, String> getGmailLinkUrl(@AuthenticationPrincipal Long userId) {
         requireGmailConfigured();
-        User user = getUser(authentication);
+        User user = getUser(userId);
         // Google echoes "state" back in the callback URL, so it gets a one-time code rather than a JWT
         String state = oneTimeCodeService.issue(user, OneTimeCodePurpose.GMAIL_LINK, LINK_STATE_TTL);
 
@@ -147,20 +147,20 @@ public class GmailController {
     }
 
     @PostMapping("/scan")
-    public List<GmailImportPreviewDTO> scanEmails(Authentication authentication) {
+    public List<GmailImportPreviewDTO> scanEmails(@AuthenticationPrincipal Long userId) {
         requireGmailConfigured();
-        return gmailService.scanEmails(getUserId(authentication));
+        return gmailService.scanEmails(userId);
     }
 
     @PostMapping("/import")
     public GmailImportResultDTO importApplications(@Valid @RequestBody GmailImportConfirmRequest request,
-                                                   Authentication authentication) {
-        return gmailService.importApplications(getUserId(authentication), request);
+                                                   @AuthenticationPrincipal Long userId) {
+        return gmailService.importApplications(userId, request);
     }
 
     @GetMapping("/status")
-    public Map<String, Object> getStatus(Authentication authentication) {
-        User user = getUser(authentication);
+    public Map<String, Object> getStatus(@AuthenticationPrincipal Long userId) {
+        User user = getUser(userId);
         return Map.of(
                 "gmailConnected", user.isGmailConnected(),
                 "provider", user.getProvider().name()
@@ -175,13 +175,8 @@ public class GmailController {
         }
     }
 
-    private Long getUserId(Authentication authentication) {
-        return getUser(authentication).getId();
-    }
-
-    private User getUser(Authentication authentication) {
-        String email = authentication.getName();
-        return userRepository.findByEmail(email)
+    private User getUser(Long userId) {
+        return userRepository.findById(userId)
                 .orElseThrow(() -> NotFoundException.user());
     }
 

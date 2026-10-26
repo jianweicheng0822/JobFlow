@@ -3,16 +3,13 @@ package com.jobflow.controller;
 import jakarta.validation.Valid;
 import com.jobflow.dto.*;
 import com.jobflow.model.ApplicationStatus;
-import com.jobflow.model.User;
-import com.jobflow.repository.UserRepository;
 import com.jobflow.service.JobApplicationService;
-import com.jobflow.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,12 +20,10 @@ import java.util.List;
 public class JobApplicationController {
 
     private final JobApplicationService jobApplicationService;
-    private final UserRepository userRepository;
 
     @GetMapping
     public List<JobApplicationDTO> getAll(@RequestParam(required = false) ApplicationStatus status,
-                                          Authentication authentication) {
-        Long userId = getUserId(authentication);
+                                          @AuthenticationPrincipal Long userId) {
         if (status != null) {
             return jobApplicationService.findByStatus(userId, status);
         }
@@ -43,56 +38,56 @@ public class JobApplicationController {
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "updatedAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir,
-            Authentication authentication) {
-        return jobApplicationService.findAllPaged(getUserId(authentication), page, size, status, keyword, sortBy, sortDir);
+            @AuthenticationPrincipal Long userId) {
+        return jobApplicationService.findAllPaged(userId, page, size, status, keyword, sortBy, sortDir);
     }
 
     @GetMapping("/{id}")
-    public JobApplicationDTO getById(@PathVariable Long id, Authentication authentication) {
-        return jobApplicationService.findById(getUserId(authentication), id);
+    public JobApplicationDTO getById(@PathVariable Long id, @AuthenticationPrincipal Long userId) {
+        return jobApplicationService.findById(userId, id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public JobApplicationDTO create(@Valid @RequestBody CreateJobApplicationRequest request,
-                                    Authentication authentication) {
-        return jobApplicationService.create(getUserId(authentication), request);
+                                    @AuthenticationPrincipal Long userId) {
+        return jobApplicationService.create(userId, request);
     }
 
     @PutMapping("/{id}")
     public JobApplicationDTO update(@PathVariable Long id,
                                     @Valid @RequestBody UpdateJobApplicationRequest request,
-                                    Authentication authentication) {
-        return jobApplicationService.update(getUserId(authentication), id, request);
+                                    @AuthenticationPrincipal Long userId) {
+        return jobApplicationService.update(userId, id, request);
     }
 
     @PatchMapping("/{id}/status")
     public JobApplicationDTO updateStatus(@PathVariable Long id,
                                           @RequestParam ApplicationStatus status,
-                                          Authentication authentication) {
-        return jobApplicationService.updateStatus(getUserId(authentication), id, status);
+                                          @AuthenticationPrincipal Long userId) {
+        return jobApplicationService.updateStatus(userId, id, status);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id, Authentication authentication) {
-        jobApplicationService.delete(getUserId(authentication), id);
+    public void delete(@PathVariable Long id, @AuthenticationPrincipal Long userId) {
+        jobApplicationService.delete(userId, id);
     }
 
     @PatchMapping("/{id}/star")
-    public JobApplicationDTO toggleStar(@PathVariable Long id, Authentication authentication) {
-        return jobApplicationService.toggleStar(getUserId(authentication), id);
+    public JobApplicationDTO toggleStar(@PathVariable Long id, @AuthenticationPrincipal Long userId) {
+        return jobApplicationService.toggleStar(userId, id);
     }
 
     @DeleteMapping("/batch")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteBatch(@RequestBody List<Long> ids, Authentication authentication) {
-        jobApplicationService.deleteBatch(getUserId(authentication), ids);
+    public void deleteBatch(@RequestBody List<Long> ids, @AuthenticationPrincipal Long userId) {
+        jobApplicationService.deleteBatch(userId, ids);
     }
 
     @GetMapping("/export")
-    public ResponseEntity<byte[]> exportCsv(Authentication authentication) {
-        String csv = jobApplicationService.exportCsv(getUserId(authentication));
+    public ResponseEntity<byte[]> exportCsv(@AuthenticationPrincipal Long userId) {
+        String csv = jobApplicationService.exportCsv(userId);
         byte[] bytes = csv.getBytes(java.nio.charset.StandardCharsets.UTF_8);
         return ResponseEntity.ok()
             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=applications.csv")
@@ -101,24 +96,17 @@ public class JobApplicationController {
     }
 
     @GetMapping("/stats")
-    public DashboardStatsDTO getStats(Authentication authentication) {
-        return jobApplicationService.getStats(getUserId(authentication));
+    public DashboardStatsDTO getStats(@AuthenticationPrincipal Long userId) {
+        return jobApplicationService.getStats(userId);
     }
 
     @GetMapping("/activity")
-    public List<ApplicationActivityDTO> getActivity(Authentication authentication) {
-        return jobApplicationService.getActivity(getUserId(authentication));
+    public List<ApplicationActivityDTO> getActivity(@AuthenticationPrincipal Long userId) {
+        return jobApplicationService.getActivity(userId);
     }
 
     @GetMapping("/recent")
-    public List<JobApplicationDTO> getRecent(Authentication authentication) {
-        return jobApplicationService.findRecent(getUserId(authentication));
-    }
-
-    private Long getUserId(Authentication authentication) {
-        String email = authentication.getName();
-        User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> NotFoundException.user());
-        return user.getId();
+    public List<JobApplicationDTO> getRecent(@AuthenticationPrincipal Long userId) {
+        return jobApplicationService.findRecent(userId);
     }
 }
