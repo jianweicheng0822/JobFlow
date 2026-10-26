@@ -7,6 +7,10 @@ import { LanguageProvider } from '../../context/LanguageProvider';
 import { getApplications, toggleStar, updateStatus } from '../../api/applications';
 import type { JobApplicationDTO, ApplicationStatus } from '../../api/types';
 
+vi.mock('../../api/companies', () => ({
+  getCompanies: vi.fn().mockResolvedValue({ data: [] }),
+}));
+
 vi.mock('../../api/applications', () => ({
   getApplications: vi.fn(),
   deleteApplication: vi.fn(),
@@ -326,5 +330,51 @@ describe('Jobs stage filter and cards', () => {
     expect(statCard('Rejections')).toBe('1');
     const rejectionsCard = screen.getByText('Rejections').closest('.jobs-stat-card') as HTMLElement;
     expect(within(rejectionsCard).getByText('20% of all applications')).toBeInTheDocument();
+  });
+});
+
+describe('Jobs search and links', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.setItem('language', 'en');
+    vi.mocked(getApplications).mockResolvedValue({
+      data: [
+        { ...makeApp(1, 'Alpha'), location: 'Seattle, WA' },
+        { ...makeApp(2, 'Bravo'), location: 'Remote' },
+      ],
+    } as never);
+  });
+
+  it('finds jobs by location too', async () => {
+    render(<Jobs />, { wrapper: Wrapper });
+    await findTitle('Alpha');
+
+    fireEvent.change(screen.getByPlaceholderText('Search...'), { target: { value: 'seattle' } });
+
+    expect(rowTitles()).toEqual(['Alpha']);
+  });
+
+  it('offers to clear filters when nothing matches', async () => {
+    render(<Jobs />, { wrapper: Wrapper });
+    await findTitle('Alpha');
+
+    fireEvent.change(screen.getByPlaceholderText('Search...'), { target: { value: 'nothing like this' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+
+    expect(rowTitles()).toEqual(['Alpha', 'Bravo']);
+  });
+
+  it('opens the linked job straight away for ?open=<id>', async () => {
+    renderJobsAt('/jobs?open=2');
+
+    expect(await screen.findByRole('heading', { name: 'Edit Application' })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Bravo')).toBeInTheDocument();
+  });
+
+  it("shows one company's jobs for ?company=<name>", async () => {
+    renderJobsAt('/jobs?company=Company%201');
+    await findTitle('Alpha');
+
+    await waitFor(() => expect(rowTitles()).toEqual(['Alpha']));
   });
 });

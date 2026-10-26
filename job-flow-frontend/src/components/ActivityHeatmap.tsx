@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import type { JobApplicationDTO } from '../api/types'
 import { useLanguage } from '../context/LanguageContext'
 import { dailyGrid, heatLevel } from '../utils/dailyGrid'
+import { localeFor } from '../utils/date'
 import './ActivityHeatmap.css'
 
 interface ActivityHeatmapProps {
@@ -21,7 +22,7 @@ function toDate(day: string) {
 // weeks, quiet stretches) that the monthly bars smooth over.
 export default function ActivityHeatmap({ applications, weeks }: ActivityHeatmapProps) {
   const { t, lang } = useLanguage()
-  const locale = lang === 'zh' ? 'zh-CN' : 'en-US'
+  const locale = localeFor(lang)
   const grid = dailyGrid(applications, weeks)
   const scrollRef = useRef<HTMLDivElement>(null)
 

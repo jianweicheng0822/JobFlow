@@ -8,6 +8,8 @@ import InterviewForm from '../components/InterviewForm'
 import { useToast } from '../context/ToastContext'
 import { getErrorMessage } from '../api/client'
 import { useLanguage } from '../context/LanguageContext'
+import { companyColor } from '../utils/companyColor'
+import { formatDateOf, formatTimeOf } from '../utils/date'
 
 // ===== Helpers =====
 const TYPE_CONFIG: Record<InterviewType, { color: string; icon: typeof Phone }> = {
@@ -20,16 +22,6 @@ const TYPE_LABEL_KEYS: Record<InterviewType, 'phone' | 'video' | 'onsite'> = {
   PHONE: 'phone',
   VIDEO: 'video',
   ONSITE: 'onsite',
-}
-
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-function formatTime(dateStr: string): string {
-  const d = new Date(dateStr)
-  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 }
 
 function isUpcoming(dateStr: string): boolean {
@@ -67,7 +59,7 @@ function InterviewsStatIcon({ type }: { type: string }) {
 }
 
 export default function Interviews() {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const [interviews, setInterviews] = useState<InterviewDTO[]>([])
   const [loading, setLoading] = useState(true)
   // Just a flag; the message is picked at render time so it follows the current language
@@ -232,7 +224,7 @@ export default function Interviews() {
               <input
                 type="text"
                 className="interviews-search-input"
-                placeholder={`${t.search}...`}
+                placeholder={t.search}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -278,15 +270,15 @@ export default function Interviews() {
                         <div className="interviews-company-cell">
                           <span
                             className="interviews-company-logo"
-                            style={{ background: typeCfg.color }}
+                            style={{ background: companyColor(iv.companyName) }}
                           >
                             {iv.companyName.charAt(0)}
                           </span>
                           {iv.companyName}
                         </div>
                       </td>
-                      <td>{formatDate(iv.interviewDate)}</td>
-                      <td>{formatTime(iv.interviewDate)}</td>
+                      <td>{formatDateOf(iv.interviewDate, lang)}</td>
+                      <td>{formatTimeOf(iv.interviewDate, lang)}</td>
                       <td>
                         <span className="interviews-type-badge" style={{ background: typeCfg.color }}>
                           <TypeIcon size={12} />

@@ -1,14 +1,19 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { Star } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
+import { useToast } from '../context/ToastContext'
 import './Dashboard.css'
-import { getStats, getApplications, getRecentApplications } from '../api/applications'
+import { getStats, getApplications, getRecentApplications, updateStatus } from '../api/applications'
+import { getErrorMessage } from '../api/client'
+import Modal from '../components/Modal'
+import ApplicationForm from '../components/ApplicationForm'
 import { getUpcomingInterviews } from '../api/interviews'
 import type { DashboardStatsDTO, JobApplicationDTO, InterviewDTO, ApplicationStatus } from '../api/types'
 import { sortStarredFirst } from '../utils/sortStarredFirst'
 import { formatLastAction } from '../utils/formatLastAction'
-import { formatDateOnly } from '../utils/date'
+import { formatDateOnly, formatMonthDay, formatTimeOf, todayLocal } from '../utils/date'
+import type { Language } from '../context/LanguageContext'
 import { weeklyApplicationCounts, weeklyWindows } from '../utils/weeklyCounts'
 import Sparkline from '../components/Sparkline'
 import ShareBar from '../components/ShareBar'
@@ -27,6 +32,7 @@ interface PipelineCard {
 }
 
 interface PipelineColumn {
+  status: ApplicationStatus
   stage: string
   count: number
   color: string
@@ -53,22 +59,48 @@ const STATUS_LABEL_KEYS: Record<ApplicationStatus, string> = {
   REJECTED: 'statusRejected',
 }
 
-const AVATAR_COLORS = ['#4f6ef7', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#ec4899']
+// Keep the board about one screen tall; the rest is a click away in Jobs
+const PIPELINE_CARD_LIMIT = 4
+const UPCOMING_LIMIT = 5
+const FOLLOW_UP_DAYS = 14
+// After two months with no word the job is most likely gone, so stop nagging
+const FOLLOW_UP_MAX_DAYS = 60
+const FOLLOW_UP_LIMIT = 3
 
+// Whole calendar days from a "YYYY-MM-DD" date to today, in local time
+function daysSince(dateStr: string, now: Date = new Date()): number {
+  const [y, m, d] = dateStr.slice(0, 10).split('-').map(Number)
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  return Math.round((today.getTime() - new Date(y, m - 1, d).getTime()) / 86_400_000)
+}
 
-function formatInterviewTime(dateStr: string): string {
+// Day ("Today", "Tomorrow" or "Oct 30") and time ("2:00 PM") of an interview
+function formatInterviewWhen(dateStr: string, t: Record<string, string>, lang: Language): { day: string; time: string } {
   const d = new Date(dateStr)
-  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+  const time = formatTimeOf(dateStr, lang)
+  const daysAway = -daysSince(todayLocal(d))
+  const day = daysAway === 0 ? t.today
+    : daysAway === 1 ? t.tomorrow
+    : formatMonthDay(d, lang)
+  return { day, time }
+}
+
+// Starred first, then newest applied date first (no date goes last)
+function sortForBoard(apps: JobApplicationDTO[]): JobApplicationDTO[] {
+  const byDate = [...apps].sort((a, b) => (b.appliedDate ?? '').localeCompare(a.appliedDate ?? ''))
+  return sortStarredFirst(byDate)
 }
 
 function buildPipelineColumns(applications: JobApplicationDTO[], t: Record<string, string>): PipelineColumn[] {
-  const stages: ApplicationStatus[] = ['APPLIED', 'IN_REVIEW', 'PHONE_SCREEN', 'INTERVIEW', 'OFFER', 'REJECTED']
+  // Rejected is left off the board; the Rejections card links to that list
+  const stages: ApplicationStatus[] = ['APPLIED', 'IN_REVIEW', 'PHONE_SCREEN', 'INTERVIEW', 'OFFER']
 
   return stages.map((status) => {
-    const matching = sortStarredFirst(applications.filter((app) => app.status === status))
+    const matching = sortForBoard(applications.filter((app) => app.status === status))
     const labelKey = STATUS_LABEL_KEYS[status]
 
     return {
+      status,
       stage: (t as any)[labelKey] || status,
       count: matching.length,
       color: STATUS_COLORS[status],
@@ -78,7 +110,7 @@ function buildPipelineColumns(applications: JobApplicationDTO[], t: Record<strin
         company: app.company.name,
         location: app.location || '',
         salary: app.salary || '',
-        date: formatDateOnly(app.appliedDate),
+        date: app.appliedDate ?? '',
         starred: app.starred,
       })),
     }
@@ -136,13 +168,13 @@ function StatIcon({ type }: { type: string }) {
 const TREND_WEEKS = 8
 
 // "2026-10-18" -> "Oct 18"
-function shortDate(day: string): string {
+function shortDate(day: string, lang: Language): string {
   const [y, m, d] = day.split('-').map(Number)
-  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return formatMonthDay(new Date(y, m - 1, d), lang)
 }
 
 export default function Dashboard() {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const [stats, setStats] = useState<DashboardStatsDTO | null>(null)
   const [applications, setApplications] = useState<JobApplicationDTO[]>([])
   const [pipelineColumns, setPipelineColumns] = useState<PipelineColumn[]>([])
@@ -150,31 +182,55 @@ export default function Dashboard() {
   const [interviews, setInterviews] = useState<InterviewDTO[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Card opened from the board, and the column a card is being dragged over
+  const [editingApp, setEditingApp] = useState<JobApplicationDTO | null>(null)
+  const [dragOverStatus, setDragOverStatus] = useState<ApplicationStatus | null>(null)
+  const { showToast } = useToast()
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [statsRes, appsRes, recentRes, interviewsRes] = await Promise.all([
-          getStats(),
-          getApplications(),
-          getRecentApplications(),
-          getUpcomingInterviews(),
-        ])
-        setStats(statsRes.data)
-        setApplications(appsRes.data)
-        setPipelineColumns(buildPipelineColumns(appsRes.data, t))
-        // Keep the "recently updated" set from the API, just bump starred ones up
-        setRecentApps(sortStarredFirst(recentRes.data))
-        setInterviews(interviewsRes.data)
-      } catch (err) {
-        console.error('Failed to load dashboard data:', err)
-        setError(t.backendError)
-      } finally {
-        setLoading(false)
-      }
+  const fetchData = useCallback(async () => {
+    try {
+      const [statsRes, appsRes, recentRes, interviewsRes] = await Promise.all([
+        getStats(),
+        getApplications(),
+        getRecentApplications(),
+        getUpcomingInterviews(),
+      ])
+      setStats(statsRes.data)
+      setApplications(appsRes.data)
+      setPipelineColumns(buildPipelineColumns(appsRes.data, t))
+      // Keep the "recently updated" set from the API, just bump starred ones up
+      setRecentApps(sortStarredFirst(recentRes.data))
+      setInterviews(interviewsRes.data)
+    } catch (err) {
+      console.error('Failed to load dashboard data:', err)
+      setError(t.backendError)
+    } finally {
+      setLoading(false)
+    }
+  }, [t])
+
+  useEffect(() => { fetchData() }, [fetchData])
+
+  // Dropping a card on another column moves the job to that stage. The board
+  // updates right away; stats and lists catch up from the server afterwards.
+  async function moveCard(id: number, status: ApplicationStatus) {
+    const app = applications.find((a) => a.id === id)
+    if (!app || app.status === status) return
+    const moved = applications.map((a) => (a.id === id ? { ...a, status } : a))
+    setApplications(moved)
+    setPipelineColumns(buildPipelineColumns(moved, t))
+    try {
+      await updateStatus(id, status)
+    } catch (err) {
+      showToast(getErrorMessage(err, t.statusUpdateFailed), 'error')
     }
     fetchData()
-  }, [t])
+  }
+
+  function openCard(id: number) {
+    const app = applications.find((a) => a.id === id)
+    if (app) setEditingApp(app)
+  }
 
   if (loading) {
     return <div className="dashboard"><div className="dashboard-loading">{t.loading}...</div></div>
@@ -191,8 +247,8 @@ export default function Dashboard() {
   const lastWeek = weekly[weekly.length - 1]
   const weekTitles = weeklyWindows(TREND_WEEKS).map((w, i) =>
     t.weekPointTitle
-      .replace('{start}', shortDate(w.start))
-      .replace('{end}', shortDate(w.end))
+      .replace('{start}', shortDate(w.start, lang))
+      .replace('{end}', shortDate(w.end, lang))
       .replace('{count}', String(weekly[i])),
   )
 
@@ -205,10 +261,14 @@ export default function Dashboard() {
     { label: t.rejections, value: stats?.rejections ?? 0, icon: 'rejected' as const, status: 'REJECTED', color: 'var(--status-declined)' },
   ]
 
-  const quickStats = [
-    { label: t.totalOffers, value: stats?.offers ?? 0, color: 'var(--status-offer)' },
-    { label: t.totalRejections, value: stats?.rejections ?? 0, color: 'var(--status-declined)' },
-  ]
+  // Still "Applied" two weeks later: worth a nudge to the recruiter. Oldest first.
+  const followUps = applications
+    .filter((app) => {
+      if (app.status !== 'APPLIED' || !app.appliedDate) return false
+      const days = daysSince(app.appliedDate)
+      return days >= FOLLOW_UP_DAYS && days <= FOLLOW_UP_MAX_DAYS
+    })
+    .sort((a, b) => (a.appliedDate ?? '').localeCompare(b.appliedDate ?? ''))
 
   return (
     <div className="dashboard">
@@ -259,12 +319,32 @@ export default function Dashboard() {
           {/* Application Pipeline */}
           <div className="pipeline-section">
             <div className="section-header">
-              <h2 className="section-title">{t.applicationPipeline}</h2>
-              <a href="#" className="section-link">{t.viewAll} ▾</a>
+              <div>
+                <h2 className="section-title">{t.applicationPipeline}</h2>
+                <p className="pipeline-hint">{t.pipelineHint}</p>
+              </div>
+              <Link to="/jobs" className="section-link">{t.viewAll} →</Link>
             </div>
             <div className="pipeline-board">
               {pipelineColumns.map((col) => (
-                <div className="pipeline-column" key={col.stage}>
+                <div
+                  className={`pipeline-column ${dragOverStatus === col.status ? 'pipeline-column--drop' : ''}`}
+                  key={col.stage}
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    if (dragOverStatus !== col.status) setDragOverStatus(col.status)
+                  }}
+                  onDragLeave={(e) => {
+                    // Only clear when the pointer really leaves the column, not when it crosses a child
+                    if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverStatus(null)
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    setDragOverStatus(null)
+                    const id = Number(e.dataTransfer.getData('text/plain'))
+                    if (id) moveCard(id, col.status)
+                  }}
+                >
                   <div className="pipeline-column-header">
                     <span
                       className="pipeline-column-title"
@@ -280,22 +360,46 @@ export default function Dashboard() {
                     </span>
                   </div>
                   <div className="pipeline-column-body">
-                    {col.cards.map((card) => (
-                      <div className="pipeline-card" key={card.id}>
+                    {col.cards.slice(0, PIPELINE_CARD_LIMIT).map((card) => (
+                      <div
+                        className="pipeline-card"
+                        key={card.id}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`${card.title}, ${card.company}`}
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/plain', String(card.id))
+                          e.dataTransfer.effectAllowed = 'move'
+                        }}
+                        onDragEnd={() => setDragOverStatus(null)}
+                        onClick={() => openCard(card.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            openCard(card.id)
+                          }
+                        }}
+                      >
                         <div className="pipeline-card-title">
                           {card.starred && <Star className="dashboard-star-icon" size={12} fill="currentColor" aria-label={t.starApplication} />}
                           {card.title}
                         </div>
                         <div className="pipeline-card-company">{card.company}</div>
                         <div className="pipeline-card-meta">
-                          <span>📍 {card.location}</span>
+                          {card.location && <span>📍 {card.location}</span>}
                           {card.salary && <span>💰 {card.salary}</span>}
                         </div>
                         <div className="pipeline-card-footer">
-                          <span className="pipeline-card-date">{t.dateApplied}: {card.date}</span>
+                          <span className="pipeline-card-date">{t.dateApplied}: {formatDateOnly(card.date, lang)}</span>
                         </div>
                       </div>
                     ))}
+                    {col.count > PIPELINE_CARD_LIMIT && (
+                      <Link to={`/jobs?status=${col.status}`} className="pipeline-more">
+                        {t.moreInStage.replace('{count}', String(col.count - PIPELINE_CARD_LIMIT))} →
+                      </Link>
+                    )}
                   </div>
                 </div>
               ))}
@@ -365,45 +469,83 @@ export default function Dashboard() {
           <div className="upcoming-section">
             <h3 className="sidebar-section-title">{t.upcomingInterviews}</h3>
             <div className="upcoming-list">
-              {interviews.map((interview, idx) => (
-                <div className="upcoming-item" key={interview.id}>
-                  <span
-                    className="upcoming-avatar"
-                    style={{ background: AVATAR_COLORS[idx % AVATAR_COLORS.length] }}
-                  >
-                    {interview.positionTitle.charAt(0)}
-                  </span>
-                  <div className="upcoming-info">
-                    <div className="upcoming-name">{interview.positionTitle}</div>
-                    <div className="upcoming-company">{interview.companyName}</div>
-                  </div>
-                  <div className="upcoming-time">{formatInterviewTime(interview.interviewDate)}</div>
-                </div>
-              ))}
+              {interviews.slice(0, UPCOMING_LIMIT).map((interview) => {
+                const when = formatInterviewWhen(interview.interviewDate, t, lang)
+                return (
+                  <Link to="/interviews" className="upcoming-item" key={interview.id}>
+                    <span
+                      className="upcoming-avatar"
+                      style={{ background: getCompanyColor(interview.companyName) }}
+                    >
+                      {interview.companyName.charAt(0)}
+                    </span>
+                    <div className="upcoming-info">
+                      <div className="upcoming-name">{interview.positionTitle}</div>
+                      <div className="upcoming-company">{interview.companyName}</div>
+                    </div>
+                    <div className="upcoming-when">
+                      <div className="upcoming-day">{when.day}</div>
+                      <div className="upcoming-time">{when.time}</div>
+                    </div>
+                  </Link>
+                )
+              })}
               {interviews.length === 0 && (
                 <div className="upcoming-empty">{t.noUpcomingInterviews}</div>
               )}
             </div>
           </div>
 
-          {/* Quick Stats */}
-          <div className="quick-stats-section">
-            <h3 className="sidebar-section-title">{t.quickStats}</h3>
-            <div className="quick-stats-list">
-              {quickStats.map((stat) => (
-                <div className="quick-stat-item" key={stat.label}>
+          {/* Needs Follow-up */}
+          <div className="followup-section">
+            <h3 className="sidebar-section-title">
+              {t.needsFollowUp}
+              {followUps.length > 0 && <span className="followup-count">{followUps.length}</span>}
+            </h3>
+            <p className="followup-hint">{t.followUpHint.replace('{min}', String(FOLLOW_UP_DAYS)).replace('{max}', String(FOLLOW_UP_MAX_DAYS))}</p>
+            <div className="upcoming-list">
+              {followUps.slice(0, FOLLOW_UP_LIMIT).map((app) => (
+                <button type="button" className="upcoming-item" key={app.id} onClick={() => setEditingApp(app)}>
                   <span
-                    className="quick-stat-dot"
-                    style={{ background: stat.color }}
-                  />
-                  <span className="quick-stat-label">{stat.label}</span>
-                  <span className="quick-stat-value">{stat.value}</span>
-                </div>
+                    className="upcoming-avatar"
+                    style={{ background: getCompanyColor(app.company.name) }}
+                  >
+                    {app.company.name.charAt(0)}
+                  </span>
+                  <div className="upcoming-info">
+                    <div className="upcoming-name">{app.positionTitle}</div>
+                    <div className="upcoming-company">{app.company.name}</div>
+                  </div>
+                  <div className="upcoming-time">
+                    {t.appliedDaysAgo.replace('{days}', String(daysSince(app.appliedDate!)))}
+                  </div>
+                </button>
               ))}
+              {followUps.length === 0 && (
+                <div className="upcoming-empty">{t.noFollowUps}</div>
+              )}
             </div>
+            {followUps.length > FOLLOW_UP_LIMIT && (
+              <Link to="/jobs?status=APPLIED" className="section-link followup-more">
+                {t.viewInJobs} →
+              </Link>
+            )}
           </div>
         </div>
       </div>
+
+      {editingApp && (
+        <Modal title={t.editApplication} onClose={() => setEditingApp(null)}>
+          <ApplicationForm
+            application={editingApp}
+            onSuccess={() => {
+              setEditingApp(null)
+              fetchData()
+            }}
+            onCancel={() => setEditingApp(null)}
+          />
+        </Modal>
+      )}
     </div>
   )
 }

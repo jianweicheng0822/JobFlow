@@ -5,7 +5,7 @@ import { getErrorMessage } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
-import { browserTimeZone } from '../utils/date'
+import { browserTimeZone, localeFor } from '../utils/date'
 import AutocompleteInput from './AutocompleteInput'
 
 // Every IANA zone the browser knows; empty on very old browsers (then any typed id is sent)
@@ -59,7 +59,7 @@ export default function TimeZoneSetting() {
     }
   }
 
-  const locale = lang === 'zh' ? 'zh-CN' : 'en-US'
+  const locale = localeFor(lang)
 
   return (
     <>

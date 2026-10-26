@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
-import { Camera, User, Lock, Bell, Palette, Sun, Moon, Link, Globe } from 'lucide-react'
+import { Camera, User, Lock, Palette, Sun, Moon, Link, Globe } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { useLanguage } from '../context/LanguageContext'
@@ -15,13 +15,12 @@ import { getStoredTheme, applyTheme, type Theme } from '../utils/theme'
 
 const AVATAR_STORAGE_KEY = 'jobflow-avatar'
 
-type SettingsTab = 'profile' | 'account' | 'notifications' | 'appearance' | 'integrations'
+type SettingsTab = 'profile' | 'account' | 'appearance' | 'integrations'
 
 const tabDefs: { key: SettingsTab; labelKey: string; icon: typeof User }[] = [
   { key: 'profile', labelKey: 'profile', icon: User },
   { key: 'account', labelKey: 'account', icon: Lock },
   { key: 'integrations', labelKey: 'integrations', icon: Link },
-  { key: 'notifications', labelKey: 'notifications', icon: Bell },
   { key: 'appearance', labelKey: 'appearance', icon: Palette },
 ]
 
@@ -51,11 +50,6 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordLoading, setPasswordLoading] = useState(false)
   const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-
-  // Notifications
-  const [emailNotifications, setEmailNotifications] = useState(true)
-  const [interviewReminders, setInterviewReminders] = useState(true)
-  const [weeklySummary, setWeeklySummary] = useState(false)
 
   // Integrations
   const [gmailStatus, setGmailStatus] = useState<{ gmailConnected: boolean; provider: string } | null>(null)
@@ -366,56 +360,6 @@ export default function SettingsPage() {
               </div>
             </>
           )}
-        </div>
-      )}
-
-      {/* Notifications Tab */}
-      {activeTab === 'notifications' && (
-        <div className="settings-section">
-          <div className="settings-toggle-list">
-            <div className="settings-toggle-item">
-              <div className="settings-toggle-info">
-                <span className="settings-toggle-label">{t.emailNotifications}</span>
-                <span className="settings-toggle-desc">{t.emailNotificationsDesc}</span>
-              </div>
-              <label className="settings-toggle">
-                <input
-                  type="checkbox"
-                  checked={emailNotifications}
-                  onChange={(e) => setEmailNotifications(e.target.checked)}
-                />
-                <span className="settings-toggle-slider" />
-              </label>
-            </div>
-            <div className="settings-toggle-item">
-              <div className="settings-toggle-info">
-                <span className="settings-toggle-label">{t.interviewReminders}</span>
-                <span className="settings-toggle-desc">{t.interviewRemindersDesc}</span>
-              </div>
-              <label className="settings-toggle">
-                <input
-                  type="checkbox"
-                  checked={interviewReminders}
-                  onChange={(e) => setInterviewReminders(e.target.checked)}
-                />
-                <span className="settings-toggle-slider" />
-              </label>
-            </div>
-            <div className="settings-toggle-item">
-              <div className="settings-toggle-info">
-                <span className="settings-toggle-label">{t.weeklySummary}</span>
-                <span className="settings-toggle-desc">{t.weeklySummaryDesc}</span>
-              </div>
-              <label className="settings-toggle">
-                <input
-                  type="checkbox"
-                  checked={weeklySummary}
-                  onChange={(e) => setWeeklySummary(e.target.checked)}
-                />
-                <span className="settings-toggle-slider" />
-              </label>
-            </div>
-          </div>
         </div>
       )}
 

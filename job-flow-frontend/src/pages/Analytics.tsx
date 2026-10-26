@@ -10,11 +10,13 @@ import { LayoutDashboard, PieChart as PieIcon, BarChart3 } from 'lucide-react'
 import './Analytics.css'
 import { getStats, getApplications, getActivity } from '../api/applications'
 import type { ApplicationActivityDTO, DashboardStatsDTO, JobApplicationDTO } from '../api/types'
+import { localeFor } from '../utils/date'
 import { buildStatusDistribution } from '../utils/statusDistribution'
 import { MIN_APPS_FOR_SHARE } from '../components/ShareBar'
 import ActivityHeatmap from '../components/ActivityHeatmap'
 
 const HEATMAP_WEEKS = 26
+const MIN_CHART_MONTHS = 6
 
 type AnalyticsTab = 'overview' | 'status' | 'company'
 
@@ -123,8 +125,12 @@ export default function Analytics() {
   const statusData = buildStatusDistribution(applications, t)
 
   // "2026-10" -> "Oct" / "10月" on the axis, "October 2026" / "2026年10月" in the tooltip
-  const locale = lang === 'zh' ? 'zh-CN' : 'en-US'
-  const monthlyData = activity.map(({ yearMonth, count }) => {
+  const locale = localeFor(lang)
+  // Skip the empty months before the search started, but keep at least half a
+  // year so a brand-new search doesn't get two fat bars
+  const firstActive = activity.findIndex((a) => a.count > 0)
+  const start = firstActive === -1 ? 0 : Math.min(firstActive, Math.max(0, activity.length - MIN_CHART_MONTHS))
+  const monthlyData = activity.slice(start).map(({ yearMonth, count }) => {
     const [y, m] = yearMonth.split('-').map(Number)
     const date = new Date(y, m - 1, 1)
     return {

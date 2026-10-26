@@ -127,7 +127,7 @@ export default function Jobs() {
   // quick actions can't race each other on the same row.
   const [pendingIds, setPendingIds] = useState<Set<number>>(new Set())
   const { showToast } = useToast()
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
 
   const fetchData = useCallback(async () => {
     try {
@@ -144,6 +144,32 @@ export default function Jobs() {
   }, [])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  // Links from the global search and the dashboard: ?open=12 opens that job,
+  // ?company=Stripe lists that company's jobs. Both are one-shot, so they're
+  // dropped from the URL once handled.
+  const openParam = searchParams.get('open')
+  const companyParam = searchParams.get('company')
+  useEffect(() => {
+    if (loading || (!openParam && !companyParam)) return
+    if (companyParam) {
+      setSearch('')
+      setRoleFilter('')
+      setLocationFilter('')
+      setCompanyFilter(companyParam)
+    }
+    if (openParam) {
+      const app = applications.find((a) => a.id === Number(openParam))
+      if (app) {
+        setEditingApp(app)
+        setShowModal(true)
+      }
+    }
+    const next = new URLSearchParams(searchParams)
+    next.delete('open')
+    next.delete('company')
+    setSearchParams(next, { replace: true })
+  }, [loading, openParam, companyParam, applications, searchParams, setSearchParams])
 
   function openCreate() {
     setEditingApp(undefined)
@@ -231,7 +257,10 @@ export default function Jobs() {
     // starred jobs always land on page 1.
     return sortStarredFirst(sortByAppliedDate(applications, dateSort)).filter((app) => {
       const q = search.toLowerCase()
-      const matchesSearch = !q || app.positionTitle.toLowerCase().includes(q) || app.company.name.toLowerCase().includes(q)
+      const matchesSearch = !q
+        || app.positionTitle.toLowerCase().includes(q)
+        || app.company.name.toLowerCase().includes(q)
+        || (app.location ?? '').toLowerCase().includes(q)
       const matchesCompany = !companyFilter || app.company.name === companyFilter
       const matchesRole = !roleFilter || app.positionTitle === roleFilter
       const matchesLocation = !locationFilter || app.location === locationFilter
@@ -385,7 +414,6 @@ export default function Jobs() {
                 <thead>
                   <tr>
                     <th>{t.jobTitle}</th>
-                    <th>{t.companyLogo}</th>
                     <th>{t.location}</th>
                     <th aria-sort={dateSort === 'asc' ? 'ascending' : 'descending'}>
                       <button
@@ -403,7 +431,14 @@ export default function Jobs() {
                 <tbody>
                   {pagedJobs.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="jobs-table-empty">{t.noMatchingJobs}</td>
+                      <td colSpan={5} className="jobs-table-empty">
+                        {t.noMatchingJobs}
+                        {hasActiveFilters && (
+                          <button type="button" className="jobs-empty-reset" onClick={handleReset}>
+                            {t.clearFilters}
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ) : (
                     pagedJobs.map((app) => {
@@ -412,21 +447,21 @@ export default function Jobs() {
                       return (
                         <tr key={app.id}>
                           <td>
-                            <div className="jobs-title-cell">
-                              <span className="jobs-title-name">{app.positionTitle}</span>
-                              <span className="jobs-title-company">{app.company.name}</span>
+                            <div className="jobs-title-with-logo">
+                              <span
+                                className="jobs-company-logo"
+                                style={{ background: companyColor }}
+                              >
+                                {app.company.name.charAt(0)}
+                              </span>
+                              <div className="jobs-title-cell">
+                                <span className="jobs-title-name">{app.positionTitle}</span>
+                                <span className="jobs-title-company">{app.company.name}</span>
+                              </div>
                             </div>
                           </td>
-                          <td>
-                            <span
-                              className="jobs-company-logo"
-                              style={{ background: companyColor }}
-                            >
-                              {app.company.name.charAt(0)}
-                            </span>
-                          </td>
                           <td>{app.location || ''}</td>
-                          <td>{formatDateOnly(app.appliedDate)}</td>
+                          <td>{formatDateOnly(app.appliedDate, lang)}</td>
                           <td>
                             <select
                               className="jobs-stage-badge jobs-stage-select"

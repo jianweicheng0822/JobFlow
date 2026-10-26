@@ -221,6 +221,22 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
+.pipeline-more {
+  display: block;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sidebar-accent);
+  text-decoration: none;
+  padding: 8px;
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+}
+
+.pipeline-more:hover {
+  background: var(--content-bg);
+}
+
 .pipeline-card-title {
   font-size: 13px;
   font-weight: 600;
@@ -433,42 +449,66 @@
   white-space: nowrap;
 }
 
-/* Quick Stats */
-.quick-stats-section {
+/* Upcoming interviews link to the Interviews page; follow-ups open the job */
+a.upcoming-item,
+button.upcoming-item {
+  text-decoration: none;
+  color: inherit;
+  margin: -6px;
+  padding: 6px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+a.upcoming-item:hover,
+button.upcoming-item:hover {
+  background: var(--content-bg);
+}
+
+.upcoming-when {
+  text-align: right;
+}
+
+.upcoming-day {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* Needs Follow-up */
+.followup-section {
   background: var(--card-bg);
   border-radius: var(--card-radius);
   box-shadow: var(--card-shadow);
   padding: 20px;
 }
 
-.quick-stats-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.quick-stat-item {
+.followup-section .sidebar-section-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  margin-bottom: 4px;
 }
 
-.quick-stat-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
+.followup-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  background: var(--status-phone-screen);
+  border-radius: 10px;
+  padding: 1px 8px;
 }
 
-.quick-stat-label {
-  color: var(--text-secondary);
-  flex: 1;
+.followup-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0 0 14px;
 }
 
-.quick-stat-value {
-  font-weight: 700;
-  color: var(--text-primary);
+.followup-more {
+  display: inline-block;
+  margin-top: 14px;
 }
 
 /* ===== Responsive ===== */
@@ -499,5 +539,56 @@
   }
   .pipeline-board {
     grid-template-columns: 1fr;
+  }
+}
+
+button.upcoming-item {
+  width: calc(100% + 12px);
+  background: none;
+  border: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Board cards open the job on click and can be dragged to another stage */
+.pipeline-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 2px 0 0;
+}
+
+.pipeline-card {
+  cursor: pointer;
+}
+
+.pipeline-card:focus-visible {
+  outline: 2px solid var(--sidebar-accent);
+  outline-offset: 2px;
+}
+
+.pipeline-column {
+  border-radius: 10px;
+  transition: background 0.15s ease;
+}
+
+.pipeline-column--drop {
+  background: var(--content-bg);
+  box-shadow: 0 0 0 2px var(--sidebar-accent);
+}
+
+/* Phones: two stat cards per row, with the total (and its trend line) on its own */
+@media (max-width: 480px) {
+  .stat-cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .stat-cards > .stat-card:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .stat-card {
+    padding: 14px;
   }
 }

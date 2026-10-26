@@ -562,3 +562,57 @@
     align-items: center;
   }
 }
+
+/* Company initial sits next to the title instead of in its own column */
+.jobs-title-with-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.jobs-title-with-logo .jobs-company-logo {
+  flex-shrink: 0;
+}
+
+.jobs-empty-reset {
+  display: block;
+  margin: 12px auto 0;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sidebar-accent);
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.jobs-empty-reset:hover {
+  background: var(--content-bg);
+}
+
+/* Phones: the share bar goes under the number instead of squeezing the label */
+@media (max-width: 480px) {
+  .jobs-stat-card {
+    flex-wrap: wrap;
+  }
+
+  .jobs-stat-card-share {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Four filters in a tidy 2x2 grid instead of ragged rows */
+  .jobs-filter-dropdowns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .jobs-filter-select {
+    width: 100%;
+    min-width: 0;
+  }
+}

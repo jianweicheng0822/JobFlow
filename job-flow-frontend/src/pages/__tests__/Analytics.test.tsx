@@ -73,7 +73,7 @@ describe('Analytics overview', () => {
     render(<Analytics />, { wrapper: Wrapper });
 
     expect(await screen.findByRole('img', { name: /applications per month/i }))
-      .toHaveAccessibleName('Applications per month, last 12 months: September 2026 4, October 2026 2');
+      .toHaveAccessibleName('Applications per month: September 2026 4, October 2026 2');
   });
 
   it('names months in Chinese when the app is in Chinese', async () => {
@@ -81,7 +81,7 @@ describe('Analytics overview', () => {
     render(<Analytics />, { wrapper: Wrapper });
 
     expect(await screen.findByRole('img', { name: /每月投递数/ }))
-      .toHaveAccessibleName('最近 12 个月每月投递数：2026年9月 4, 2026年10月 2');
+      .toHaveAccessibleName('每月投递数：2026年9月 4, 2026年10月 2');
   });
 
   it('summarises the daily heatmap for screen readers', async () => {
