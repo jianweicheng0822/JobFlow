@@ -10,6 +10,8 @@
 
 A full-stack job application tracker with JWT + OAuth2 authentication, Kanban pipeline, interview management, and analytics dashboard.
 
+**Live:** https://jobflow.lumis.software (click "Try Demo" to look around without signing up)
+
 ## Screenshots
 
 <a href="docs/dashboard.png"><img src="docs/dashboard.png" alt="Dashboard"></a>
@@ -45,15 +47,16 @@ A full-stack job application tracker with JWT + OAuth2 authentication, Kanban pi
 
 ## Features
 
-- **Auth** — Register/login with JWT, Google & GitHub OAuth2, demo mode
+- **Auth** — Register/login with JWT, Google & GitHub OAuth2, demo mode. Tokens carry the user id and a token version, so changing your password signs out every other device and a deleted account's tokens stop working right away
 - **Dashboard** — Stat cards, Kanban pipeline, recent applications (starred first), upcoming interviews
 - **Jobs** — Searchable, paginated application table with a quick status dropdown, starred (saved) jobs, and top employers
-- **Interviews** — Schedule and manage interviews linked to applications, with optional email reminders
+- **Interviews** — Schedule and manage interviews linked to applications, with optional email reminders (shown only when the server has `MAIL_*` set)
 - **Companies** — Company directory with search and per-company application count
 - **Gmail import** — Connect Gmail, scan for application emails, and import them as applications
 - **Analytics** — Overview, status distribution, per-company breakdown
 - **Global search** — Search applications and companies from the top bar
 - **Settings** — Profile, password, theme (dark/light), language (English/中文), and time zone
+- **Account deletion** — Delete your account from Settings; all your data goes with it and Gmail access is revoked
 
 ## Getting Started
 
@@ -140,11 +143,13 @@ the backend is up.
 
 ## API Endpoints
 
-All endpoints except `/api/auth/**` require `Authorization: Bearer <token>`.
+Everything needs `Authorization: Bearer <token>` except `POST /api/auth/register`,
+`POST /api/auth/login`, `POST /api/auth/oauth/exchange`, `GET /api/auth/providers`
+and the Gmail OAuth callback.
 
 | Resource | Endpoints |
 |----------|-----------|
-| **Auth** | `POST /register`, `POST /login`, `GET /me`, `PUT /profile`, `PUT /password`, `PUT /time-zone` |
+| **Auth** | `POST /register`, `POST /login`, `GET /providers`, `POST /oauth/exchange`, `GET /me`, `PUT /profile`, `PUT /password` (returns a fresh token), `PUT /time-zone`, `DELETE /me` |
 | **Applications** | `GET /`, `GET /page`, `GET /{id}`, `POST /`, `PUT /{id}`, `PATCH /{id}/status`, `PATCH /{id}/star`, `DELETE /{id}`, `DELETE /batch`, `GET /stats`, `GET /recent`, `GET /activity`, `GET /export` |
 | **Interviews** | `GET /`, `GET /{id}`, `GET /upcoming`, `POST /`, `PUT /{id}`, `DELETE /{id}` |
 | **Companies** | `GET /`, `GET /{id}`, `POST /`, `PUT /{id}`, `DELETE /{id}` |
@@ -154,7 +159,7 @@ Base paths: `/api/auth`, `/api/applications`, `/api/interviews`, `/api/companies
 
 ## Testing
 
-About **390 tests**: backend integration and unit tests, frontend component and API tests.
+About **560 tests**: backend integration and unit tests, frontend component and API tests.
 
 ```bash
 # Backend (needs Docker running: integration tests start MySQL with Testcontainers)
@@ -182,4 +187,16 @@ which is what led to the larger pool. One iteration averages about 7 requests.
 Everything (k6, backend, MySQL) ran on one laptop, so these numbers are for
 comparing changes, not a production capacity figure.
 
+These runs predate putting the user id in the JWT. Every request used to look the
+user up by email before doing anything else; that lookup is gone now, and the
+numbers above haven't been re-measured since.
+
 How to run it yourself: [loadtest/README.md](loadtest/README.md).
+
+## Deployment
+
+Every push to `main` runs the backend and frontend tests and a Docker Compose smoke
+test, then builds both images and pushes them to GHCR. The deploy job runs
+[`deploy/deploy.sh`](deploy/deploy.sh) on the server through AWS SSM: it backs up the
+database, starts the new images, waits until the site answers, and rolls back to the
+previous version if it doesn't. A final check hits the live site.
