@@ -72,3 +72,47 @@
   height: 20px;
   flex-shrink: 0;
 }
+
+/* Phones: the sidebar turns into a bottom tab bar */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+    top: auto;
+    bottom: 0;
+    flex-direction: row;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .sidebar-logo {
+    display: none;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    gap: 2px;
+  }
+
+  .sidebar-nav-item {
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 2px;
+    font-size: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sidebar-nav-item.active {
+    background: var(--sidebar-hover);
+    color: var(--sidebar-text-active);
+  }
+
+  .sidebar-nav-item.active svg {
+    color: var(--sidebar-accent);
+  }
+}

@@ -185,21 +185,112 @@
   text-decoration: underline;
 }
 
-.auth-demo-btn {
-  width: 100%;
-  margin-top: 12px;
-  padding: 12px;
-  border: 1px dashed var(--border-color);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+/* ===== Login: intro panel next to the sign-in card ===== */
+.auth-page--split {
+  gap: 64px;
 }
 
-.auth-demo-btn:hover {
-  background: var(--content-bg);
-  color: var(--text-primary);
+.auth-pitch {
+  max-width: 420px;
+  color: #e5e7eb;
+}
+
+.auth-logo--light .auth-logo-text {
+  color: #fff;
+}
+
+.auth-pitch-title {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+.auth-pitch-text {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #9ca3af;
+  margin-bottom: 20px;
+}
+
+.auth-pitch-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 28px;
+  font-size: 14px;
+}
+
+.auth-pitch-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.auth-pitch-list li::before {
+  content: '✓';
+  color: var(--sidebar-accent);
+  font-weight: 700;
+}
+
+.auth-pitch-demo {
+  padding: 14px 28px;
+  border: none;
+  border-radius: 10px;
+  background: var(--sidebar-accent);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(79, 110, 247, 0.35);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.auth-pitch-demo:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(79, 110, 247, 0.45);
+}
+
+.auth-pitch-note {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* Stacked on narrow screens: a short intro and the demo button come first */
+@media (max-width: 900px) {
+  .auth-page--split {
+    flex-direction: column;
+    gap: 24px;
+    padding: 32px 16px;
+  }
+
+  .auth-pitch {
+    text-align: center;
+  }
+
+  .auth-pitch .auth-logo {
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+
+  .auth-pitch-title {
+    font-size: 24px;
+  }
+
+  .auth-pitch-list {
+    display: none;
+  }
+
+  .auth-pitch-demo {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 28px 20px;
+  }
 }

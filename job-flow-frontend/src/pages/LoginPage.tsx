@@ -35,13 +35,32 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="auth-page">
-      <div className="auth-card">
-        <div className="auth-logo">
+    <div className="auth-page auth-page--split">
+      {/* A first-time visitor (or an interviewer) should see what this is and get
+          to the demo without reading a sign-in form first */}
+      <section className="auth-pitch">
+        <div className="auth-logo auth-logo--light">
           <div className="auth-logo-icon">JF</div>
           <span className="auth-logo-text">{t.appName}</span>
         </div>
+        <h2 className="auth-pitch-title">{t.pitchTitle}</h2>
+        <p className="auth-pitch-text">{t.pitchText}</p>
+        <ul className="auth-pitch-list">
+          <li>{t.pitchPoint1}</li>
+          <li>{t.pitchPoint2}</li>
+          <li>{t.pitchPoint3}</li>
+          <li>{t.pitchPoint4}</li>
+        </ul>
+        <button
+          className="auth-pitch-demo"
+          onClick={() => { tryDemo(); navigate('/', { replace: true }) }}
+        >
+          {t.tryDemo}
+        </button>
+        <p className="auth-pitch-note">{t.pitchDemoNote}</p>
+      </section>
 
+      <div className="auth-card">
         <h1 className="auth-title">{t.welcomeBack}</h1>
         <p className="auth-subtitle">{t.signInSubtitle}</p>
 
@@ -80,13 +99,6 @@ export default function LoginPage() {
         <p className="auth-footer">
           {t.noAccount}<Link to="/register">{t.signUp}</Link>
         </p>
-
-        <button
-          className="auth-demo-btn"
-          onClick={() => { tryDemo(); navigate('/', { replace: true }) }}
-        >
-          {t.tryDemo}
-        </button>
 
         <p className="auth-footer">
           <Link to="/privacy">{t.privacyPolicy}</Link>

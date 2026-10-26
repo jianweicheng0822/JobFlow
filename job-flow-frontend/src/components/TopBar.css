@@ -188,3 +188,53 @@
   color: var(--status-rejected);
   border-color: var(--status-rejected);
 }
+
+@media (max-width: 768px) {
+  .topbar {
+    padding: 0 16px;
+    gap: 12px;
+  }
+
+  .topbar-greeting h1 {
+    font-size: 16px;
+    white-space: nowrap;
+  }
+
+  .topbar-right {
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+    justify-content: flex-end;
+  }
+
+  .topbar-search {
+    width: auto;
+    flex: 1;
+    min-width: 0;
+    max-width: 220px;
+  }
+
+  .topbar-search-results {
+    width: min(320px, calc(100vw - 32px));
+  }
+
+  .topbar-avatar-info {
+    display: none;
+  }
+}
+
+/* Small phones: the greeting gives its room to the search box */
+@media (max-width: 520px) {
+  .topbar-greeting {
+    display: none;
+  }
+
+  .topbar-search {
+    max-width: none;
+  }
+
+  .topbar-search-results {
+    right: auto;
+    left: 0;
+  }
+}

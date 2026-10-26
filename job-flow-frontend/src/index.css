@@ -61,6 +61,18 @@
   box-sizing: border-box;
 }
 
+/* Reserve the scrollbar's space on every page so the layout doesn't shift
+   sideways between short and long pages */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* The full-screen auth and status pages never scroll sideways between pages,
+   and a reserved gutter would show up as a light strip next to their dark background */
+html:has(.auth-page) {
+  scrollbar-gutter: auto;
+}
+
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;

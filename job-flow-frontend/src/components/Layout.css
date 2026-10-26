@@ -15,3 +15,16 @@
   padding: 24px 32px;
   background: var(--content-bg);
 }
+
+@media (max-width: 768px) {
+  .layout-main {
+    margin-left: 0;
+    min-width: 0;
+    /* room for the bottom tab bar */
+    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+
+  .layout-content {
+    padding: 16px;
+  }
+}
