@@ -37,12 +37,19 @@ A full-stack job application tracker with JWT + OAuth2 authentication, Kanban pi
 
 > *Click any screenshot to view full resolution.*
 
+## Engineering highlights
+
+- **Every query is scoped to the signed-in user.** Integration tests sign in as two users and check that one can't read, edit, delete or link to the other's applications, interviews and companies.
+- **Tokens can be revoked right away.** Each JWT carries a token version, so changing your password signs out every other device and a deleted account's tokens stop working. OAuth sign-in hands the frontend a short-lived single-use code instead of putting the token in the redirect URL.
+- **Load tested with k6** on 17,000 seeded applications. Thread dumps traced a latency spike to the database connection pool running dry; after the fix p95 went from 1,903 ms to 102 ms. Details in [Load Testing](#load-testing).
+- **Keyless deploys.** GitHub Actions signs in to AWS with OIDC (no stored access keys) and deploys through SSM: back up MySQL, start the new images, roll back if the health check fails.
+
 ## Tech Stack
 
 | Frontend | Backend | Database |
 |----------|---------|----------|
 | React 19, TypeScript, Vite | Java 21, Spring Boot 3, Spring Security | MySQL 8, Flyway migrations |
-| Axios, Recharts, React Router | JWT (HS256), Google/GitHub OAuth2 | Hibernate, Spring Data JPA |
+| Axios, Recharts, React Router | JWT (HMAC-signed), Google/GitHub OAuth2 | Hibernate, Spring Data JPA |
 | Vitest, React Testing Library | JUnit 5, MockMvc, Mockito, Testcontainers | |
 
 ## Features
@@ -52,11 +59,10 @@ A full-stack job application tracker with JWT + OAuth2 authentication, Kanban pi
 - **Jobs** — Searchable, paginated application table with a quick status dropdown, starred (saved) jobs, and top employers
 - **Interviews** — Schedule and manage interviews linked to applications, with optional email reminders (shown only when the server has `MAIL_*` set)
 - **Companies** — Company directory with search and per-company application count
-- **Gmail import** — Connect Gmail, scan for application emails, and import them as applications
 - **Analytics** — Overview, status distribution, per-company breakdown
 - **Global search** — Search applications and companies from the top bar
 - **Settings** — Profile, password, theme (dark/light), language (English/中文), and time zone
-- **Account deletion** — Delete your account from Settings; all your data goes with it and Gmail access is revoked
+- **Account deletion** — Delete your account from Settings; all your data goes with it
 
 ## Getting Started
 
@@ -72,18 +78,17 @@ and a local backend both read it (environment variables override it):
 | `DB_HOST`, `DB_PORT` | No | MySQL address, default `localhost:3306` |
 | `MAIL_USERNAME`, `MAIL_PASSWORD` | No | Gmail SMTP for interview reminder emails |
 | `SEED_DEMO_DATA` | No | `true` creates a sample account `demo@jobflow.com` / `demo123` on startup. Default `false`; keep it off anywhere public |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | No | Google sign-in and Gmail import. Set both or neither |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | No | Google sign-in. Set both or neither |
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | No | GitHub sign-in. Set both or neither |
-| `FRONTEND_URL` | No | Where the app is opened; sign-in and Gmail linking return here. Default `http://localhost:5173` (`http://localhost` in Docker) |
-| `GMAIL_REDIRECT_URI` | No | Gmail linking callback, must be registered in your Google OAuth client. Default `http://localhost:8080/api/gmail/callback` (`http://localhost/api/gmail/callback` in Docker) |
+| `FRONTEND_URL` | No | Where the app is opened; sign-in returns here. Default `http://localhost:5173` (`http://localhost` in Docker) |
+| `GMAIL_REDIRECT_URI` | No | Gmail import callback (in progress, see [Roadmap](#roadmap)), must be registered in your Google OAuth client. Default `http://localhost:8080/api/gmail/callback` (`http://localhost/api/gmail/callback` in Docker) |
 
 The app works without the optional ones; those features are just turned off.
 
 #### Sign-in with Google / GitHub
 
 Each provider turns on when both its client id and secret are set. Its button then
-shows on the login and register pages, and Google also enables Gmail import in
-Settings. A provider with no credentials is hidden. A provider with only one of the
+shows on the login and register pages. A provider with no credentials is hidden. A provider with only one of the
 two set stops the backend at startup, so a typo in your secrets can't go unnoticed.
 The startup log shows which providers are on (`OAuth sign-in enabled: [google, github]`).
 
@@ -144,8 +149,7 @@ the backend is up.
 ## API Endpoints
 
 Everything needs `Authorization: Bearer <token>` except `POST /api/auth/register`,
-`POST /api/auth/login`, `POST /api/auth/oauth/exchange`, `GET /api/auth/providers`
-and the Gmail OAuth callback.
+`POST /api/auth/login`, `POST /api/auth/oauth/exchange` and `GET /api/auth/providers`.
 
 | Resource | Endpoints |
 |----------|-----------|
@@ -153,13 +157,12 @@ and the Gmail OAuth callback.
 | **Applications** | `GET /`, `GET /page`, `GET /{id}`, `POST /`, `PUT /{id}`, `PATCH /{id}/status`, `PATCH /{id}/star`, `DELETE /{id}`, `DELETE /batch`, `GET /stats`, `GET /recent`, `GET /activity`, `GET /export` |
 | **Interviews** | `GET /`, `GET /{id}`, `GET /upcoming`, `POST /`, `PUT /{id}`, `DELETE /{id}` |
 | **Companies** | `GET /`, `GET /{id}`, `POST /`, `PUT /{id}`, `DELETE /{id}` |
-| **Gmail** | `GET /status`, `GET /link`, `GET /callback`, `POST /scan`, `POST /import` |
 
-Base paths: `/api/auth`, `/api/applications`, `/api/interviews`, `/api/companies`, `/api/gmail`
+Base paths: `/api/auth`, `/api/applications`, `/api/interviews`, `/api/companies`
 
 ## Testing
 
-About **560 tests**: backend integration and unit tests, frontend component and API tests.
+**583 tests**: 393 backend (integration and unit) and 190 frontend (component and API).
 
 ```bash
 # Backend (needs Docker running: integration tests start MySQL with Testcontainers)
@@ -200,3 +203,7 @@ test, then builds both images and pushes them to GHCR. The deploy job runs
 [`deploy/deploy.sh`](deploy/deploy.sh) on the server through AWS SSM: it backs up the
 database, starts the new images, waits until the site answers, and rolls back to the
 previous version if it doesn't. A final check hits the live site.
+
+## Roadmap
+
+- **Gmail import**: connect Gmail, find application emails, and turn them into applications. The Gmail linking and a first scan/import API are in the backend, but the feature isn't finished yet.
