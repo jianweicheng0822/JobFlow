@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Star } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
@@ -18,6 +18,10 @@ import { weeklyApplicationCounts, weeklyWindows } from '../utils/weeklyCounts'
 import Sparkline from '../components/Sparkline'
 import ShareBar from '../components/ShareBar'
 import { companyColor as getCompanyColor } from '../utils/companyColor'
+import FlashNumber from '../components/FlashNumber'
+import DemoTour from '../components/DemoTour'
+import { isDemoMode } from '../api/mockData'
+import { hasSeenDemoTour, markDemoTourSeen } from '../utils/demoTour'
 
 // ===== Types =====
 interface PipelineCard {
@@ -185,7 +189,12 @@ export default function Dashboard() {
   // Card opened from the board, and the column a card is being dragged over
   const [editingApp, setEditingApp] = useState<JobApplicationDTO | null>(null)
   const [dragOverStatus, setDragOverStatus] = useState<ApplicationStatus | null>(null)
+  // How many cards changed stage since the page opened; the demo tour waits for one
+  const [moveCount, setMoveCount] = useState(0)
+  const [tourOpen, setTourOpen] = useState(false)
   const { showToast } = useToast()
+  const location = useLocation()
+  const navigate = useNavigate()
 
   const fetchData = useCallback(async () => {
     try {
@@ -211,6 +220,21 @@ export default function Dashboard() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
+  // The demo tour opens by itself the first time, and again whenever the demo banner's
+  // "Take the tour" link sends you here. That request is cleared right away so a refresh
+  // doesn't replay it.
+  const tourRequested = (location.state as { tour?: boolean } | null)?.tour === true
+  useEffect(() => {
+    if (loading || error || !isDemoMode()) return
+    if (tourRequested || !hasSeenDemoTour()) setTourOpen(true)
+    if (tourRequested) navigate('.', { replace: true, state: null })
+  }, [loading, error, tourRequested, navigate])
+
+  function closeTour() {
+    markDemoTourSeen()
+    setTourOpen(false)
+  }
+
   // Dropping a card on another column moves the job to that stage. The board
   // updates right away; stats and lists catch up from the server afterwards.
   async function moveCard(id: number, status: ApplicationStatus) {
@@ -219,6 +243,7 @@ export default function Dashboard() {
     const moved = applications.map((a) => (a.id === id ? { ...a, status } : a))
     setApplications(moved)
     setPipelineColumns(buildPipelineColumns(moved, t))
+    setMoveCount((n) => n + 1)
     try {
       await updateStatus(id, status)
     } catch (err) {
@@ -281,7 +306,7 @@ export default function Dashboard() {
             </div>
             <div className="stat-card-info">
               <div className="stat-card-label">{t.totalApplications}</div>
-              <div className="stat-card-value">{total}</div>
+              <div className="stat-card-value"><FlashNumber value={total} /></div>
             </div>
           </div>
           <div className="stat-card-footer">
@@ -303,7 +328,7 @@ export default function Dashboard() {
               </div>
               <div className="stat-card-info">
                 <div className="stat-card-label">{card.label}</div>
-                <div className="stat-card-value">{card.value}</div>
+                <div className="stat-card-value"><FlashNumber value={card.value} /></div>
               </div>
             </div>
             <div className="stat-card-footer">
@@ -356,7 +381,7 @@ export default function Dashboard() {
                       className="pipeline-column-badge"
                       style={{ background: col.color }}
                     >
-                      {col.count}
+                      <FlashNumber value={col.count} />
                     </span>
                   </div>
                   <div className="pipeline-column-body">
@@ -546,6 +571,8 @@ export default function Dashboard() {
           />
         </Modal>
       )}
+
+      {tourOpen && <DemoTour moveCount={moveCount} onClose={closeTour} />}
     </div>
   )
 }

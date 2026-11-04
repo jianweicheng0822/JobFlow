@@ -1,0 +1,214 @@
+/* Floating "things to try" card, bottom right. Sits under modals and the tour. */
+.demo-checklist {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 90;
+  width: 280px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--card-radius);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+  color: var(--text-primary);
+  overflow: hidden;
+  animation: demo-checklist-in 0.3s ease-out;
+}
+
+[data-theme='dark'] .demo-checklist {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.demo-checklist--collapsed {
+  width: auto;
+  min-width: 200px;
+}
+
+.demo-checklist-header {
+  display: flex;
+  align-items: center;
+}
+
+.demo-checklist-toggle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px 4px 12px 16px;
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.demo-checklist-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.demo-checklist-count {
+  margin-right: auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sidebar-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.demo-checklist-close {
+  display: flex;
+  margin-right: 8px;
+  padding: 6px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.demo-checklist-close:hover,
+.demo-checklist-toggle:hover .demo-checklist-title {
+  color: var(--text-primary);
+}
+
+.demo-checklist-close:hover {
+  background: var(--content-bg);
+}
+
+.demo-checklist-toggle:focus-visible,
+.demo-checklist-close:focus-visible,
+.demo-checklist-item:focus-visible,
+.demo-checklist-signup:focus-visible {
+  outline: 2px solid var(--sidebar-accent);
+  outline-offset: -2px;
+}
+
+.demo-checklist-progress {
+  height: 3px;
+  background: var(--border-color);
+}
+
+.demo-checklist-progress-bar {
+  height: 100%;
+  background: var(--sidebar-accent);
+  transition: width 0.4s ease;
+}
+
+.demo-checklist-body {
+  padding: 8px;
+}
+
+.demo-checklist-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.demo-checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.demo-checklist-item:hover {
+  background: var(--content-bg);
+}
+
+.demo-checklist-check {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.demo-checklist-item--done {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.demo-checklist-item--done .demo-checklist-check {
+  color: var(--status-interview);
+  animation: demo-checklist-tick 0.4s ease-out;
+}
+
+.demo-checklist-finish {
+  padding: 8px;
+}
+
+.demo-checklist-finish-title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.demo-checklist-finish-body {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.demo-checklist-signup {
+  width: 100%;
+  padding: 9px 16px;
+  background: var(--sidebar-accent);
+  color: var(--white);
+  border: none;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.demo-checklist-signup:hover {
+  opacity: 0.9;
+}
+
+.demo-checklist-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@keyframes demo-checklist-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes demo-checklist-tick {
+  0% { transform: scale(0.6); }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* Above the bottom tab bar on phones */
+@media (max-width: 768px) {
+  .demo-checklist {
+    right: 12px;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    width: min(300px, calc(100vw - 24px));
+  }
+
+  .demo-checklist--collapsed {
+    width: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .demo-checklist,
+  .demo-checklist-item--done .demo-checklist-check {
+    animation: none;
+  }
+
+  .demo-checklist-progress-bar {
+    transition: none;
+  }
+}

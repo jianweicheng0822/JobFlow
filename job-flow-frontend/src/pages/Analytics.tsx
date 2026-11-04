@@ -14,6 +14,7 @@ import { localeFor } from '../utils/date'
 import { buildStatusDistribution } from '../utils/statusDistribution'
 import { MIN_APPS_FOR_SHARE } from '../components/ShareBar'
 import ActivityHeatmap from '../components/ActivityHeatmap'
+import { markDemoTask } from '../utils/demoChecklist'
 
 const HEATMAP_WEEKS = 26
 const MIN_CHART_MONTHS = 6
@@ -67,6 +68,9 @@ export default function Analytics() {
   const [activity, setActivity] = useState<ApplicationActivityDTO[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Opening this page is one of the demo checklist items
+  useEffect(() => markDemoTask('analytics'), [])
 
   useEffect(() => {
     async function fetchData() {

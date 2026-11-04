@@ -1,0 +1,46 @@
+/* A ghost card and pointer sliding from the first card into the next column, on repeat */
+.demo-drag-hint {
+  position: fixed;
+  z-index: 901;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  animation: demo-drag-hint-move 2.6s ease-in-out infinite;
+}
+
+.demo-drag-hint-ghost {
+  position: absolute;
+  left: -60px;
+  top: -22px;
+  width: 120px;
+  height: 44px;
+  border: 2px dashed var(--sidebar-accent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--sidebar-accent) 14%, transparent);
+}
+
+.demo-drag-hint-pointer {
+  position: absolute;
+  left: -4px;
+  top: -2px;
+  color: var(--sidebar-accent);
+  stroke: var(--white);
+  stroke-width: 1.5;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+@keyframes demo-drag-hint-move {
+  0% { transform: translate(0, 0) scale(1); opacity: 0; }
+  12% { transform: translate(0, 0) scale(0.92); opacity: 1; }
+  70% { transform: translate(var(--hint-dx), 0) scale(0.92); opacity: 1; }
+  82% { transform: translate(var(--hint-dx), 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--hint-dx), 0) scale(1); opacity: 0; }
+}
+
+/* Without motion, just show where to drag to */
+@media (prefers-reduced-motion: reduce) {
+  .demo-drag-hint {
+    animation: none;
+    transform: translate(var(--hint-dx), 0);
+  }
+}

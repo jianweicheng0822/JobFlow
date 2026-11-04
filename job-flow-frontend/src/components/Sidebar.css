@@ -84,6 +84,11 @@
 
 /* Phones: the sidebar turns into a bottom tab bar */
 @media (max-width: 768px) {
+  /* Tour cards stay above the tab bar */
+  :root {
+    --tour-inset-bottom: 64px;
+  }
+
   .sidebar-feedback {
     display: none;
   }

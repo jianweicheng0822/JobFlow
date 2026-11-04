@@ -14,6 +14,7 @@ import { sortStarredFirst } from '../utils/sortStarredFirst'
 import { sortByAppliedDate, type SortDirection } from '../utils/sortByAppliedDate'
 import { formatDateOnly } from '../utils/date'
 import { companyColor as getCompanyColor } from '../utils/companyColor'
+import { markDemoTask } from '../utils/demoChecklist'
 
 // ===== Helpers =====
 const STATUS_COLORS: Record<ApplicationStatus, string> = {
@@ -399,7 +400,10 @@ export default function Jobs() {
                     className="jobs-search-input"
                     placeholder={t.search}
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    onChange={(e) => {
+                      setSearch(e.target.value)
+                      if (e.target.value.trim()) markDemoTask('organize')
+                    }}
                   />
                 </div>
                 <button className="jobs-filter-btn" onClick={handleReset} disabled={!hasActiveFilters}>

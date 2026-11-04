@@ -256,3 +256,73 @@ describe('Dashboard board interactions', () => {
     await waitFor(() => expect(updateStatus).toHaveBeenCalledWith(1, 'OFFER'));
   });
 });
+
+function dropOn(card: HTMLElement, columnTitle: string) {
+  const data = new Map<string, string>();
+  const dataTransfer = {
+    setData: (k: string, v: string) => data.set(k, v),
+    getData: (k: string) => data.get(k) ?? '',
+    effectAllowed: '',
+  };
+  fireEvent.dragStart(card, { dataTransfer });
+  const column = screen.getByText(columnTitle).closest('.pipeline-column')!;
+  fireEvent.dragOver(column, { dataTransfer });
+  fireEvent.drop(column, { dataTransfer });
+}
+
+describe('Dashboard demo tour', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem('language', 'en');
+    localStorage.setItem('jobflow-token', 'demo-token');
+  });
+  afterEach(() => localStorage.clear());
+
+  it('opens the first time, waits for a real drag, then can be finished', async () => {
+    render(<Dashboard />, { wrapper: Wrapper });
+
+    expect(await screen.findByRole('dialog', { name: /Welcome to JobFlow/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Show me around' }));
+
+    expect(screen.getByRole('dialog', { name: 'Drag a card to the next stage' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+
+    dropOn(screen.getByRole('button', { name: 'Frontend Dev, Acme' }), 'Phone Screen');
+
+    expect(await screen.findByRole('dialog', { name: "Nice, that's all it takes" })).toBeInTheDocument();
+    // The counts on the board pop when they change
+    expect(document.querySelector('.pipeline-column-badge .flash-number--changed')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Keep exploring' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(localStorage.getItem('jobflow-demo-tour-seen')).toBe('1');
+  });
+
+  it("doesn't open again once it has been seen", async () => {
+    localStorage.setItem('jobflow-demo-tour-seen', '1');
+    render(<Dashboard />, { wrapper: Wrapper });
+
+    await screen.findByRole('button', { name: 'Frontend Dev, Acme' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('opens again when the demo banner asks for it', async () => {
+    localStorage.setItem('jobflow-demo-tour-seen', '1');
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/', state: { tour: true } }]}>
+        <LanguageProvider><ToastProvider><Dashboard /></ToastProvider></LanguageProvider>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('dialog', { name: /Welcome to JobFlow/ })).toBeInTheDocument();
+  });
+
+  it('never shows for a real account', async () => {
+    localStorage.setItem('jobflow-token', 'a-real-jwt');
+    render(<Dashboard />, { wrapper: Wrapper });
+
+    await screen.findByRole('button', { name: 'Frontend Dev, Acme' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});

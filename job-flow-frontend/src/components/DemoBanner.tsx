@@ -18,6 +18,11 @@ export default function DemoBanner() {
     <div className="demo-banner" role="status">
       <FlaskConical className="demo-banner-icon" aria-hidden="true" />
       <span>{t.demoBannerMessage}</span>
+      {/* The tour lives on the dashboard; the state asks it to open even if you've seen it */}
+      <Link to="/" state={{ tour: true }} className="demo-banner-link">
+        {t.demoBannerTour}
+      </Link>
+      <span className="demo-banner-sep" aria-hidden="true">·</span>
       <Link to="/register" className="demo-banner-link">
         {t.demoBannerSignUp}
       </Link>

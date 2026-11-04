@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Camera, User, Lock, Palette, Sun, Moon, Link, Globe, MessageSquare } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
@@ -15,6 +16,7 @@ import DeleteAccountSection from '../components/DeleteAccountSection'
 import FeedbackForm from '../components/FeedbackForm'
 import { useAuthProviders } from '../hooks/useAuthProviders'
 import { getStoredTheme, applyTheme, type Theme } from '../utils/theme'
+import { markDemoTask } from '../utils/demoChecklist'
 
 type SettingsTab = 'profile' | 'account' | 'appearance' | 'integrations'
 
@@ -31,6 +33,13 @@ export default function SettingsPage() {
   const { t, lang, setLanguage } = useLanguage()
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile')
   const [showFeedback, setShowFeedback] = useState(false)
+
+  // Links can ask for a tab, e.g. the demo checklist opening Appearance
+  const location = useLocation()
+  const requestedTab = (location.state as { tab?: SettingsTab } | null)?.tab
+  useEffect(() => {
+    if (requestedTab && tabDefs.some((tab) => tab.key === requestedTab)) setActiveTab(requestedTab)
+  }, [requestedTab, location.key])
   // Gmail import is the only integration, so the tab goes when the server can't do it
   const showIntegrations = useAuthProviders()?.gmail === true
   const visibleTabs = tabDefs.filter((tab) => tab.key !== 'integrations' || showIntegrations)
@@ -445,7 +454,10 @@ export default function SettingsPage() {
             <div className="settings-theme-options">
               <button
                 className={`settings-theme-card ${theme === 'light' ? 'settings-theme-card--active' : ''}`}
-                onClick={() => setTheme('light')}
+                onClick={() => {
+                  if (theme !== 'light') markDemoTask('personalize')
+                  setTheme('light')
+                }}
               >
                 <div className="settings-theme-preview settings-theme-preview--light">
                   <div className="settings-theme-preview-sidebar" />
@@ -462,7 +474,10 @@ export default function SettingsPage() {
               </button>
               <button
                 className={`settings-theme-card ${theme === 'dark' ? 'settings-theme-card--active' : ''}`}
-                onClick={() => setTheme('dark')}
+                onClick={() => {
+                  if (theme !== 'dark') markDemoTask('personalize')
+                  setTheme('dark')
+                }}
               >
                 <div className="settings-theme-preview settings-theme-preview--dark">
                   <div className="settings-theme-preview-sidebar" />
@@ -486,7 +501,10 @@ export default function SettingsPage() {
             <div className="settings-theme-options">
               <button
                 className={`settings-theme-card ${lang === 'en' ? 'settings-theme-card--active' : ''}`}
-                onClick={() => setLanguage('en')}
+                onClick={() => {
+                  if (lang !== 'en') markDemoTask('personalize')
+                  setLanguage('en')
+                }}
               >
                 <div className="settings-theme-preview settings-theme-preview--light" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
                   EN
@@ -498,7 +516,10 @@ export default function SettingsPage() {
               </button>
               <button
                 className={`settings-theme-card ${lang === 'zh' ? 'settings-theme-card--active' : ''}`}
-                onClick={() => setLanguage('zh')}
+                onClick={() => {
+                  if (lang !== 'zh') markDemoTask('personalize')
+                  setLanguage('zh')
+                }}
               >
                 <div className="settings-theme-preview settings-theme-preview--light" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
                   中

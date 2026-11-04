@@ -1,0 +1,184 @@
+/* Demo tour. Sits under modals (1000) so a dialog opened from a highlighted card shows on top. */
+.tour {
+  --tour-dim: rgba(15, 23, 42, 0.6);
+  --tour-accent: var(--sidebar-accent);
+}
+
+[data-theme='dark'] .tour {
+  --tour-dim: rgba(0, 0, 0, 0.65);
+}
+
+.tour-dim {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: var(--tour-dim);
+  animation: tour-fade-in 0.2s ease;
+}
+
+.tour-ring {
+  position: fixed;
+  z-index: 901;
+  border: 2px solid var(--tour-accent);
+  border-radius: 12px;
+  box-shadow: 0 0 0 4px rgba(79, 110, 247, 0.25);
+  pointer-events: none;
+  transition: left 0.25s ease, top 0.25s ease, width 0.25s ease, height 0.25s ease;
+}
+
+.tour-card {
+  position: fixed;
+  z-index: 902;
+  width: min(380px, calc(100vw - 32px));
+  padding: 20px 22px 16px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--card-radius);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.3);
+  animation: tour-card-in 0.2s ease;
+}
+
+.tour-card:focus {
+  outline: none;
+}
+
+.tour-card:focus-visible {
+  outline: 2px solid var(--tour-accent);
+  outline-offset: 2px;
+}
+
+/* Little arrow pointing at the highlight; same fill and border as the card */
+.tour-card-tip {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  transform: rotate(45deg);
+}
+
+.tour-card--below .tour-card-tip { top: 0; border-right: none; border-bottom: none; }
+.tour-card--above .tour-card-tip { top: 100%; border-left: none; border-top: none; }
+.tour-card--right .tour-card-tip { left: 0; border-top: none; border-right: none; }
+.tour-card--left .tour-card-tip { left: 100%; border-bottom: none; border-left: none; }
+
+.tour-card-step {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tour-accent);
+}
+
+.tour-card-title {
+  margin: 4px 0 6px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.tour-card-body {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.tour-card-dots {
+  display: flex;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.tour-card-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 4px;
+  background: var(--border-color);
+  transition: width 0.2s ease, background 0.2s ease;
+}
+
+.tour-card-dots span.is-current {
+  width: 18px;
+  background: var(--tour-accent);
+}
+
+.tour-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.tour-card-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.tour-btn {
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.tour-btn:hover {
+  background: var(--content-bg);
+}
+
+.tour-btn--primary {
+  color: var(--white);
+  background: var(--tour-accent);
+  border-color: var(--tour-accent);
+}
+
+.tour-btn--primary:hover {
+  background: var(--tour-accent);
+  opacity: 0.9;
+}
+
+.tour-btn--primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tour-btn--link {
+  padding: 8px 0;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+}
+
+.tour-btn--link:hover {
+  background: none;
+  color: var(--text-primary);
+}
+
+@keyframes tour-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes tour-card-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-dim,
+  .tour-card {
+    animation: none;
+  }
+
+  .tour-ring,
+  .tour-card-dots span {
+    transition: none;
+  }
+}

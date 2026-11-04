@@ -32,3 +32,7 @@
 .demo-banner-link:hover {
   text-decoration: underline;
 }
+
+.demo-banner-sep {
+  color: var(--text-muted);
+}

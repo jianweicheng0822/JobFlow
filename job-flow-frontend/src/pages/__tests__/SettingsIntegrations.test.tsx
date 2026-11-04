@@ -1,5 +1,6 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import SettingsPage from '../SettingsPage';
 import { LanguageProvider } from '../../context/LanguageProvider';
 import * as authApi from '../../api/auth';
@@ -36,8 +37,13 @@ vi.mock('../../context/ToastContext', () => ({
   useToast: () => ({ showToast: vi.fn() }),
 }));
 
-function renderSettings() {
-  return render(<SettingsPage />, { wrapper: LanguageProvider });
+function renderSettings(state?: unknown) {
+  return render(
+    <MemoryRouter initialEntries={[{ pathname: '/settings', state }]}>
+      <SettingsPage />
+    </MemoryRouter>,
+    { wrapper: LanguageProvider },
+  );
 }
 
 describe('Settings integrations tab', () => {
@@ -64,5 +70,22 @@ describe('Settings integrations tab', () => {
     expect(screen.getByRole('button', { name: /profile/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /integrations/i })).not.toBeInTheDocument();
     expect(gmailApi.getGmailStatus).not.toHaveBeenCalled();
+  });
+});
+
+describe('Settings tab links', () => {
+  beforeEach(() => {
+    vi.mocked(authApi.getAuthProviders).mockResolvedValue({ data: { google: false, github: false, gmail: false } } as never);
+  });
+
+  it('opens the tab a link asks for', async () => {
+    renderSettings({ tab: 'appearance' });
+    expect(await screen.findByText('Theme')).toBeInTheDocument();
+  });
+
+  it('ignores a tab it does not know', async () => {
+    renderSettings({ tab: 'nope' });
+    await waitFor(() => expect(authApi.getAuthProviders).toHaveBeenCalled());
+    expect(screen.queryByText('Theme')).not.toBeInTheDocument();
   });
 });

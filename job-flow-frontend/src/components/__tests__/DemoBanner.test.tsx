@@ -62,6 +62,12 @@ describe('DemoBanner', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
+  it('offers the tour again, asking the dashboard to open it', () => {
+    localStorage.setItem('jobflow-token', 'demo-token');
+    renderBanner();
+    expect(screen.getByRole('link', { name: 'Take the tour' })).toHaveAttribute('href', '/');
+  });
+
   it('links to the sign up page', () => {
     localStorage.setItem('jobflow-token', 'demo-token');
     renderBanner();

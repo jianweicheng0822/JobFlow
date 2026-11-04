@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { isDemoMode, resolveMock } from './mockData'
 import { translateApiError, type ApiErrorBody } from './errorMessages'
+import { markDemoTask } from '../utils/demoChecklist'
 
 const client = axios.create({
   baseURL: '/api',
@@ -25,6 +26,10 @@ client.interceptors.request.use((config) => {
   const url = config.url || ''
   const method = (config.method || 'get').toLowerCase()
   const data = resolveMock(url, method, config.data, config.params)
+
+  // Every demo write passes through here, so this catches each way of adding or starring
+  if (method === 'post' && url === '/applications') markDemoTask('add')
+  if (method === 'patch' && /^\/applications\/\d+\/star$/.test(url)) markDemoTask('organize')
 
   if (data !== undefined) {
     // Cancel the real request and return mock data via adapter

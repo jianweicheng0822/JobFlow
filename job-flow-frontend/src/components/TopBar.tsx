@@ -7,6 +7,7 @@ import { getApplications } from '../api/applications'
 import { getCompanies } from '../api/companies'
 import type { JobApplicationDTO, CompanyDTO } from '../api/types'
 import { getStoredAvatar, storeAvatar } from '../utils/avatar'
+import { markDemoTask } from '../utils/demoChecklist'
 import './TopBar.css'
 
 function getInitials(name: string): string {
@@ -142,7 +143,10 @@ export default function TopBar() {
             type="text"
             placeholder={t.search}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value)
+              if (e.target.value.trim()) markDemoTask('organize')
+            }}
             onFocus={handleSearchFocus}
             onKeyDown={handleKeyDown}
           />
