@@ -3,9 +3,11 @@
 #
 #   bash /opt/jobflow/deploy.sh <commit sha>
 #
-# Fetches that commit's compose file and nginx config, backs up the database, starts the
-# new images and waits until the site answers. If it doesn't, it goes back to the
-# version that was running before.
+# Fetches that commit's compose file and nginx config, checks them and pulls the images
+# while the old version keeps running, backs up the database, then starts the new images
+# and waits until the site answers. If they don't start or don't answer, it goes back to
+# the version that was running before. Anything that fails before the switch leaves the
+# server exactly as it was.
 set -euo pipefail
 
 TAG=${1:?usage: deploy.sh <commit sha>}
@@ -22,6 +24,10 @@ cd "$APP_DIR"
 
 dc() {
   docker compose -f docker-compose.prod.yml --env-file .env --env-file release.env "$@"
+}
+# Same, but with the config and version we're about to switch to
+dc_new() {
+  docker compose -f docker-compose.prod.yml.new --env-file .env --env-file release.env.new "$@"
 }
 
 # Answers once nginx, the backend and MySQL are all up
@@ -41,10 +47,18 @@ for f in docker-compose.prod.yml nginx.prod.conf; do
 done
 
 PREVIOUS=$(sed -n 's/^IMAGE_TAG=//p' release.env 2>/dev/null || true)
+echo "IMAGE_TAG=$TAG" > release.env.new
+
+# A broken .env or compose file stops us here, before anything on the server changes
+echo "==> Checking config"
+dc_new config -q
+
+echo "==> Pulling images"
+dc_new pull --quiet
 
 echo "==> Backing up the database"
 install -d -m 700 backups
-if [ -n "$PREVIOUS" ] && [ -n "$(dc ps -q mysql 2>/dev/null)" ]; then
+if [ -n "$PREVIOUS" ] && [ -n "$(dc ps -q mysql)" ]; then
   backup="backups/jobflow-$(date -u +%Y%m%d-%H%M%S)-${PREVIOUS:0:7}.sql.gz"
   dc exec -T mysql sh -c 'mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" --single-transaction --no-tablespaces jobflow' \
     | gzip > "$backup"
@@ -61,13 +75,13 @@ echo "==> Starting $TAG (previous: ${PREVIOUS:-none})"
 for f in docker-compose.prod.yml nginx.prod.conf; do
   [ -f "$f" ] && cp "$f" "$f.prev"
 done
+[ -f release.env ] && cp release.env release.env.prev
 mv docker-compose.prod.yml.new docker-compose.prod.yml
 mv nginx.prod.conf.new nginx.prod.conf
-echo "IMAGE_TAG=$TAG" > release.env
-dc pull --quiet
-dc up -d --remove-orphans
+mv release.env.new release.env
 
-if wait_until_up; then
+# Inside the if, so a failing "up" goes to the rollback below instead of exiting on set -e
+if dc up -d --remove-orphans && wait_until_up; then
   echo "==> $TAG is up"
   # Old images pile up with every deploy; whatever a container still uses is kept
   docker image prune -af >/dev/null
@@ -82,8 +96,11 @@ if [ -n "$PREVIOUS" ]; then
   echo "==> Rolling back to $PREVIOUS" >&2
   mv docker-compose.prod.yml.prev docker-compose.prod.yml
   mv nginx.prod.conf.prev nginx.prod.conf
-  echo "IMAGE_TAG=$PREVIOUS" > release.env
-  dc up -d --remove-orphans
-  wait_until_up && echo "Rolled back to $PREVIOUS" >&2 || echo "Rollback didn't come up either" >&2
+  mv release.env.prev release.env
+  if dc up -d --remove-orphans && wait_until_up; then
+    echo "Rolled back to $PREVIOUS" >&2
+  else
+    echo "Rollback didn't come up either" >&2
+  fi
 fi
 exit 1
