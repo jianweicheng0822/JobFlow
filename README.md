@@ -33,6 +33,10 @@ A full-stack job application tracker with JWT + OAuth2 authentication, Kanban pi
     <td align="center"><strong>Dashboard</strong><br><a href="docs/dashboard.png"><img src="docs/dashboard.png" alt="Dashboard" width="400"></a></td>
     <td align="center"><strong>Dark Mode</strong><br><a href="docs/dashboard-dark.png"><img src="docs/dashboard-dark.png" alt="Dashboard in dark mode" width="400"></a></td>
   </tr>
+  <tr>
+    <td align="center"><strong>Feedback</strong><br><a href="docs/feedback.png"><img src="docs/feedback.png" alt="Feedback form opened from the sidebar" width="400"></a></td>
+    <td align="center"><strong>Feedback on Phones</strong><br><a href="docs/feedback-mobile.png"><img src="docs/feedback-mobile.png" alt="Feedback card at the bottom of Settings on a phone, and the form it opens" width="400"></a></td>
+  </tr>
 </table>
 
 > *Click any screenshot to view full resolution.*
