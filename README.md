@@ -63,6 +63,7 @@ A full-stack job application tracker with JWT + OAuth2 authentication, Kanban pi
 - **Global search** — Search applications and companies from the top bar
 - **Settings** — Profile, password, theme (dark/light), language (English/中文), and time zone
 - **Account deletion** — Delete your account from Settings; all your data goes with it
+- **Feedback** — Send a bug report or idea from the sidebar (Settings on phones), also from the demo. Each message is saved and emailed to the maintainer, with a honeypot, a per-IP hourly limit and a daily cap against spam
 
 ## Getting Started
 
@@ -76,7 +77,9 @@ and a local backend both read it (environment variables override it):
 | `DB_USERNAME`, `DB_PASSWORD` | Yes | MySQL login |
 | `JWT_SECRET` | Yes | Signs login tokens (at least 32 characters) |
 | `DB_HOST`, `DB_PORT` | No | MySQL address, default `localhost:3306` |
-| `MAIL_USERNAME`, `MAIL_PASSWORD` | No | Gmail SMTP for interview reminder emails |
+| `MAIL_USERNAME`, `MAIL_PASSWORD` | No | Gmail SMTP for interview reminders and feedback emails (use an App Password) |
+| `FEEDBACK_NOTIFY_EMAIL` | No | Where feedback from the in-app form is emailed. Empty means it is only saved |
+| `FEEDBACK_PER_IP_HOURLY_LIMIT`, `FEEDBACK_DAILY_LIMIT` | No | Feedback spam limits, default 5 per IP per hour and 200 per UTC day |
 | `SEED_DEMO_DATA` | No | `true` creates a sample account `demo@jobflow.com` / `demo123` on startup. Default `false`; keep it off anywhere public |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | No | Google sign-in. Set both or neither |
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | No | GitHub sign-in. Set both or neither |
@@ -162,7 +165,7 @@ Base paths: `/api/auth`, `/api/applications`, `/api/interviews`, `/api/companies
 
 ## Testing
 
-**583 tests**: 393 backend (integration and unit) and 190 frontend (component and API).
+**623 tests**: 426 backend (integration and unit) and 197 frontend (component and API).
 
 ```bash
 # Backend (needs Docker running: integration tests start MySQL with Testcontainers)

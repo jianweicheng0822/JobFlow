@@ -322,6 +322,24 @@ const en = {
   demoBannerMessage: "You're exploring a demo with sample data. Changes last until you refresh the page.",
   demoBannerSignUp: 'Sign up to keep your data →',
 
+  // Feedback
+  feedback: 'Feedback',
+  feedbackTitle: 'Send feedback',
+  feedbackTypeLabel: 'Feedback type',
+  feedbackTypeBug: 'Bug',
+  feedbackTypeIdea: 'Idea',
+  feedbackTypeOther: 'Other',
+  feedbackMessageLabel: 'Your feedback',
+  feedbackMessagePlaceholder: 'What happened, or what would make JobFlow better?',
+  feedbackEmailLabel: 'Email (optional)',
+  feedbackEmailPlaceholder: "Only if you'd like a reply",
+  feedbackPageHint: "We include the page you're on to help track down bugs.",
+  feedbackSend: 'Send',
+  feedbackSending: 'Sending...',
+  feedbackSent: 'Thanks! Your feedback was sent.',
+  feedbackFailed: "Couldn't send your feedback. Please try again.",
+  feedbackSettingsHint: 'Found a bug or have an idea? Tell us.',
+
   // OAuth Callback
   signingYouIn: 'Signing you in...',
   oauthFailed: "Couldn't finish signing in. Please try again.",

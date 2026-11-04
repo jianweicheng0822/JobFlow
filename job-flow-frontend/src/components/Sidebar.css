@@ -73,8 +73,21 @@
   flex-shrink: 0;
 }
 
+/* A button that looks like the nav links (the nav fills the space above, so it sits at the bottom) */
+.sidebar-feedback {
+  background: none;
+  border: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 /* Phones: the sidebar turns into a bottom tab bar */
 @media (max-width: 768px) {
+  .sidebar-feedback {
+    display: none;
+  }
+
   .sidebar {
     width: 100%;
     height: auto;

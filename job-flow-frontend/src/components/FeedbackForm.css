@@ -1,0 +1,58 @@
+.feedback-types {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.feedback-type {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.feedback-type:hover {
+  border-color: var(--sidebar-accent);
+  color: var(--text-primary);
+}
+
+.feedback-type--active {
+  border-color: var(--sidebar-accent);
+  background: color-mix(in srgb, var(--sidebar-accent) 10%, transparent);
+  color: var(--sidebar-accent);
+}
+
+.feedback-message {
+  min-height: 120px;
+}
+
+.feedback-count {
+  align-self: flex-end;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.feedback-hint {
+  margin: -4px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Off-screen rather than display:none, which some bots skip */
+.feedback-trap {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}

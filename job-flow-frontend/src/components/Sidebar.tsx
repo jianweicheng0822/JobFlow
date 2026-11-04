@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -6,9 +7,11 @@ import {
   Building2,
   BarChart3,
   Settings,
+  MessageSquare,
   Zap,
 } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
+import FeedbackForm from './FeedbackForm'
 import './Sidebar.css'
 
 const navItems = [
@@ -22,6 +25,7 @@ const navItems = [
 
 export default function Sidebar() {
   const { t } = useLanguage()
+  const [showFeedback, setShowFeedback] = useState(false)
 
   return (
     <aside className="sidebar">
@@ -47,6 +51,14 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
+
+      {/* Pinned to the bottom on desktop. Phones have no room in the tab bar, so they get it in Settings */}
+      <button type="button" className="sidebar-nav-item sidebar-feedback" onClick={() => setShowFeedback(true)}>
+        <MessageSquare />
+        {t.feedback}
+      </button>
+
+      {showFeedback && <FeedbackForm onClose={() => setShowFeedback(false)} />}
     </aside>
   )
 }

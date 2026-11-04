@@ -365,3 +365,9 @@ describe('seed timestamps', () => {
     expect(recent[0].id).toBe(10);
   });
 });
+
+describe('resolveMock feedback', () => {
+  it('leaves feedback unmocked, so demo visitors reach the real backend', () => {
+    expect(resolveMock('/feedback', 'post', { type: 'BUG', message: 'Broken page' })).toBeUndefined();
+  });
+});

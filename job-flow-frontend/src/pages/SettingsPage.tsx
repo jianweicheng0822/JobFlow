@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
-import { Camera, User, Lock, Palette, Sun, Moon, Link, Globe } from 'lucide-react'
+import { Camera, User, Lock, Palette, Sun, Moon, Link, Globe, MessageSquare } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { useLanguage } from '../context/LanguageContext'
@@ -12,6 +12,7 @@ import { getStoredAvatar, storeAvatar } from '../utils/avatar'
 import './SettingsPage.css'
 import TimeZoneSetting from '../components/TimeZoneSetting'
 import DeleteAccountSection from '../components/DeleteAccountSection'
+import FeedbackForm from '../components/FeedbackForm'
 import { useAuthProviders } from '../hooks/useAuthProviders'
 import { getStoredTheme, applyTheme, type Theme } from '../utils/theme'
 
@@ -29,6 +30,7 @@ export default function SettingsPage() {
   const { showToast } = useToast()
   const { t, lang, setLanguage } = useLanguage()
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile')
+  const [showFeedback, setShowFeedback] = useState(false)
   // Gmail import is the only integration, so the tab goes when the server can't do it
   const showIntegrations = useAuthProviders()?.gmail === true
   const visibleTabs = tabDefs.filter((tab) => tab.key !== 'integrations' || showIntegrations)
@@ -515,6 +517,20 @@ export default function SettingsPage() {
       )}
         </div>
       </div>
+
+      {/* Phones only: the bottom tab bar has no room for the sidebar's Feedback button */}
+      <div className="settings-section settings-feedback">
+        <div className="settings-feedback-text">
+          <span className="settings-feedback-title">{t.feedbackTitle}</span>
+          <span className="settings-feedback-hint">{t.feedbackSettingsHint}</span>
+        </div>
+        <button className="settings-btn-secondary" onClick={() => setShowFeedback(true)}>
+          <MessageSquare size={16} />
+          {t.feedback}
+        </button>
+      </div>
+
+      {showFeedback && <FeedbackForm onClose={() => setShowFeedback(false)} />}
     </div>
   )
 }

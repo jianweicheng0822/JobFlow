@@ -322,6 +322,24 @@ const zh = {
   demoBannerMessage: '你正在体验 Demo，使用的是示例数据。修改只会保留到刷新页面为止。',
   demoBannerSignUp: '注册账号保存你的数据 →',
 
+  // Feedback
+  feedback: '反馈',
+  feedbackTitle: '发送反馈',
+  feedbackTypeLabel: '反馈类型',
+  feedbackTypeBug: '问题',
+  feedbackTypeIdea: '建议',
+  feedbackTypeOther: '其他',
+  feedbackMessageLabel: '反馈内容',
+  feedbackMessagePlaceholder: '遇到了什么问题？或者有什么能让 JobFlow 更好用的想法？',
+  feedbackEmailLabel: '邮箱（选填）',
+  feedbackEmailPlaceholder: '需要回复时再填写',
+  feedbackPageHint: '我们会附上你当前所在的页面，方便排查问题。',
+  feedbackSend: '发送',
+  feedbackSending: '发送中...',
+  feedbackSent: '谢谢！反馈已发送。',
+  feedbackFailed: '反馈发送失败，请稍后再试。',
+  feedbackSettingsHint: '发现问题或有好点子？告诉我们。',
+
   // OAuth Callback
   signingYouIn: '正在登录...',
   oauthFailed: '登录未完成，请重试。',

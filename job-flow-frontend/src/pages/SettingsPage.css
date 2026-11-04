@@ -545,8 +545,46 @@
   color: #065f46;
 }
 
+/* ===== Feedback (phones only, see SettingsPage) ===== */
+.settings-feedback {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.settings-feedback-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.settings-feedback-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.settings-feedback-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.settings-feedback .settings-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
+  .settings-feedback {
+    display: flex;
+  }
+
   .settings-layout {
     grid-template-columns: 1fr;
   }
