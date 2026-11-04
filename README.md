@@ -14,7 +14,7 @@ A full-stack job application tracker with JWT + OAuth2 authentication, Kanban pi
 
 ## Screenshots
 
-<img src="docs/demo.gif" alt="JobFlow demo: try the demo, drag a card across the pipeline, search and star jobs, browse interviews and analytics, then switch to dark mode and Chinese">
+<img src="docs/demo.gif" alt="JobFlow demo: try the demo, follow the short tour and drag a card across the pipeline, then search and star jobs, open analytics and switch to dark mode and Chinese while the checklist ticks itself off">
 
 <table>
   <tr>
@@ -36,6 +36,10 @@ A full-stack job application tracker with JWT + OAuth2 authentication, Kanban pi
   <tr>
     <td align="center"><strong>Feedback</strong><br><a href="docs/feedback.png"><img src="docs/feedback.png" alt="Feedback form opened from the sidebar" width="400"></a></td>
     <td align="center"><strong>Feedback on Phones</strong><br><a href="docs/feedback-mobile.png"><img src="docs/feedback-mobile.png" alt="Feedback card at the bottom of Settings on a phone, and the form it opens" width="400"></a></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Demo Tour</strong><br><a href="docs/tour.png"><img src="docs/tour.png" alt="Demo tour spotlighting the pipeline, with an animated hint showing how to drag a card to the next stage" width="400"></a></td>
+    <td align="center"><strong>Tour &amp; Checklist on Phones</strong><br><a href="docs/onboarding-mobile.png"><img src="docs/onboarding-mobile.png" alt="The tour on a phone, and the things-to-try checklist with two items ticked off" width="400"></a></td>
   </tr>
 </table>
 
@@ -67,6 +71,7 @@ A full-stack job application tracker with JWT + OAuth2 authentication, Kanban pi
 - **Global search** — Search applications and companies from the top bar
 - **Settings** — Profile, password, theme (dark/light), language (English/中文), and time zone
 - **Account deletion** — Delete your account from Settings; all your data goes with it
+- **Demo tour** — First-time demo visitors get a three-step tour that has them drag a real card before moving on, then a small checklist (add an application, star or search, open Analytics, switch theme or language) that ticks itself off as they explore and ends with a sign-up button
 - **Feedback** — Send a bug report or idea from the sidebar (Settings on phones), also from the demo. Each message is saved and emailed to the maintainer, with a honeypot, a per-IP hourly limit and a daily cap against spam
 
 ## Getting Started
