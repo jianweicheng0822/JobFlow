@@ -9,7 +9,7 @@ The user is **jianweisde**. Always refer to them by name, not "user".
 2. Before every git push, summarize what was changed and why to the user.
 3. Do not include "Co-Authored-By: Claude" in commit messages.
 4. Write all code comments and commit messages in English. Keep them human-friendly, clear, and concise — as if a real developer wrote them. Avoid robotic or overly formal language.
-5. Before designing any UI component or page, always review the design reference image (`Gemini_Generated_Image_5hnol55hnol55hno.png` in project root) to ensure the implementation matches the intended final look.
+5. Before designing any UI component or page, look at the README screenshots in `docs/` (e.g. `dashboard.png`, `jobs.png`, `dashboard-dark.png`) and the existing components, so new UI matches the look already in place, in both light and dark mode. When a change alters what a screenshot shows, retake that screenshot.
 6. Execute plans one step at a time. After completing each step, stop and wait for the user's confirmation before moving on to the next step. Never execute multiple steps at once.
 
 ## Future Features (TODO)
