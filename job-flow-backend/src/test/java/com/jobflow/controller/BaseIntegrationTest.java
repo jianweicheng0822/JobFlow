@@ -2,6 +2,7 @@ package com.jobflow.controller;
 
 import com.jobflow.config.RateLimitInterceptor;
 import com.jobflow.security.TokenVersions;
+import com.jobflow.service.FeedbackRateLimiter;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -59,6 +60,9 @@ public abstract class BaseIntegrationTest {
     @Autowired
     private TokenVersions tokenVersions;
 
+    @Autowired
+    private FeedbackRateLimiter feedbackRateLimiter;
+
     @BeforeEach
     protected void resetDatabase() {
         jdbcTemplate.execute((ConnectionCallback<Void>) connection -> {
@@ -82,5 +86,8 @@ public abstract class BaseIntegrationTest {
         buckets.clear();
 
         ((Map<?, ?>) ReflectionTestUtils.getField(tokenVersions, "versions")).clear();
+
+        // Same for the stricter feedback limiter (5 an hour from 127.0.0.1)
+        ((Map<?, ?>) ReflectionTestUtils.getField(feedbackRateLimiter, "windows")).clear();
     }
 }

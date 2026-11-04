@@ -42,6 +42,7 @@ class AccountDeletionIntegrationTest extends BaseIntegrationTest {
     @Autowired private JobApplicationRepository jobApplicationRepository;
     @Autowired private InterviewRepository interviewRepository;
     @Autowired private EmailImportLogRepository emailImportLogRepository;
+    @Autowired private FeedbackRepository feedbackRepository;
 
     @MockBean
     private OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
@@ -77,6 +78,8 @@ class AccountDeletionIntegrationTest extends BaseIntegrationTest {
         emailImportLogRepository.save(EmailImportLog.builder()
                 .user(user).gmailMessageId("msg-" + user.getId()).jobApplication(app).build());
         oneTimeCodeService.issue(user, OneTimeCodePurpose.OAUTH_LOGIN, Duration.ofMinutes(1));
+        feedbackRepository.save(Feedback.builder()
+                .type(FeedbackType.IDEA).message("Add a calendar view").user(user).build());
     }
 
     private ResultActions deleteAs(User user, String body) throws Exception {
@@ -99,7 +102,7 @@ class AccountDeletionIntegrationTest extends BaseIntegrationTest {
     void passwordAccount_withRightPassword_deletesEverythingItOwns() throws Exception {
         deleteAs(alice, "{\"password\":\"password123\"}").andExpect(status().isNoContent());
 
-        for (String table : new String[] {"users", "companies", "job_applications", "interviews", "email_import_logs", "one_time_codes"}) {
+        for (String table : new String[] {"users", "companies", "job_applications", "interviews", "email_import_logs", "one_time_codes", "feedback"}) {
             assertThat(rowsOf(table, alice)).as(table).isZero();
             // Bob's data is untouched
             assertThat(rowsOf(table, bob)).as(table).isEqualTo(1);

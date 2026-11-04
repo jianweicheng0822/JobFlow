@@ -73,6 +73,8 @@ public class SecurityConfig {
                 // Login and register pages ask which sign-in buttons to show
                 .requestMatchers(HttpMethod.GET, "/api/auth/providers").permitAll()
                 .requestMatchers("/api/gmail/callback").permitAll()
+                // Anyone can send feedback; it's rate limited per IP and per day (FeedbackService)
+                .requestMatchers(HttpMethod.POST, "/api/feedback").permitAll()
                 .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                 .anyRequest().authenticated()
             )

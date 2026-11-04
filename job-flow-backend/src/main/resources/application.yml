@@ -84,3 +84,9 @@ app:
   # Seeds a demo account (demo@jobflow.com / demo123) with sample data on startup.
   # Local demos only: anyone who knows the password can log in.
   seed-demo-data: ${SEED_DEMO_DATA:false}
+  feedback:
+    # Messages one IP can send per hour, and across the whole site per UTC day
+    per-ip-hourly-limit: ${FEEDBACK_PER_IP_HOURLY_LIMIT:5}
+    daily-limit: ${FEEDBACK_DAILY_LIMIT:200}
+    # Where each message is emailed (sent with the MAIL_* account). Empty means it's only saved.
+    notify-email: ${FEEDBACK_NOTIFY_EMAIL:}

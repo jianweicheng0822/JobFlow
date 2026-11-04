@@ -1,5 +1,6 @@
 package com.jobflow.dto;
 
+import com.jobflow.model.FeedbackType;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -164,5 +165,59 @@ class RequestValidationTest {
 
         request.setTimeZone("  ");
         assertThat(messages(request)).contains("Time zone is required");
+    }
+
+    // --- FeedbackRequest ---
+
+    private static FeedbackRequest feedback(String message) {
+        FeedbackRequest request = new FeedbackRequest();
+        request.setType(FeedbackType.BUG);
+        request.setMessage(message);
+        return request;
+    }
+
+    @Test
+    void feedback_validRequest_passes() {
+        FeedbackRequest request = feedback("The dashboard is blank");
+        request.setEmail("me@example.com");
+
+        assertThat(messages(request)).isEmpty();
+    }
+
+    @Test
+    void feedback_missingType_fails() {
+        FeedbackRequest request = feedback("The dashboard is blank");
+        request.setType(null);
+
+        assertThat(messages(request)).contains("Feedback type is required");
+    }
+
+    @Test
+    void feedback_messageTooShortOrTooLong_fails() {
+        assertThat(messages(feedback("hey"))).contains("Feedback must be 5 to 1000 characters");
+        assertThat(messages(feedback("x".repeat(1001)))).contains("Feedback must be 5 to 1000 characters");
+        assertThat(messages(feedback("x".repeat(1000)))).isEmpty();
+    }
+
+    @Test
+    void feedback_badEmail_fails_butBlankEmailIsFine() {
+        FeedbackRequest request = feedback("The dashboard is blank");
+        request.setEmail("not-an-email");
+        assertThat(messages(request)).contains("Invalid email format");
+
+        request.setEmail("");
+        assertThat(messages(request)).isEmpty();
+    }
+
+    @Test
+    void feedback_honeypot_marksBots() {
+        FeedbackRequest request = feedback("The dashboard is blank");
+        assertThat(request.isFromBot()).isFalse();
+
+        request.setWebsite("  ");
+        assertThat(request.isFromBot()).isFalse();
+
+        request.setWebsite("https://spam.example");
+        assertThat(request.isFromBot()).isTrue();
     }
 }
