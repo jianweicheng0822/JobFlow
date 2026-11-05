@@ -358,6 +358,76 @@
 }
 
 /* ===== Responsive ===== */
+/* Tighter cells and wrapping titles so all seven columns fit around 1024px */
+@media (max-width: 1200px) {
+  .interviews-table thead th {
+    padding: 10px 8px;
+  }
+  .interviews-table tbody td {
+    padding: 12px 8px;
+  }
+  .interviews-table tbody td:first-child {
+    white-space: normal;
+    min-width: 120px;
+  }
+}
+
+/* Phones: each row becomes a small card (position + actions, company,
+   then date/time and badges) instead of a table that scrolls sideways */
+@media (max-width: 600px) {
+  .interviews-table,
+  .interviews-table tbody {
+    display: block;
+  }
+  .interviews-table thead {
+    display: none;
+  }
+  .interviews-table tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    padding: 12px 0;
+    border-top: 1px solid var(--border-color);
+  }
+  .interviews-table tbody tr:hover {
+    background: none;
+  }
+  .interviews-table tbody td,
+  .interviews-table tbody tr:last-child td {
+    padding: 0;
+    border: none;
+  }
+  .interviews-table tbody td:first-child {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .interviews-table tbody td:nth-child(7) {
+    order: 1;
+  }
+  .interviews-table tbody td:nth-child(2) {
+    order: 2;
+    flex-basis: 100%;
+  }
+  .interviews-table tbody td:nth-child(3),
+  .interviews-table tbody td:nth-child(4) {
+    order: 3;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .interviews-table tbody td:nth-child(5),
+  .interviews-table tbody td:nth-child(6) {
+    order: 4;
+  }
+  .interviews-table tbody td:nth-child(5) {
+    margin-left: auto;
+  }
+  .interviews-table tbody td.interviews-table-empty {
+    flex: 1 1 100%;
+    padding: 24px 0 !important;
+  }
+}
+
 @media (max-width: 768px) {
   .interviews-stat-cards {
     grid-template-columns: repeat(2, 1fr);

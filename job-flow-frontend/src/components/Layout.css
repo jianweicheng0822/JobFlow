@@ -6,20 +6,24 @@
 .layout-main {
   flex: 1;
   margin-left: var(--sidebar-width);
+  /* let wide tables scroll inside their wrapper instead of widening the page */
+  min-width: 0;
   display: flex;
   flex-direction: column;
+  /* side padding that grows on very wide screens, capping content at ~1800px;
+     the banner, top bar and content share it so their edges line up */
+  --page-gutter: max(32px, calc((100% - 1800px) / 2));
 }
 
 .layout-content {
   flex: 1;
-  padding: 24px 32px;
+  padding: 24px var(--page-gutter);
   background: var(--content-bg);
 }
 
 @media (max-width: 768px) {
   .layout-main {
     margin-left: 0;
-    min-width: 0;
     /* room for the bottom tab bar */
     padding-bottom: calc(60px + env(safe-area-inset-bottom));
   }

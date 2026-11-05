@@ -549,12 +549,108 @@
 }
 
 /* ===== Responsive ===== */
+/* Give the table the full width; Top Employers moves below it as a grid */
+@media (max-width: 1400px) {
+  .jobs-main {
+    grid-template-columns: 1fr;
+  }
+  .jobs-employers-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+}
+
+/* Tighter cells and wrapping titles so all columns fit on tablets */
+@media (max-width: 1200px) {
+  .jobs-table thead th {
+    padding: 10px 8px;
+  }
+  .jobs-table tbody td {
+    padding: 12px 8px;
+  }
+  .jobs-table tbody td:first-child {
+    white-space: normal;
+  }
+}
+
 @media (max-width: 768px) {
   .jobs-stat-cards {
     grid-template-columns: repeat(2, 1fr);
   }
-  .jobs-main {
-    grid-template-columns: 1fr;
+}
+
+/* Phones: each row becomes a small card (title + actions, then location,
+   date and stage) instead of a table that scrolls sideways */
+@media (max-width: 600px) {
+  .jobs-table,
+  .jobs-table thead,
+  .jobs-table tbody {
+    display: block;
+  }
+  /* keep only the date sort button from the header */
+  .jobs-table thead tr {
+    display: flex;
+    justify-content: flex-end;
+  }
+  .jobs-table thead th {
+    display: none;
+  }
+  .jobs-table thead th:nth-child(3) {
+    display: block;
+    border-bottom: none;
+  }
+  .jobs-table tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 12px 0;
+    border-top: 1px solid var(--border-color);
+  }
+  .jobs-table tbody tr:hover {
+    background: none;
+  }
+  .jobs-table tbody td,
+  .jobs-table tbody tr:last-child td {
+    padding: 0;
+    border: none;
+  }
+  /* title fills the first line next to the actions, pushing the rest down */
+  .jobs-table tbody td:first-child {
+    flex: 1 1 calc(100% - 130px);
+    min-width: 0;
+  }
+  .jobs-table tbody td:nth-child(5) {
+    order: 1;
+  }
+  .jobs-table tbody td:nth-child(2),
+  .jobs-table tbody td:nth-child(3),
+  .jobs-table tbody td:nth-child(4) {
+    order: 2;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  /* location, date and stage share one line; a long location gets cut
+     with an ellipsis instead of pushing the stage onto its own line.
+     The location lines up with the title text, past the logo */
+  .jobs-table tbody tr td:nth-child(2) {
+    box-sizing: border-box;
+    /* leave room for the date and the stage badge */
+    max-width: calc(100% - 200px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-left: 42px;
+  }
+  .jobs-table tbody td:nth-child(3),
+  .jobs-table tbody td:nth-child(4) {
+    flex: none;
+  }
+  .jobs-table tbody td:nth-child(4) {
+    margin-left: auto;
+  }
+  .jobs-table tbody td.jobs-table-empty {
+    flex: 1 1 100%;
+    padding: 24px 0;
   }
 }
 
@@ -597,8 +693,8 @@
   background: var(--content-bg);
 }
 
-/* Phones: the share bar goes under the number instead of squeezing the label */
-@media (max-width: 480px) {
+/* Narrow cards: the share bar goes under the number instead of squeezing the label */
+@media (max-width: 1280px) {
   .jobs-stat-card {
     flex-wrap: wrap;
   }

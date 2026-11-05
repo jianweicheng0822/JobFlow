@@ -512,6 +512,20 @@ button.upcoming-item:hover {
 }
 
 /* ===== Responsive ===== */
+/* Laptop widths: the 260px side column squeezes the 5-column board and the
+   recent table, so Upcoming + Follow-up become a row above them instead */
+@media (min-width: 769px) and (max-width: 1600px) {
+  .dashboard-main {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-sidebar {
+    order: -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
 @media (max-width: 1200px) {
   .stat-cards {
     grid-template-columns: repeat(3, 1fr);
@@ -539,6 +553,33 @@ button.upcoming-item:hover {
   }
   .pipeline-board {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Let long titles and actions wrap so the recent table fits on tablets */
+@media (max-width: 1200px) {
+  .recent-table tbody td:first-child,
+  .recent-table tbody td:nth-child(4) {
+    white-space: normal;
+  }
+}
+
+/* Recent table on small screens: drop Location (and Last Action on phones)
+   so Status stays visible without scrolling sideways */
+@media (max-width: 768px) {
+  .recent-table th:nth-child(3),
+  .recent-table td:nth-child(3) {
+    display: none;
+  }
+  .recent-table tbody td:first-child {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 480px) {
+  .recent-table th:nth-child(4),
+  .recent-table td:nth-child(4) {
+    display: none;
   }
 }
 

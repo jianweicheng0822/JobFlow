@@ -3,7 +3,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 8px 32px;
+  padding: 8px var(--page-gutter, 32px);
   font-size: 13px;
   color: var(--text-primary);
   /* A light tint of the accent that works on both themes */
