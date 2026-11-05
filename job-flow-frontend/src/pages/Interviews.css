@@ -318,6 +318,53 @@
   color: #065f46;
 }
 
+/* ===== Upcoming / Past groups ===== */
+.interviews-table tbody tr.interviews-group-row:hover {
+  background: none;
+}
+
+.interviews-table tbody td.interviews-group-label {
+  padding: 14px 12px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.interviews-table tbody tr.interviews-group-row:not(:last-child) td {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.interviews-past-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.interviews-past-toggle:hover {
+  border-color: var(--sidebar-accent);
+  color: var(--sidebar-accent);
+}
+
+.interviews-past-toggle svg {
+  transition: transform 0.15s ease;
+}
+
+.interviews-past-toggle--open svg {
+  transform: rotate(90deg);
+}
+
 /* ===== Action Buttons ===== */
 .interviews-actions {
   display: flex;
@@ -425,6 +472,13 @@
   .interviews-table tbody td.interviews-table-empty {
     flex: 1 1 100%;
     padding: 24px 0 !important;
+  }
+  /* the row card already draws the divider */
+  .interviews-table tbody tr.interviews-group-row:not(:last-child) td {
+    border-bottom: none;
+  }
+  .interviews-table tbody td.interviews-group-label {
+    padding: 4px 0 0;
   }
 }
 

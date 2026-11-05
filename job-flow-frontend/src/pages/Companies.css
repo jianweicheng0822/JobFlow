@@ -19,10 +19,11 @@
   color: var(--status-rejected);
 }
 
-.companies-page-header {
+.companies-filter-right {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
+  margin-left: auto;
 }
 
 .companies-page-title {

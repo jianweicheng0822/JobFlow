@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Star } from 'lucide-react'
+import { Star, MapPin, Clock } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import './Dashboard.css'
@@ -63,8 +63,9 @@ const STATUS_LABEL_KEYS: Record<ApplicationStatus, string> = {
   REJECTED: 'statusRejected',
 }
 
-// Keep the board about one screen tall; the rest is a click away in Jobs
-const PIPELINE_CARD_LIMIT = 4
+// Keep the board short; the rest is a click away in Jobs
+const PIPELINE_CARD_LIMIT = 3
+const RECENT_LIMIT = 5
 const UPCOMING_LIMIT = 5
 const FOLLOW_UP_DAYS = 14
 // After two months with no word the job is most likely gone, so stop nagging
@@ -76,6 +77,15 @@ function daysSince(dateStr: string, now: Date = new Date()): number {
   const [y, m, d] = dateStr.slice(0, 10).split('-').map(Number)
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   return Math.round((today.getTime() - new Date(y, m - 1, d).getTime()) / 86_400_000)
+}
+
+// Short age of an applied date for board cards: "Today", "3d ago", "2w ago", "4mo ago"
+function formatAppliedAgo(dateStr: string, t: Record<string, string>): string {
+  const days = Math.max(0, daysSince(dateStr))
+  if (days === 0) return t.today
+  if (days < 7) return t.agoDays.replace('{n}', String(days))
+  if (days < 60) return t.agoWeeks.replace('{n}', String(Math.round(days / 7)))
+  return t.agoMonths.replace('{n}', String(Math.round(days / 30)))
 }
 
 // Day ("Today", "Tomorrow" or "Oct 30") and time ("2:00 PM") of an interview
@@ -411,12 +421,23 @@ export default function Dashboard() {
                           {card.title}
                         </div>
                         <div className="pipeline-card-company">{card.company}</div>
-                        <div className="pipeline-card-meta">
-                          {card.location && <span>📍 {card.location}</span>}
-                          {card.salary && <span>💰 {card.salary}</span>}
-                        </div>
+                        {card.location && (
+                          <div className="pipeline-card-meta">
+                            <MapPin size={12} aria-hidden="true" />
+                            <span>{card.location}</span>
+                          </div>
+                        )}
                         <div className="pipeline-card-footer">
-                          <span className="pipeline-card-date">{t.dateApplied}: {formatDateOnly(card.date, lang)}</span>
+                          <span className="pipeline-card-salary">{card.salary}</span>
+                          {card.date && (
+                            <span
+                              className="pipeline-card-date"
+                              title={`${t.dateApplied}: ${formatDateOnly(card.date, lang)}`}
+                            >
+                              <Clock size={11} aria-hidden="true" />
+                              {formatAppliedAgo(card.date, t)}
+                            </span>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -448,7 +469,7 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {recentApps.map((app) => {
+                  {recentApps.slice(0, RECENT_LIMIT).map((app) => {
                     const statusColor = STATUS_COLORS[app.status]
                     const statusLabel = (t as any)[STATUS_LABEL_KEYS[app.status]] || app.status
                     const companyColor = getCompanyColor(app.company.name)
@@ -485,6 +506,9 @@ export default function Dashboard() {
                 </tbody>
               </table>
             </div>
+            {recentApps.length > RECENT_LIMIT && (
+              <Link to="/jobs" className="pipeline-more recent-more">{t.viewAllInJobs} →</Link>
+            )}
           </div>
         </div>
 

@@ -242,7 +242,8 @@ export default function SettingsPage() {
 
   return (
     <div className="settings-page">
-      <h1 className="settings-page-title">{t.settings}</h1>
+      {/* The top bar shows the page name, except on small phones where it gives way to search */}
+      <h1 className="settings-page-title mobile-page-title">{t.settings}</h1>
 
       <div className="settings-layout">
         {/* Left Side Nav */}

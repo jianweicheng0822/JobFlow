@@ -5,7 +5,7 @@ import Dashboard from '../Dashboard';
 import { LanguageProvider } from '../../context/LanguageProvider';
 import { ToastProvider } from '../../context/ToastProvider';
 import type { JobApplicationDTO } from '../../api/types';
-import { getStats, getApplications, updateStatus } from '../../api/applications';
+import { getStats, getApplications, getRecentApplications, updateStatus } from '../../api/applications';
 import { getUpcomingInterviews } from '../../api/interviews';
 import { todayLocal } from '../../utils/date';
 
@@ -56,22 +56,40 @@ vi.mock('../../api/interviews', () => ({
 }));
 
 describe('Dashboard pipeline card date', () => {
+  const daysAgo = (n: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    return todayLocal(d);
+  };
+  const withDate = (appliedDate: string) =>
+    vi.mocked(getApplications).mockResolvedValueOnce({ data: [{ ...app, appliedDate }] } as never);
+
   beforeEach(() => localStorage.setItem('language', 'en'));
   afterEach(() => localStorage.removeItem('language'));
 
-  it('shows "Date Applied: <date>" with a single colon', async () => {
+  it('shows how long ago the job was applied to', async () => {
+    withDate(daysAgo(3));
     render(<Dashboard />, { wrapper: Wrapper });
+    expect(await screen.findByText('3d ago')).toBeInTheDocument();
+  });
 
-    const label = await screen.findByText(/Date Applied/);
-    expect(label.textContent).toBe('Date Applied: Jul 17, 2026');
+  it('switches to weeks after the first week', async () => {
+    withDate(daysAgo(14));
+    render(<Dashboard />, { wrapper: Wrapper });
+    expect(await screen.findByText('2w ago')).toBeInTheDocument();
+  });
+
+  it('keeps the full date in the tooltip, with a single colon', async () => {
+    render(<Dashboard />, { wrapper: Wrapper });
+    expect(await screen.findByTitle('Date Applied: Jul 17, 2026')).toBeInTheDocument();
   });
 
   it('does the same in Chinese', async () => {
     localStorage.setItem('language', 'zh');
+    withDate(daysAgo(3));
     render(<Dashboard />, { wrapper: Wrapper });
 
-    const label = await screen.findByText(/投递日期/);
-    expect(label.textContent).toBe('投递日期: 2026年7月17日');
+    expect(await screen.findByText('3 天前')).toBeInTheDocument();
   });
 });
 
@@ -143,16 +161,27 @@ describe('Dashboard pipeline board', () => {
   beforeEach(() => localStorage.setItem('language', 'en'));
   afterEach(() => localStorage.removeItem('language'));
 
-  it('shows the 4 newest cards per stage and links to the rest', async () => {
+  it('shows the 3 newest cards per stage and links to the rest', async () => {
     vi.mocked(getApplications).mockResolvedValueOnce({
       data: [1, 2, 3, 4, 5, 6].map((id) => job(id, 'APPLIED', daysAgo(id))),
     } as never);
     render(<Dashboard />, { wrapper: Wrapper });
 
     expect(await screen.findByText('Job 1')).toBeInTheDocument();
-    expect(screen.getByText('Job 4')).toBeInTheDocument();
-    expect(screen.queryByText('Job 5')).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '+2 more →' })).toHaveAttribute('href', '/jobs?status=APPLIED');
+    expect(screen.getByText('Job 3')).toBeInTheDocument();
+    expect(screen.queryByText('Job 4')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '+3 more →' })).toHaveAttribute('href', '/jobs?status=APPLIED');
+  });
+
+  it('keeps the recent table to 5 rows with a link to the rest', async () => {
+    vi.mocked(getRecentApplications).mockResolvedValueOnce({
+      data: [1, 2, 3, 4, 5, 6, 7].map((id) => job(id, 'REJECTED', daysAgo(id))),
+    } as never);
+    render(<Dashboard />, { wrapper: Wrapper });
+
+    expect(await screen.findByText('Job 5')).toBeInTheDocument();
+    expect(screen.queryByText('Job 6')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View all in Jobs →' })).toHaveAttribute('href', '/jobs');
   });
 
   it('leaves Rejected off the board', async () => {

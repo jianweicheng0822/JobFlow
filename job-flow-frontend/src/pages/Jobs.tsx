@@ -98,6 +98,20 @@ function isStatus(value: string | null): value is ApplicationStatus {
   return ALL_STATUSES.includes(value as ApplicationStatus)
 }
 
+const PAGE_SIZE_OPTIONS = [10, 20, 50]
+const PAGE_SIZE_KEY = 'jobflow-jobs-page-size'
+const EMPLOYER_PREVIEW = 5
+
+// Rows-per-page is remembered per browser; storage can be blocked, so fall back to 20
+function getStoredPageSize(): number {
+  try {
+    const saved = Number(localStorage.getItem(PAGE_SIZE_KEY))
+    return PAGE_SIZE_OPTIONS.includes(saved) ? saved : 20
+  } catch {
+    return 20
+  }
+}
+
 export default function Jobs() {
   const [applications, setApplications] = useState<JobApplicationDTO[]>([])
   const [loading, setLoading] = useState(true)
@@ -117,7 +131,8 @@ export default function Jobs() {
   }, [setSearchParams])
   const [dateSort, setDateSort] = useState<SortDirection>('desc')
   const [currentPage, setCurrentPage] = useState(0)
-  const pageSize = 20
+  const [pageSize, setPageSize] = useState(getStoredPageSize)
+  const [showAllEmployers, setShowAllEmployers] = useState(false)
 
   // CRUD modal state
   const [showModal, setShowModal] = useState(false)
@@ -273,7 +288,16 @@ export default function Jobs() {
   // Reset to first page when filters or sorting change
   useEffect(() => {
     setCurrentPage(0)
-  }, [search, companyFilter, roleFilter, locationFilter, statusFilter, dateSort])
+  }, [search, companyFilter, roleFilter, locationFilter, statusFilter, dateSort, pageSize])
+
+  const changePageSize = (size: number) => {
+    setPageSize(size)
+    try {
+      localStorage.setItem(PAGE_SIZE_KEY, String(size))
+    } catch {
+      // Still applies for this visit, just not remembered
+    }
+  }
 
   const totalPages = Math.max(1, Math.ceil(filteredJobs.length / pageSize))
   const pagedJobs = filteredJobs.slice(currentPage * pageSize, (currentPage + 1) * pageSize)
@@ -311,7 +335,8 @@ export default function Jobs() {
 
   return (
     <div className="jobs-page">
-      <h1 className="jobs-page-title">{t.jobs}</h1>
+      {/* The top bar shows the page name, except on small phones where it gives way to search */}
+      <h1 className="jobs-page-title mobile-page-title">{t.jobs}</h1>
 
       {/* Stat Cards */}
       <div className="jobs-stat-cards">
@@ -512,52 +537,65 @@ export default function Jobs() {
             </div>
 
             {/* Pagination */}
-            {filteredJobs.length > pageSize && (
+            {/* Shown once there's more than the smallest page, so the size can be changed back */}
+            {filteredJobs.length > PAGE_SIZE_OPTIONS[0] && (
               <div className="jobs-pagination">
                 <span className="jobs-pagination-info">
                   {t.showingRange.replace('{start}', String(currentPage * pageSize + 1)).replace('{end}', String(Math.min((currentPage + 1) * pageSize, filteredJobs.length))).replace('{total}', String(filteredJobs.length))}
                 </span>
-                <div className="jobs-pagination-controls">
-                  <button
-                    className="jobs-pagination-btn"
-                    disabled={currentPage === 0}
-                    onClick={() => setCurrentPage((p) => p - 1)}
+                <label className="jobs-page-size">
+                  {t.rowsPerPage}
+                  <select
+                    className="jobs-page-size-select"
+                    value={pageSize}
+                    onChange={(e) => changePageSize(Number(e.target.value))}
                   >
-                    ‹ {t.prev}
-                  </button>
-                  {(() => {
-                    const pages: (number | string)[] = []
-                    if (totalPages <= 7) {
-                      for (let i = 0; i < totalPages; i++) pages.push(i)
-                    } else {
-                      pages.push(0)
-                      if (currentPage > 2) pages.push('…start')
-                      for (let i = Math.max(1, currentPage - 1); i <= Math.min(totalPages - 2, currentPage + 1); i++) pages.push(i)
-                      if (currentPage < totalPages - 3) pages.push('…end')
-                      pages.push(totalPages - 1)
-                    }
-                    return pages.map((p) =>
-                      typeof p === 'string' ? (
-                        <span key={p} className="jobs-pagination-ellipsis">…</span>
-                      ) : (
-                        <button
-                          key={p}
-                          className={`jobs-pagination-btn ${p === currentPage ? 'jobs-pagination-btn--active' : ''}`}
-                          onClick={() => setCurrentPage(p)}
-                        >
-                          {p + 1}
-                        </button>
+                    {PAGE_SIZE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                </label>
+                {totalPages > 1 && (
+                  <div className="jobs-pagination-controls">
+                    <button
+                      className="jobs-pagination-btn"
+                      disabled={currentPage === 0}
+                      onClick={() => setCurrentPage((p) => p - 1)}
+                    >
+                      ‹ {t.prev}
+                    </button>
+                    {(() => {
+                      const pages: (number | string)[] = []
+                      if (totalPages <= 7) {
+                        for (let i = 0; i < totalPages; i++) pages.push(i)
+                      } else {
+                        pages.push(0)
+                        if (currentPage > 2) pages.push('…start')
+                        for (let i = Math.max(1, currentPage - 1); i <= Math.min(totalPages - 2, currentPage + 1); i++) pages.push(i)
+                        if (currentPage < totalPages - 3) pages.push('…end')
+                        pages.push(totalPages - 1)
+                      }
+                      return pages.map((p) =>
+                        typeof p === 'string' ? (
+                          <span key={p} className="jobs-pagination-ellipsis">…</span>
+                        ) : (
+                          <button
+                            key={p}
+                            className={`jobs-pagination-btn ${p === currentPage ? 'jobs-pagination-btn--active' : ''}`}
+                            onClick={() => setCurrentPage(p)}
+                          >
+                            {p + 1}
+                          </button>
+                        )
                       )
-                    )
-                  })()}
-                  <button
-                    className="jobs-pagination-btn"
-                    disabled={currentPage >= totalPages - 1}
-                    onClick={() => setCurrentPage((p) => p + 1)}
-                  >
-                    {t.next} ›
-                  </button>
-                </div>
+                    })()}
+                    <button
+                      className="jobs-pagination-btn"
+                      disabled={currentPage >= totalPages - 1}
+                      onClick={() => setCurrentPage((p) => p + 1)}
+                    >
+                      {t.next} ›
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -568,7 +606,7 @@ export default function Jobs() {
           <div className="jobs-top-employers">
             <h3 className="jobs-sidebar-title">{t.topEmployers}</h3>
             <div className="jobs-employers-list">
-              {topEmployers.map((employer) => (
+              {(showAllEmployers ? topEmployers : topEmployers.slice(0, EMPLOYER_PREVIEW)).map((employer) => (
                 <div className="jobs-employer-item" key={employer.company}>
                   <span
                     className="jobs-employer-logo"
@@ -583,6 +621,16 @@ export default function Jobs() {
                 </div>
               ))}
             </div>
+            {topEmployers.length > EMPLOYER_PREVIEW && (
+              <button
+                type="button"
+                className="jobs-employers-toggle"
+                aria-expanded={showAllEmployers}
+                onClick={() => setShowAllEmployers((v) => !v)}
+              >
+                {showAllEmployers ? t.showLess : `${t.showAllCount.replace('{count}', String(topEmployers.length))} →`}
+              </button>
+            )}
           </div>
         </div>
       </div>

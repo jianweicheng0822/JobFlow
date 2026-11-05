@@ -145,13 +145,8 @@ export default function Companies() {
 
   return (
     <div className="companies-page">
-      <div className="companies-page-header">
-        <h1 className="companies-page-title">{t.companies}</h1>
-        <button className="companies-filter-btn" onClick={openCreate}>
-          <Plus size={14} />
-          {t.newCompany}
-        </button>
-      </div>
+      {/* The top bar shows the page name, except on small phones where it gives way to search */}
+      <h1 className="companies-page-title mobile-page-title">{t.companies}</h1>
 
       {/* Search & Filter Bar */}
       <div className="companies-filter-bar">
@@ -180,12 +175,18 @@ export default function Companies() {
             ))}
           </select>
         </div>
-        <button className="companies-filter-btn" onClick={handleReset} disabled={!hasActiveFilters}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-          </svg>
-          {t.reset}
-        </button>
+        <div className="companies-filter-right">
+          <button className="companies-filter-btn" onClick={handleReset} disabled={!hasActiveFilters}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+            </svg>
+            {t.reset}
+          </button>
+          <button className="companies-filter-btn" onClick={openCreate}>
+            <Plus size={14} />
+            {t.newCompany}
+          </button>
+        </div>
       </div>
 
       {/* Company Cards */}

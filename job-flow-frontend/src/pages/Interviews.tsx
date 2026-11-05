@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import { Plus, Pencil, Trash2, Phone, Video, MapPin } from 'lucide-react'
+import { Plus, Pencil, Trash2, Phone, Video, MapPin, ChevronRight } from 'lucide-react'
 import './Interviews.css'
 import { getInterviews, deleteInterview } from '../api/interviews'
 import type { InterviewDTO, InterviewType } from '../api/types'
@@ -67,6 +67,8 @@ export default function Interviews() {
 
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
+  // null = not touched yet, so the default below decides
+  const [pastOpen, setPastOpen] = useState<boolean | null>(null)
 
   // CRUD modal state
   const [showModal, setShowModal] = useState(false)
@@ -149,6 +151,13 @@ export default function Interviews() {
     })
   }, [filteredInterviews])
 
+  const upcomingRows = sortedInterviews.filter((iv) => isUpcoming(iv.interviewDate))
+  const pastRows = sortedInterviews.filter((iv) => !isUpcoming(iv.interviewDate))
+  const hasActiveFilters = Boolean(search || typeFilter)
+  // Past interviews stay folded away unless there's nothing upcoming or the
+  // user is searching (a match could be hiding in there)
+  const showPast = pastOpen ?? (upcomingRows.length === 0 || hasActiveFilters)
+
   const totalCount = interviews.length
   const upcomingCount = interviews.filter((iv) => isUpcoming(iv.interviewDate)).length
   const completedCount = totalCount - upcomingCount
@@ -159,11 +168,56 @@ export default function Interviews() {
     { label: t.completed, value: completedCount, icon: 'completed' as const, colorClass: 'completed' },
   ]
 
-  const hasActiveFilters = Boolean(search || typeFilter)
-
   const handleReset = () => {
     setSearch('')
     setTypeFilter('')
+  }
+
+  const renderRow = (iv: InterviewDTO) => {
+    const typeCfg = TYPE_CONFIG[iv.interviewType]
+    const upcoming = isUpcoming(iv.interviewDate)
+    const TypeIcon = typeCfg.icon
+    return (
+      <tr key={iv.id} className={upcoming ? '' : 'interviews-row--past'}>
+        <td>
+          <span className="interviews-position">{iv.positionTitle}</span>
+        </td>
+        <td>
+          <div className="interviews-company-cell">
+            <span
+              className="interviews-company-logo"
+              style={{ background: companyColor(iv.companyName) }}
+            >
+              {iv.companyName.charAt(0)}
+            </span>
+            {iv.companyName}
+          </div>
+        </td>
+        <td>{formatDateOf(iv.interviewDate, lang)}</td>
+        <td>{formatTimeOf(iv.interviewDate, lang)}</td>
+        <td>
+          <span className="interviews-type-badge" style={{ background: typeCfg.color }}>
+            <TypeIcon size={12} />
+            {t[TYPE_LABEL_KEYS[iv.interviewType]]}
+          </span>
+        </td>
+        <td>
+          <span className={`interviews-status-badge interviews-status-badge--${upcoming ? 'upcoming' : 'completed'}`}>
+            {upcoming ? t.upcoming : t.completed}
+          </span>
+        </td>
+        <td>
+          <div className="interviews-actions">
+            <button className="interviews-action-btn interviews-action-btn--edit" title={t.editInterview} onClick={() => openEdit(iv)}>
+              <Pencil size={14} />
+            </button>
+            <button className="interviews-action-btn interviews-action-btn--delete" title={t.deleteInterview} onClick={() => setDeleteTarget(iv)}>
+              <Trash2 size={14} />
+            </button>
+          </div>
+        </td>
+      </tr>
+    )
   }
 
   if (loading) {
@@ -176,7 +230,8 @@ export default function Interviews() {
 
   return (
     <div className="interviews-page">
-      <h1 className="interviews-page-title">{t.interviews}</h1>
+      {/* The top bar shows the page name, except on small phones where it gives way to search */}
+      <h1 className="interviews-page-title mobile-page-title">{t.interviews}</h1>
 
       {/* Stat Cards */}
       <div className="interviews-stat-cards">
@@ -259,52 +314,32 @@ export default function Interviews() {
                   <td colSpan={7} className="interviews-table-empty">{t.noInterviewsFound}</td>
                 </tr>
               ) : (
-                sortedInterviews.map((iv) => {
-                  const typeCfg = TYPE_CONFIG[iv.interviewType]
-                  const upcoming = isUpcoming(iv.interviewDate)
-                  const TypeIcon = typeCfg.icon
-                  return (
-                    <tr key={iv.id} className={upcoming ? '' : 'interviews-row--past'}>
-                      <td>
-                        <span className="interviews-position">{iv.positionTitle}</span>
-                      </td>
-                      <td>
-                        <div className="interviews-company-cell">
-                          <span
-                            className="interviews-company-logo"
-                            style={{ background: companyColor(iv.companyName) }}
-                          >
-                            {iv.companyName.charAt(0)}
-                          </span>
-                          {iv.companyName}
-                        </div>
-                      </td>
-                      <td>{formatDateOf(iv.interviewDate, lang)}</td>
-                      <td>{formatTimeOf(iv.interviewDate, lang)}</td>
-                      <td>
-                        <span className="interviews-type-badge" style={{ background: typeCfg.color }}>
-                          <TypeIcon size={12} />
-                          {t[TYPE_LABEL_KEYS[iv.interviewType]]}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`interviews-status-badge interviews-status-badge--${upcoming ? 'upcoming' : 'completed'}`}>
-                          {upcoming ? t.upcoming : t.completed}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="interviews-actions">
-                          <button className="interviews-action-btn interviews-action-btn--edit" title={t.editInterview} onClick={() => openEdit(iv)}>
-                            <Pencil size={14} />
-                          </button>
-                          <button className="interviews-action-btn interviews-action-btn--delete" title={t.deleteInterview} onClick={() => setDeleteTarget(iv)}>
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
+                <>
+                  {upcomingRows.length > 0 && (
+                    <tr className="interviews-group-row">
+                      <td colSpan={7} className="interviews-group-label">
+                        {t.upcoming} · {upcomingRows.length}
                       </td>
                     </tr>
-                  )
-                })
+                  )}
+                  {upcomingRows.map(renderRow)}
+                  {pastRows.length > 0 && (
+                    <tr className="interviews-group-row">
+                      <td colSpan={7}>
+                        <button
+                          type="button"
+                          className={`interviews-past-toggle ${showPast ? 'interviews-past-toggle--open' : ''}`}
+                          aria-expanded={showPast}
+                          onClick={() => setPastOpen(!showPast)}
+                        >
+                          <ChevronRight size={14} aria-hidden="true" />
+                          {t.pastInterviews} · {pastRows.length}
+                        </button>
+                      </td>
+                    </tr>
+                  )}
+                  {showPast && pastRows.map(renderRow)}
+                </>
               )}
             </tbody>
           </table>

@@ -378,3 +378,40 @@ describe('Jobs search and links', () => {
     await waitFor(() => expect(rowTitles()).toEqual(['Alpha']));
   });
 });
+
+describe('Jobs page size and top employers', () => {
+  const many = (n: number) => Array.from({ length: n }, (_, i) => makeApp(i + 1, `Job ${i + 1}`));
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.removeItem('jobflow-jobs-page-size');
+  });
+
+  it('shows 20 rows by default and remembers a new page size', async () => {
+    vi.mocked(getApplications).mockResolvedValue({ data: many(25) } as never);
+    render(<Jobs />, { wrapper: Wrapper });
+    await findTitle('Job 1');
+
+    expect(screen.getByText('Showing 1-20 of 25')).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Rows per page' }), { target: { value: '10' } });
+
+    expect(screen.getByText('Showing 1-10 of 25')).toBeInTheDocument();
+    expect(rowTitles()).toHaveLength(10);
+    expect(localStorage.getItem('jobflow-jobs-page-size')).toBe('10');
+  });
+
+  it('lists the top 5 employers and can show the rest', async () => {
+    vi.mocked(getApplications).mockResolvedValue({ data: many(7) } as never);
+    render(<Jobs />, { wrapper: Wrapper });
+    await findTitle('Job 1');
+
+    const employers = () => document.querySelectorAll('.jobs-employer-item').length;
+    expect(employers()).toBe(5);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show all 7 →' }));
+    expect(employers()).toBe(7);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show less' }));
+    expect(employers()).toBe(5);
+  });
+});

@@ -270,7 +270,7 @@
 }
 
 .jobs-table tbody td {
-  padding: 12px;
+  padding: 8px 12px;
   color: var(--text-primary);
   border-bottom: 1px solid var(--border-color);
   white-space: nowrap;
@@ -284,10 +284,12 @@
   background: var(--content-bg);
 }
 
+/* Title and company share one line to keep rows short */
 .jobs-title-cell {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 6px;
 }
 
 .jobs-title-name {
@@ -296,13 +298,17 @@
 }
 
 .jobs-title-company {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-muted);
 }
 
+.jobs-title-company::before {
+  content: '· ';
+}
+
 .jobs-company-logo {
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
@@ -435,6 +441,23 @@
   color: var(--text-muted);
 }
 
+.jobs-employers-toggle {
+  display: block;
+  margin-top: 14px;
+  padding: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sidebar-accent);
+  cursor: pointer;
+}
+
+.jobs-employers-toggle:hover {
+  text-decoration: underline;
+}
+
 /* ===== Row Action Buttons ===== */
 .jobs-actions {
   display: flex;
@@ -493,7 +516,7 @@
 .jobs-pagination {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 16px;
   padding: 16px 0 4px;
   border-top: 1px solid var(--border-color);
   margin-top: 8px;
@@ -504,10 +527,30 @@
   color: var(--text-secondary);
 }
 
+.jobs-page-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.jobs-page-size-select {
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
 .jobs-pagination-controls {
   display: flex;
   align-items: center;
   gap: 4px;
+  margin-left: auto;
 }
 
 .jobs-pagination-btn {
@@ -549,6 +592,20 @@
 }
 
 /* ===== Responsive ===== */
+/* Wide screens: the table always fits, so drop the scroll wrapper (it would
+   break sticky) and keep the column names in view under the top bar */
+@media (min-width: 1201px) {
+  .jobs-table-wrapper {
+    overflow-x: visible;
+  }
+  .jobs-table thead th {
+    position: sticky;
+    top: var(--topbar-height);
+    z-index: 2;
+    background: var(--card-bg);
+  }
+}
+
 /* Give the table the full width; Top Employers moves below it as a grid */
 @media (max-width: 1400px) {
   .jobs-main {
@@ -639,7 +696,7 @@
     max-width: calc(100% - 200px);
     overflow: hidden;
     text-overflow: ellipsis;
-    padding-left: 42px;
+    padding-left: 38px;
   }
   .jobs-table tbody td:nth-child(3),
   .jobs-table tbody td:nth-child(4) {
@@ -662,6 +719,9 @@
     flex-direction: column;
     gap: 10px;
     align-items: center;
+  }
+  .jobs-pagination-controls {
+    margin-left: 0;
   }
 }
 

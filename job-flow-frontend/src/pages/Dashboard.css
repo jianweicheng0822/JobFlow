@@ -252,11 +252,22 @@
 
 .pipeline-card-meta {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  gap: 4px;
   font-size: 11px;
   color: var(--text-muted);
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  min-width: 0;
+}
+
+.pipeline-card-meta svg {
+  flex-shrink: 0;
+}
+
+.pipeline-card-meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pipeline-card-footer {
@@ -266,9 +277,24 @@
   gap: 6px;
 }
 
+.pipeline-card-salary {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 .pipeline-card-date {
-  font-size: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+  font-size: 11px;
   color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.recent-more {
+  margin-top: 12px;
 }
 
 .pipeline-card-tag {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Search, Camera, LogOut } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
@@ -26,10 +26,21 @@ function getGreeting(t: { goodMorning: string; goodAfternoon: string; goodEvenin
   return t.goodEvening
 }
 
+// Pages that show their name in the top bar; anything else (the dashboard) gets the greeting
+const PAGE_TITLE_KEYS: Record<string, 'jobs' | 'interviews' | 'companies' | 'analytics' | 'settings'> = {
+  '/jobs': 'jobs',
+  '/interviews': 'interviews',
+  '/companies': 'companies',
+  '/analytics': 'analytics',
+  '/settings': 'settings',
+}
+
 export default function TopBar() {
   const { user, logout, updateUser } = useAuth()
   const { t } = useLanguage()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const pageTitleKey = PAGE_TITLE_KEYS[pathname]
 
   const [avatar, setAvatar] = useState<string | null>(() => {
     return getStoredAvatar(user?.email)
@@ -133,7 +144,7 @@ export default function TopBar() {
   return (
     <header className="topbar">
       <div className="topbar-greeting">
-        <h1>{getGreeting(t)}, {displayName.split(' ')[0]}!</h1>
+        <h1>{pageTitleKey ? t[pageTitleKey] : `${getGreeting(t)}, ${displayName.split(' ')[0]}!`}</h1>
       </div>
 
       <div className="topbar-right">

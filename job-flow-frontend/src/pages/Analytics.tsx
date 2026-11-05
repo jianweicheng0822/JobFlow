@@ -149,7 +149,8 @@ export default function Analytics() {
 
   return (
     <div className="analytics-page">
-      <h1 className="analytics-page-title">{t.analytics}</h1>
+      {/* The top bar shows the page name, except on small phones where it gives way to search */}
+      <h1 className="analytics-page-title mobile-page-title">{t.analytics}</h1>
 
       <div className="analytics-layout">
         {/* Left Side Nav */}

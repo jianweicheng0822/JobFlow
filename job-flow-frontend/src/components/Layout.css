@@ -21,6 +21,18 @@
   background: var(--content-bg);
 }
 
+/* Page headings inside the content only show on small phones; everywhere
+   else the top bar already says which page this is */
+.mobile-page-title {
+  display: none;
+}
+
+@media (max-width: 520px) {
+  .mobile-page-title {
+    display: block;
+  }
+}
+
 @media (max-width: 768px) {
   .layout-main {
     margin-left: 0;
