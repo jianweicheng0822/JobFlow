@@ -31,7 +31,7 @@ const STATUS_VALUES: ApplicationStatus[] = ['APPLIED', 'IN_REVIEW', 'PHONE_SCREE
 
 interface ApplicationFormProps {
   application?: JobApplicationDTO; // if provided, we're in edit mode
-  onSuccess: () => void;
+  onSuccess: (saved: JobApplicationDTO) => void;
   onCancel: () => void;
 }
 
@@ -116,14 +116,11 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
         data.companyName = companyInput.trim();
       }
 
-      if (isEdit) {
-        await updateApplication(application!.id, data as UpdateJobApplicationRequest);
-        showToast(t.applicationUpdated, 'success');
-      } else {
-        await createApplication(data as unknown as CreateJobApplicationRequest);
-        showToast(t.applicationCreated, 'success');
-      }
-      onSuccess();
+      const res = isEdit
+        ? await updateApplication(application!.id, data as UpdateJobApplicationRequest)
+        : await createApplication(data as unknown as CreateJobApplicationRequest);
+      showToast(isEdit ? t.applicationUpdated : t.applicationCreated, 'success');
+      onSuccess(res.data);
     } catch (err) {
       const msg = getErrorMessage(err, t.applicationSaveFailed);
       setErrors({ form: msg });

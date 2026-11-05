@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Plus, Pencil, Trash2, Star } from 'lucide-react'
 import './Jobs.css'
@@ -15,6 +15,9 @@ import { sortByAppliedDate, type SortDirection } from '../utils/sortByAppliedDat
 import { formatDateOnly } from '../utils/date'
 import { companyColor as getCompanyColor } from '../utils/companyColor'
 import { markDemoTask } from '../utils/demoChecklist'
+
+// How long a just-created row stays highlighted (matches the fade in Jobs.css)
+const NEW_ROW_HIGHLIGHT_MS = 2500
 
 // ===== Helpers =====
 const STATUS_COLORS: Record<ApplicationStatus, string> = {
@@ -139,6 +142,10 @@ export default function Jobs() {
   const [editingApp, setEditingApp] = useState<JobApplicationDTO | undefined>(undefined)
   const [deleteTarget, setDeleteTarget] = useState<JobApplicationDTO | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  // The application you just created gets a short highlight so you can spot it
+  const [newAppId, setNewAppId] = useState<number | null>(null)
+  // Set until the new row has been found in the list and its page opened
+  const revealPending = useRef<number | null>(null)
   // Rows with a star/status request in flight. Shared on purpose so the two
   // quick actions can't race each other on the same row.
   const [pendingIds, setPendingIds] = useState<Set<number>>(new Set())
@@ -202,10 +209,30 @@ export default function Jobs() {
     setEditingApp(undefined)
   }
 
-  function handleFormSuccess() {
+  function handleFormSuccess(saved: JobApplicationDTO) {
+    const created = !editingApp
     closeModal()
     fetchData()
+    if (created) {
+      setNewAppId(saved.id)
+      revealPending.current = saved.id
+    }
   }
+
+  // Let the highlight fade, then forget about it
+  useEffect(() => {
+    if (newAppId === null) return
+    const timer = setTimeout(() => {
+      setNewAppId(null)
+      revealPending.current = null
+    }, NEW_ROW_HIGHLIGHT_MS)
+    return () => clearTimeout(timer)
+  }, [newAppId])
+
+  // Stable on purpose: React calls it once when the highlighted row mounts
+  const revealRow = useCallback((row: HTMLTableRowElement | null) => {
+    row?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [])
 
   async function handleDelete() {
     if (!deleteTarget) return
@@ -298,6 +325,15 @@ export default function Jobs() {
       // Still applies for this visit, just not remembered
     }
   }
+
+  // Once the refetch brings the new application in, open the page it landed on
+  useEffect(() => {
+    if (revealPending.current === null) return
+    const index = filteredJobs.findIndex((app) => app.id === revealPending.current)
+    if (index === -1) return
+    revealPending.current = null
+    setCurrentPage(Math.floor(index / pageSize))
+  }, [filteredJobs, pageSize])
 
   const totalPages = Math.max(1, Math.ceil(filteredJobs.length / pageSize))
   const pagedJobs = filteredJobs.slice(currentPage * pageSize, (currentPage + 1) * pageSize)
@@ -476,7 +512,11 @@ export default function Jobs() {
                       const statusColor = STATUS_COLORS[app.status]
                       const companyColor = getCompanyColor(app.company.name)
                       return (
-                        <tr key={app.id}>
+                        <tr
+                          key={app.id}
+                          className={app.id === newAppId ? 'jobs-row--new' : undefined}
+                          ref={app.id === newAppId ? revealRow : undefined}
+                        >
                           <td>
                             <div className="jobs-title-with-logo">
                               <span

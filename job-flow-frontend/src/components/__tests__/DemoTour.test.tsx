@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import DemoTour from '../DemoTour'
@@ -8,7 +8,12 @@ import { LanguageProvider } from '../../context/LanguageProvider'
 function Board() {
   return (
     <div className="pipeline-section">
-      <div className="pipeline-column"><div className="pipeline-card">Card</div></div>
+      <div className="pipeline-column">
+        <div className="pipeline-card">
+          <div className="pipeline-card-title">DevOps Engineer</div>
+          <div className="pipeline-card-company">Amazon</div>
+        </div>
+      </div>
       <div className="pipeline-column" />
     </div>
   )
@@ -47,7 +52,10 @@ describe('DemoTour', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Show me around' }))
 
     expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled()
-    expect(screen.getByTestId('drag-hint')).toBeInTheDocument()
+    // the moving ghost is a copy of the card you're asked to drag
+    const hint = screen.getByTestId('drag-hint')
+    expect(within(hint).getByText('DevOps Engineer')).toBeInTheDocument()
+    expect(within(hint).getByText('Amazon')).toBeInTheDocument()
     expect(screen.queryByText(/Step \d of/)).not.toBeInTheDocument() // only one counted step
 
     setMoves(1)

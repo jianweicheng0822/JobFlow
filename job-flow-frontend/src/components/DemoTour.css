@@ -1,4 +1,4 @@
-/* A ghost card and pointer sliding from the first card into the next column, on repeat */
+/* A copy of the first card and a pointer sliding into the next column, on repeat */
 .demo-drag-hint {
   position: fixed;
   z-index: 901;
@@ -10,16 +10,55 @@
 
 .demo-drag-hint-ghost {
   position: absolute;
-  left: -60px;
-  top: -22px;
-  width: 120px;
-  height: 44px;
-  border: 2px dashed var(--sidebar-accent);
+  left: -70px;
+  top: -24px;
+  width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--sidebar-accent);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--sidebar-accent) 14%, transparent);
+  background: var(--content-bg);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+  transform: rotate(-3deg);
+  opacity: 0.95;
 }
 
-.demo-drag-hint-pointer {
+.demo-drag-hint-title,
+.demo-drag-hint-company {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.demo-drag-hint-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.demo-drag-hint-company {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* Glowing outline on the card the hint is moving, so it's clear which one to grab */
+.demo-drag-source {
+  position: fixed;
+  z-index: 901;
+  border: 2px solid var(--sidebar-accent);
+  border-radius: 8px;
+  pointer-events: none;
+  animation: demo-drag-source-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes demo-drag-source-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--sidebar-accent) 30%, transparent), 0 0 14px color-mix(in srgb, var(--sidebar-accent) 35%, transparent); }
+  50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--sidebar-accent) 20%, transparent), 0 0 22px color-mix(in srgb, var(--sidebar-accent) 50%, transparent); }
+}
+
+drag-hint-pointer {
   position: absolute;
   left: -4px;
   top: -2px;
@@ -42,5 +81,9 @@
   .demo-drag-hint {
     animation: none;
     transform: translate(var(--hint-dx), 0);
+  }
+  .demo-drag-source {
+    animation: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--sidebar-accent) 30%, transparent);
   }
 }

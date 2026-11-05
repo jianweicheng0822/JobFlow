@@ -284,6 +284,38 @@
   background: var(--content-bg);
 }
 
+/* A just-created row: tinted with an accent bar, fading out over 2.5s (NEW_ROW_HIGHLIGHT_MS) */
+.jobs-row--new {
+  /* clear the sticky top bar and table header when scrolled into view */
+  scroll-margin-top: calc(var(--topbar-height, 64px) + 56px);
+  scroll-margin-bottom: 24px;
+}
+
+.jobs-table tbody tr.jobs-row--new td {
+  animation: jobs-row-new-bg 2.5s ease-out;
+}
+
+.jobs-table tbody tr.jobs-row--new td:first-child {
+  animation: jobs-row-new-bg 2.5s ease-out, jobs-row-new-bar 2.5s ease-out;
+}
+
+@keyframes jobs-row-new-bg {
+  0%, 60% { background-color: color-mix(in srgb, var(--sidebar-accent) 14%, transparent); }
+  100% { background-color: transparent; }
+}
+
+@keyframes jobs-row-new-bar {
+  0%, 60% { box-shadow: inset 3px 0 0 var(--sidebar-accent); }
+  100% { box-shadow: inset 3px 0 0 transparent; }
+}
+
+/* the bottom nav (Layout.css) covers the last 60px on small screens */
+@media (max-width: 768px) {
+  .jobs-row--new {
+    scroll-margin-bottom: calc(60px + env(safe-area-inset-bottom) + 24px);
+  }
+}
+
 /* Title and company share one line to keep rows short */
 .jobs-title-cell {
   display: flex;
@@ -666,6 +698,14 @@
   }
   .jobs-table tbody tr:hover {
     background: none;
+  }
+  /* rows are cards here, so tint the whole card instead of each cell */
+  .jobs-table tbody tr.jobs-row--new {
+    animation: jobs-row-new-bg 2.5s ease-out;
+  }
+  .jobs-table tbody tr.jobs-row--new td,
+  .jobs-table tbody tr.jobs-row--new td:first-child {
+    animation: none;
   }
   .jobs-table tbody td,
   .jobs-table tbody tr:last-child td {

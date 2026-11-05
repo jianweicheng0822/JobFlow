@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import Jobs from '../Jobs';
 import { ToastProvider } from '../../context/ToastProvider';
 import { LanguageProvider } from '../../context/LanguageProvider';
-import { getApplications, toggleStar, updateStatus } from '../../api/applications';
+import { getApplications, toggleStar, updateStatus, createApplication } from '../../api/applications';
 import type { JobApplicationDTO, ApplicationStatus } from '../../api/types';
 
 vi.mock('../../api/companies', () => ({
@@ -16,6 +16,7 @@ vi.mock('../../api/applications', () => ({
   deleteApplication: vi.fn(),
   toggleStar: vi.fn(),
   updateStatus: vi.fn(),
+  createApplication: vi.fn(),
 }));
 
 function makeApp(id: number, positionTitle: string, starred = false, status: ApplicationStatus = 'APPLIED'): JobApplicationDTO {
@@ -413,5 +414,27 @@ describe('Jobs page size and top employers', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Show less' }));
     expect(employers()).toBe(5);
+  });
+
+  it('highlights a new application and opens the page it landed on', async () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    // no date and added earliest, so it sorts to the very end: page 2
+    const created = { ...makeApp(99, 'Brand New Role'), createdAt: '2026-06-01T00:00:00Z' };
+    vi.mocked(getApplications).mockResolvedValue({ data: many(25) } as never);
+    vi.mocked(createApplication).mockResolvedValue({ data: created } as never);
+    render(<Jobs />, { wrapper: Wrapper });
+    await findTitle('Job 1');
+
+    vi.mocked(getApplications).mockResolvedValue({ data: [...many(25), created] } as never);
+    fireEvent.click(screen.getByRole('button', { name: 'New Application' }));
+    fireEvent.change(screen.getByPlaceholderText('e.g. Frontend Developer'), { target: { value: 'Brand New Role' } });
+    fireEvent.change(screen.getByPlaceholderText('Type to search or enter a new company'), { target: { value: 'Acme' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create Application' }));
+
+    const row = (await findTitle('Brand New Role')).closest('tr');
+    expect(row).toHaveClass('jobs-row--new');
+    expect(screen.getByText('Showing 21-26 of 26')).toBeInTheDocument();
+    expect(scrollIntoView).toHaveBeenCalled();
   });
 });

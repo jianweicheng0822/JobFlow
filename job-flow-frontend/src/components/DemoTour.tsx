@@ -68,14 +68,16 @@ export default function DemoTour({ moveCount, onClose }: DemoTourProps) {
 }
 
 interface HintPath {
-  x: number
-  y: number
+  // the card being suggested, so it can be outlined and copied into the ghost
+  card: { left: number; top: number; width: number; height: number }
+  title: string
+  company: string
   dx: number
 }
 
 /**
- * A pointer that keeps "dragging" the first card into the next column until you do it
- * yourself. Purely decorative: it ignores the mouse and screen readers skip it.
+ * Lights up the first card and keeps "dragging" a copy of it into the next column until
+ * you do it yourself. Purely decorative: it ignores the mouse and screen readers skip it.
  */
 function DragHint() {
   const [path, setPath] = useState<HintPath | null>(null)
@@ -91,8 +93,12 @@ function DragHint() {
       }
       const from = card.getBoundingClientRect()
       const to = columns[1].getBoundingClientRect()
-      const x = from.left + from.width / 2
-      setPath({ x, y: from.top + from.height / 2, dx: to.left + to.width / 2 - x })
+      setPath({
+        card: { left: from.left, top: from.top, width: from.width, height: from.height },
+        title: card.querySelector('.pipeline-card-title')?.textContent?.trim() ?? '',
+        company: card.querySelector('.pipeline-card-company')?.textContent?.trim() ?? '',
+        dx: to.left + to.width / 2 - (from.left + from.width / 2),
+      })
     }
     const schedule = () => {
       cancelAnimationFrame(frame)
@@ -109,15 +115,21 @@ function DragHint() {
   }, [])
 
   if (!path) return null
+  const { card } = path
   return (
-    <div
-      className="demo-drag-hint"
-      style={{ left: path.x, top: path.y, '--hint-dx': `${path.dx}px` } as React.CSSProperties}
-      aria-hidden="true"
-      data-testid="drag-hint"
-    >
-      <span className="demo-drag-hint-ghost" />
-      <MousePointer2 className="demo-drag-hint-pointer" size={26} fill="currentColor" />
+    <div aria-hidden="true" data-testid="drag-hint">
+      {/* An outline drawn over the card rather than a class on it, so the board's own render can't wipe it */}
+      <span className="demo-drag-source" style={{ left: card.left, top: card.top, width: card.width, height: card.height }} />
+      <div
+        className="demo-drag-hint"
+        style={{ left: card.left + card.width / 2, top: card.top + card.height / 2, '--hint-dx': `${path.dx}px` } as React.CSSProperties}
+      >
+        <span className="demo-drag-hint-ghost">
+          <span className="demo-drag-hint-title">{path.title}</span>
+          {path.company && <span className="demo-drag-hint-company">{path.company}</span>}
+        </span>
+        <MousePointer2 className="demo-drag-hint-pointer" size={26} fill="currentColor" />
+      </div>
     </div>
   )
 }
