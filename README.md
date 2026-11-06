@@ -63,14 +63,15 @@ A full-stack job application tracker with JWT + OAuth2 authentication, Kanban pi
 ## Features
 
 - **Auth** — Register/login with JWT, Google & GitHub OAuth2, demo mode. Tokens carry the user id and a token version, so changing your password signs out every other device and a deleted account's tokens stop working right away
-- **Dashboard** — Stat cards, Kanban pipeline, recent applications (starred first), upcoming interviews
-- **Jobs** — Searchable, paginated application table with a quick status dropdown, starred (saved) jobs, and top employers
-- **Interviews** — Schedule and manage interviews linked to applications, with optional email reminders (shown only when the server has `MAIL_*` set)
+- **Dashboard** — Stat cards, a drag-and-drop Kanban pipeline (3 cards per stage), the 5 latest applications (starred first), upcoming interviews and applications that need a follow-up, each with a link to the rest
+- **Jobs** — Searchable, paginated application table with a quick status dropdown, starred (saved) jobs, and top employers. Pick 10, 20 or 50 rows per page (remembered per browser); a new application is highlighted on the page it lands on
+- **Interviews** — Schedule and manage interviews linked to applications, upcoming ones first and past ones folded away, with optional email reminders (shown only when the server has `MAIL_*` set)
 - **Companies** — Company directory with search and per-company application count
 - **Analytics** — Overview, status distribution, per-company breakdown
 - **Global search** — Search applications and companies from the top bar
 - **Settings** — Profile, password, theme (dark/light), language (English/中文), and time zone
 - **Account deletion** — Delete your account from Settings; all your data goes with it
+- **Works on any screen** — Checked from a 3440px ultrawide down to a 390px phone; on phones the Jobs and Interviews rows turn into cards
 - **Demo tour** — First-time demo visitors get a three-step tour that has them drag a real card before moving on, then a small checklist (add an application, star or search, open Analytics, switch theme or language) that ticks itself off as they explore and ends with a sign-up button
 - **Feedback** — Send a bug report or idea from the sidebar (Settings on phones), also from the demo. Each message is saved and emailed to the maintainer, with a honeypot, a per-IP hourly limit and a daily cap against spam
 
@@ -174,7 +175,7 @@ Base paths: `/api/auth`, `/api/applications`, `/api/interviews`, `/api/companies
 
 ## Testing
 
-**623 tests**: 426 backend (integration and unit) and 197 frontend (component and API).
+**687 tests**: 426 backend (integration and unit) and 261 frontend (component and API).
 
 ```bash
 # Backend (needs Docker running: integration tests start MySQL with Testcontainers)
