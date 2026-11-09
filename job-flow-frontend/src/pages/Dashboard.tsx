@@ -12,9 +12,10 @@ import { getUpcomingInterviews } from '../api/interviews'
 import type { DashboardStatsDTO, JobApplicationDTO, InterviewDTO, ApplicationStatus } from '../api/types'
 import { sortStarredFirst } from '../utils/sortStarredFirst'
 import { formatLastAction } from '../utils/formatLastAction'
-import { formatDateOnly, formatMonthDay, formatTimeOf, todayLocal } from '../utils/date'
+import { formatSalary } from '../utils/salary'
+import { bookedTimeIfDifferent, formatDateOnly, formatMonthDay, formatMonthDayOf, formatTimeOf, interviewStart, todayLocal } from '../utils/date'
 import type { Language } from '../context/LanguageContext'
-import { weeklyApplicationCounts, weeklyWindows } from '../utils/weeklyCounts'
+import { daysBetween, weeklyApplicationCounts, weeklyWindows } from '../utils/weeklyCounts'
 import Sparkline from '../components/Sparkline'
 import ShareBar from '../components/ShareBar'
 import { companyColor as getCompanyColor } from '../utils/companyColor'
@@ -72,11 +73,9 @@ const FOLLOW_UP_DAYS = 14
 const FOLLOW_UP_MAX_DAYS = 60
 const FOLLOW_UP_LIMIT = 3
 
-// Whole calendar days from a "YYYY-MM-DD" date to today, in local time
+// Whole calendar days from a "YYYY-MM-DD" date to today in the user's zone
 function daysSince(dateStr: string, now: Date = new Date()): number {
-  const [y, m, d] = dateStr.slice(0, 10).split('-').map(Number)
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  return Math.round((today.getTime() - new Date(y, m - 1, d).getTime()) / 86_400_000)
+  return daysBetween(dateStr.slice(0, 10), todayLocal(now))
 }
 
 // Short age of an applied date for board cards: "Today", "3d ago", "2w ago", "4mo ago"
@@ -95,7 +94,7 @@ function formatInterviewWhen(dateStr: string, t: Record<string, string>, lang: L
   const daysAway = -daysSince(todayLocal(d))
   const day = daysAway === 0 ? t.today
     : daysAway === 1 ? t.tomorrow
-    : formatMonthDay(d, lang)
+    : formatMonthDayOf(dateStr, lang)
   return { day, time }
 }
 
@@ -123,7 +122,7 @@ function buildPipelineColumns(applications: JobApplicationDTO[], t: Record<strin
         title: app.positionTitle,
         company: app.company.name,
         location: app.location || '',
-        salary: app.salary || '',
+        salary: formatSalary(app.salary, app.salaryCurrency),
         date: app.appliedDate ?? '',
         starred: app.starred,
       })),
@@ -519,7 +518,8 @@ export default function Dashboard() {
             <h3 className="sidebar-section-title">{t.upcomingInterviews}</h3>
             <div className="upcoming-list">
               {interviews.slice(0, UPCOMING_LIMIT).map((interview) => {
-                const when = formatInterviewWhen(interview.interviewDate, t, lang)
+                const when = formatInterviewWhen(interviewStart(interview), t, lang)
+                const booked = bookedTimeIfDifferent(interview, lang)
                 return (
                   <Link to="/interviews" className="upcoming-item" key={interview.id}>
                     <span
@@ -535,6 +535,7 @@ export default function Dashboard() {
                     <div className="upcoming-when">
                       <div className="upcoming-day">{when.day}</div>
                       <div className="upcoming-time">{when.time}</div>
+                      {booked && <div className="interview-booked-time" title={t.bookedTimeHint}>{booked}</div>}
                     </div>
                   </Link>
                 )
@@ -587,6 +588,7 @@ export default function Dashboard() {
         <Modal title={t.editApplication} onClose={() => setEditingApp(null)}>
           <ApplicationForm
             application={editingApp}
+            history={applications}
             onSuccess={() => {
               setEditingApp(null)
               fetchData()

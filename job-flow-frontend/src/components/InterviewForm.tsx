@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { FormEvent } from 'react';
 import { getApplications } from '../api/applications';
 import { createInterview, updateInterview } from '../api/interviews';
@@ -11,6 +11,8 @@ import type {
 } from '../api/types';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuthProviders } from '../hooks/useAuthProviders';
+import { COMMON_TIME_ZONES, allTimeZones } from '../data/timeZones';
+import { currentTimeZone, zoneAbbreviation } from '../utils/date';
 import './ApplicationForm.css';
 
 const TYPE_VALUES: InterviewType[] = ['PHONE', 'VIDEO', 'ONSITE'];
@@ -28,7 +30,7 @@ interface InterviewFormProps {
 
 export default function InterviewForm({ interview, onSuccess, onCancel }: InterviewFormProps) {
   const isEdit = !!interview;
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   // Nothing would ever send the reminder on a server without mail settings
   const canRemind = useAuthProviders()?.emailReminders === true;
 
@@ -41,6 +43,10 @@ export default function InterviewForm({ interview, onSuccess, onCancel }: Interv
   const [interviewDate, setInterviewDate] = useState(
     interview?.interviewDate ? interview.interviewDate.slice(0, 16) : ''
   );
+  // The time is read on this zone's clock; the user's own unless it was booked
+  // with, say, a US company in Pacific time
+  const myZone = currentTimeZone();
+  const [timeZone, setTimeZone] = useState(interview?.timeZone ?? myZone);
   const [interviewType, setInterviewType] = useState<InterviewType>(interview?.interviewType ?? 'VIDEO');
   const [notes, setNotes] = useState(interview?.notes ?? '');
   const [reminderEnabled, setReminderEnabled] = useState(interview?.reminderEnabled ?? false);
@@ -58,6 +64,19 @@ export default function InterviewForm({ interview, onSuccess, onCancel }: Interv
     return Object.keys(newErrors).length === 0;
   }
 
+  const zoneLabel = (zone: string) => {
+    const common = COMMON_TIME_ZONES.find((z) => z.zone === zone);
+    const name = common ? common[lang] : zone.replace(/_/g, ' ');
+    return `${name} (${zoneAbbreviation(zone, lang)})`;
+  };
+  const commonZones = COMMON_TIME_ZONES.map((z) => z.zone).filter((z) => z !== myZone);
+  const otherZones = useMemo(() => {
+    const shown = new Set([myZone, ...COMMON_TIME_ZONES.map((z) => z.zone)]);
+    return allTimeZones().filter((z) => !shown.has(z));
+  }, [myZone]);
+  // An old interview could carry a zone this browser doesn't list; keep it selectable
+  const unlistedZone = timeZone !== myZone && !commonZones.includes(timeZone) && !otherZones.includes(timeZone);
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!validate()) return;
@@ -67,6 +86,7 @@ export default function InterviewForm({ interview, onSuccess, onCancel }: Interv
       const data: CreateInterviewRequest = {
         jobApplicationId: jobApplicationId as number,
         interviewDate,
+        timeZone,
         interviewType,
         // "" clears the notes on edit; undefined would keep the old value
         notes: notes.trim(),
@@ -124,17 +144,41 @@ export default function InterviewForm({ interview, onSuccess, onCancel }: Interv
           {errors.interviewDate && <span className="app-form-error">{errors.interviewDate}</span>}
         </div>
         <div className="app-form-field">
-          <label className="app-form-label">{t.interviewType}</label>
+          <label className="app-form-label" htmlFor="interview-time-zone">{t.interviewTimeZone}</label>
           <select
+            id="interview-time-zone"
             className="app-form-select"
-            value={interviewType}
-            onChange={(e) => setInterviewType(e.target.value as InterviewType)}
+            value={timeZone}
+            onChange={(e) => setTimeZone(e.target.value)}
           >
-            {TYPE_VALUES.map((val) => (
-              <option key={val} value={val}>{t[TYPE_LABEL_KEYS[val]]}</option>
+            <option value={myZone}>{t.myTimeZone} · {zoneLabel(myZone)}</option>
+            {unlistedZone && <option value={timeZone}>{zoneLabel(timeZone)}</option>}
+            {commonZones.map((z) => (
+              <option key={z} value={z}>{zoneLabel(z)}</option>
             ))}
+            {otherZones.length > 0 && (
+              <optgroup label={t.allTimeZones}>
+                {otherZones.map((z) => (
+                  <option key={z} value={z}>{z.replace(/_/g, ' ')}</option>
+                ))}
+              </optgroup>
+            )}
           </select>
         </div>
+      </div>
+      <span className="app-form-hint">{t.interviewTimeZoneHint}</span>
+
+      <div className="app-form-field">
+        <label className="app-form-label">{t.interviewType}</label>
+        <select
+          className="app-form-select"
+          value={interviewType}
+          onChange={(e) => setInterviewType(e.target.value as InterviewType)}
+        >
+          {TYPE_VALUES.map((val) => (
+            <option key={val} value={val}>{t[TYPE_LABEL_KEYS[val]]}</option>
+          ))}
+        </select>
       </div>
 
       <div className="app-form-field">

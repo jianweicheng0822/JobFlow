@@ -287,4 +287,30 @@ class InterviewControllerIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.reminderHoursBefore").value(6))
                 .andExpect(jsonPath("$.reminderSent").value(false));
     }
+
+    @Test
+    void createInterview_onAnotherZonesClock_returnsTheZoneAndOffset() throws Exception {
+        Long appId = createApplication(aliceToken, createCompany(aliceToken));
+
+        String json = String.format("""
+                {"jobApplicationId": %d, "interviewDate": "2030-06-15T10:00:00", "interviewType": "VIDEO",
+                 "timeZone": "America/Los_Angeles"}
+                """, appId);
+
+        mockMvc.perform(post("/api/interviews")
+                        .header("Authorization", "Bearer " + aliceToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.interviewDate").value("2030-06-15T10:00:00"))
+                .andExpect(jsonPath("$.timeZone").value("America/Los_Angeles"))
+                .andExpect(jsonPath("$.startsAt").value("2030-06-15T10:00:00-07:00"));
+
+        mockMvc.perform(post("/api/interviews")
+                        .header("Authorization", "Bearer " + aliceToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.replace("America/Los_Angeles", "Mars/Olympus")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("UNKNOWN_TIME_ZONE"));
+    }
 }

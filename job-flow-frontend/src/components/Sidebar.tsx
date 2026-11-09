@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   Briefcase,
   CalendarCheck,
-  Building2,
   BarChart3,
   Settings,
   MessageSquare,
@@ -18,7 +17,6 @@ const navItems = [
   { to: '/', labelKey: 'dashboard', icon: LayoutDashboard },
   { to: '/jobs', labelKey: 'jobs', icon: Briefcase },
   { to: '/interviews', labelKey: 'interviews', icon: CalendarCheck },
-  { to: '/companies', labelKey: 'companies', icon: Building2 },
   { to: '/analytics', labelKey: 'analytics', icon: BarChart3 },
   { to: '/settings', labelKey: 'settings', icon: Settings },
 ] as const

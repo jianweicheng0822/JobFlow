@@ -15,8 +15,10 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import com.jobflow.exception.ApiException;
@@ -221,19 +223,90 @@ class InterviewServiceTest {
 
     // --- "now" and "today" follow the user's time zone ---
 
+    private Interview at(long id, LocalDateTime wallClock, String zone) {
+        return Interview.builder().id(id).jobApplication(testApp)
+                .interviewDate(wallClock).timeZone(zone).interviewType(InterviewType.VIDEO).build();
+    }
+
     @Test
-    void findUpcoming_comparesWithTheUsersNow() {
-        User user = testApp.getUser();
-        LocalDateTime usersNow = LocalDateTime.of(2026, 10, 6, 19, 30);
-        doReturn(usersNow).when(userClock).now(user);
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(interviewRepository.findByJobApplicationUserIdAndInterviewDateAfterOrderByInterviewDateAsc(1L, usersNow))
-                .thenReturn(List.of(testInterview));
+    void findUpcoming_checksEachInterviewOnItsOwnClock() {
+        // 01:45 UTC Oct 7 = 9:45am Shanghai = 6:45pm Oct 6 Los Angeles
+        testApp.getUser().setTimeZone("Asia/Shanghai");
+        doReturn(Instant.parse("2026-10-07T01:45:00Z")).when(userClock).instant();
+        LocalDateTime utcNow = LocalDateTime.of(2026, 10, 7, 1, 45);
+        doReturn(utcNow).when(userClock).nowUtc();
+        when(userRepository.existsById(1L)).thenReturn(true);
+
+        Interview laCall = at(1, LocalDateTime.of(2026, 10, 6, 19, 0), "America/Los_Angeles"); // 02:00 UTC
+        Interview over = at(2, LocalDateTime.of(2026, 10, 7, 9, 0), "Asia/Shanghai");          // 01:00 UTC
+        Interview soon = at(3, LocalDateTime.of(2026, 10, 7, 9, 50), "Asia/Shanghai");         // 01:50 UTC
+        // The DB only gets a rough lower bound, a day back
+        when(interviewRepository.findByJobApplicationUserIdAndInterviewDateAfterOrderByInterviewDateAsc(1L, utcNow.minusDays(1)))
+                .thenReturn(List.of(laCall, over, soon));
 
         List<InterviewDTO> result = interviewService.findUpcoming(1L);
 
-        assertThat(result).hasSize(1);
-        verify(interviewRepository).findByJobApplicationUserIdAndInterviewDateAfterOrderByInterviewDateAsc(1L, usersNow);
+        // Sorted by when they actually happen, not by the clock time written down
+        assertThat(result).extracting(InterviewDTO::getId).containsExactly(3L, 1L);
+        assertThat(result.get(1).getStartsAt()).isEqualTo(OffsetDateTime.parse("2026-10-06T19:00-07:00"));
+        assertThat(result.get(1).getTimeZone()).isEqualTo("America/Los_Angeles");
+    }
+
+    @Test
+    void daysUntil_usesTheUsersCalendar() {
+        // 10pm Oct 14 in Los Angeles is already Oct 15 in Shanghai
+        testApp.getUser().setTimeZone("Asia/Shanghai");
+        doReturn(LocalDate.of(2030, 10, 14)).when(userClock).today(testApp.getUser());
+        when(interviewRepository.findByJobApplicationUserId(1L))
+                .thenReturn(List.of(at(1, LocalDateTime.of(2030, 10, 14, 22, 0), "America/Los_Angeles")));
+
+        assertThat(interviewService.findAll(1L).get(0).getDaysUntil()).isEqualTo(1);
+    }
+
+    @Test
+    void create_withoutZone_pinsTheUsersZone() {
+        testApp.getUser().setTimeZone("Asia/Shanghai");
+        CreateInterviewRequest request = new CreateInterviewRequest();
+        request.setJobApplicationId(10L);
+        request.setInterviewDate(LocalDateTime.of(2030, 7, 1, 14, 0));
+        request.setInterviewType(InterviewType.PHONE);
+        when(jobApplicationRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(testApp));
+        when(interviewRepository.save(any(Interview.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        assertThat(interviewService.create(1L, request).getTimeZone()).isEqualTo("Asia/Shanghai");
+
+        request.setTimeZone("America/New_York");
+        assertThat(interviewService.create(1L, request).getTimeZone()).isEqualTo("America/New_York");
+    }
+
+    @Test
+    void create_unknownZone_isRejected() {
+        CreateInterviewRequest request = new CreateInterviewRequest();
+        request.setJobApplicationId(10L);
+        request.setInterviewDate(LocalDateTime.of(2030, 7, 1, 14, 0));
+        request.setInterviewType(InterviewType.PHONE);
+        request.setTimeZone("Mars/Olympus");
+        when(jobApplicationRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(testApp));
+
+        assertThatThrownBy(() -> interviewService.create(1L, request))
+                .isInstanceOf(ApiException.class)
+                .hasFieldOrPropertyWithValue("code", "UNKNOWN_TIME_ZONE");
+    }
+
+    @Test
+    void update_movingToAnotherZone_resetsTheReminder() {
+        testInterview.setTimeZone("Asia/Shanghai");
+        testInterview.setReminderEnabled(true);
+        testInterview.setReminderSent(true);
+        when(interviewRepository.findByIdAndJobApplicationUserId(100L, 1L)).thenReturn(Optional.of(testInterview));
+        when(interviewRepository.save(any(Interview.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CreateInterviewRequest request = new CreateInterviewRequest();
+        request.setTimeZone("America/Los_Angeles");
+        InterviewDTO result = interviewService.update(1L, 100L, request);
+
+        assertThat(result.getTimeZone()).isEqualTo("America/Los_Angeles");
+        assertThat(result.isReminderSent()).isFalse();
     }
 
     @Test
@@ -247,7 +320,7 @@ class InterviewServiceTest {
 
     @Test
     void findUpcoming_unknownUser_throws() {
-        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+        when(userRepository.existsById(99L)).thenReturn(false);
 
         assertThatThrownBy(() -> interviewService.findUpcoming(99L)).isInstanceOf(NotFoundException.class);
     }

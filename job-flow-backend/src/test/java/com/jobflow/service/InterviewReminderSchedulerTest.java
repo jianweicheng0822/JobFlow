@@ -14,7 +14,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.List;
 
@@ -29,6 +31,7 @@ class InterviewReminderSchedulerTest {
     // 01:45 UTC Oct 7 = 7:45pm Oct 6 in Denver = 9:45am Oct 7 in Shanghai
     private static final Instant NOW = Instant.parse("2026-10-07T01:45:00Z");
     private static final LocalDateTime UTC_NOW = LocalDateTime.of(2026, 10, 7, 1, 45);
+    private static final ZoneId DENVER = ZoneId.of("America/Denver");
 
     @Mock
     private InterviewRepository interviewRepository;
@@ -86,8 +89,27 @@ class InterviewReminderSchedulerTest {
 
         verify(emailService).sendInterviewReminder(
             eq("user1@test.com"), eq("Google"), eq("Engineer"),
-            eq(LocalDateTime.of(2026, 10, 6, 20, 30)), eq("PHONE"), eq("Prep needed"));
+            eq(LocalDateTime.of(2026, 10, 6, 20, 30).atZone(DENVER)),
+            eq(LocalDateTime.of(2026, 10, 6, 20, 30).atZone(DENVER)),
+            eq("PHONE"), eq("Prep needed"));
         assertThat(denver.isReminderSent()).isTrue();
+    }
+
+    @Test
+    void interviewBookedOnAnotherZonesClock() {
+        // A Shanghai user's call at 7pm Oct 6 Los Angeles time = 02:00 UTC, 15 minutes away
+        Interview la = interview(8, "Asia/Shanghai", LocalDateTime.of(2026, 10, 6, 19, 0), 1);
+        la.setTimeZone("America/Los_Angeles");
+        candidates(la);
+
+        scheduler.sendPendingReminders();
+
+        // Shown on the user's clock first, then the company's
+        ZonedDateTime booked = LocalDateTime.of(2026, 10, 6, 19, 0).atZone(ZoneId.of("America/Los_Angeles"));
+        verify(emailService).sendInterviewReminder(
+            eq("user8@test.com"), any(), any(),
+            eq(booked.withZoneSameInstant(ZoneId.of("Asia/Shanghai"))), eq(booked), any(), any());
+        assertThat(la.isReminderSent()).isTrue();
     }
 
     @Test
@@ -115,7 +137,7 @@ class InterviewReminderSchedulerTest {
 
         assertThat(shanghai.isReminderSent()).isTrue();
         assertThat(denver.isReminderSent()).isFalse();
-        verify(emailService, times(1)).sendInterviewReminder(eq("user3@test.com"), any(), any(), any(), any(), any());
+        verify(emailService, times(1)).sendInterviewReminder(eq("user3@test.com"), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -147,7 +169,7 @@ class InterviewReminderSchedulerTest {
         Interview denver = interview(1, "America/Denver", LocalDateTime.of(2026, 10, 6, 20, 30), 1);
         candidates(denver);
         doThrow(new RuntimeException("SMTP error")).when(emailService)
-            .sendInterviewReminder(any(), any(), any(), any(), any(), any());
+            .sendInterviewReminder(any(), any(), any(), any(), any(), any(), any());
 
         scheduler.sendPendingReminders();
 

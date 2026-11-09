@@ -13,8 +13,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import com.jobflow.exception.ApiException;
@@ -51,12 +54,16 @@ public class InterviewService {
 
     @Transactional(readOnly = true)
     public List<InterviewDTO> findUpcoming(Long userId) {
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> NotFoundException.user());
-        // Interview times are the user's local wall-clock time, so compare with their "now"
+        if (!userRepository.existsById(userId)) throw NotFoundException.user();
+        // Each interview's time is on its own zone's clock, and every clock is within
+        // 14h of UTC. So ask the DB for anything later than a day ago in UTC, then
+        // keep the ones that really haven't started yet.
+        Instant now = userClock.instant();
         return interviewRepository
-            .findByJobApplicationUserIdAndInterviewDateAfterOrderByInterviewDateAsc(userId, userClock.now(user))
+            .findByJobApplicationUserIdAndInterviewDateAfterOrderByInterviewDateAsc(userId, userClock.nowUtc().minusDays(1))
             .stream()
+            .filter(interview -> userClock.startOf(interview).toInstant().isAfter(now))
+            .sorted(Comparator.comparing((Interview interview) -> userClock.startOf(interview).toInstant()))
             .map(this::toDTO)
             .toList();
     }
@@ -82,6 +89,10 @@ public class InterviewService {
         Interview interview = Interview.builder()
             .jobApplication(app)
             .interviewDate(request.getInterviewDate())
+            // Pinned on create, so changing the zone in Settings later doesn't move it
+            .timeZone(request.getTimeZone() != null
+                ? UserClock.requireValidZone(request.getTimeZone())
+                : app.getUser().getTimeZone())
             .interviewType(request.getInterviewType())
             .notes(blankToNull(request.getNotes()))
             .reminderEnabled(request.getReminderEnabled() != null && request.getReminderEnabled())
@@ -105,6 +116,14 @@ public class InterviewService {
                 shouldResetReminder = true;
             }
             interview.setInterviewDate(request.getInterviewDate());
+        }
+        if (request.getTimeZone() != null) {
+            String zone = UserClock.requireValidZone(request.getTimeZone());
+            // Same clock time in another zone is a different moment
+            if (!zone.equals(userClock.zoneOfInterview(interview).getId())) {
+                shouldResetReminder = true;
+            }
+            interview.setTimeZone(zone);
         }
         if (request.getInterviewType() != null) interview.setInterviewType(request.getInterviewType());
         if (request.getNotes() != null) interview.setNotes(blankToNull(request.getNotes()));
@@ -145,14 +164,19 @@ public class InterviewService {
 
     private InterviewDTO toDTO(Interview interview) {
         JobApplication app = interview.getJobApplication();
-        LocalDate today = userClock.today(app.getUser());
-        long daysUntil = ChronoUnit.DAYS.between(today, interview.getInterviewDate().toLocalDate());
+        User user = app.getUser();
+        ZonedDateTime start = userClock.startOf(interview);
+        // Counted in calendar days on the user's clock, not the interview's
+        LocalDate startDay = start.withZoneSameInstant(userClock.zoneOf(user)).toLocalDate();
+        long daysUntil = ChronoUnit.DAYS.between(userClock.today(user), startDay);
         return InterviewDTO.builder()
             .id(interview.getId())
             .jobApplicationId(app.getId())
             .positionTitle(app.getPositionTitle())
             .companyName(app.getCompany().getName())
             .interviewDate(interview.getInterviewDate())
+            .timeZone(start.getZone().getId())
+            .startsAt(start.toOffsetDateTime())
             .interviewType(interview.getInterviewType())
             .notes(interview.getNotes())
             .reminderEnabled(interview.isReminderEnabled())

@@ -71,6 +71,7 @@ const en = {
   // Jobs Page
   activeApplications: 'Active Applications',
   starred: 'Starred',
+  otherApplications: 'Other applications',
   closed: 'Closed',
 
   // Stat card visuals
@@ -106,15 +107,9 @@ const en = {
   changeStatus: 'Change status',
   statusUpdateFailed: 'Failed to update status',
   confirmDeleteApp: 'Are you sure you want to delete {position} at {company}? This action cannot be undone.',
-
-  // Companies Page
-  newCompany: 'New Company',
-  searchCompanies: 'Search companies...',
-  noCompaniesFound: 'No companies found.',
-  editCompany: 'Edit Company',
-  deleteCompany: 'Delete Company',
-  confirmDeleteCompany: 'Are you sure you want to delete {name}?',
-  deleteCompanyWarning: 'This will also delete {count} associated application(s) and their interviews.',
+  applicationDeleted: 'Application deleted',
+  applicationDeleteFailed: 'Failed to delete application',
+  showCompanyJobs: 'Show only {company} jobs',
 
   // Interviews Page
   totalInterviews: 'Total Interviews',
@@ -134,6 +129,8 @@ const en = {
   scheduleInterview: 'Schedule Interview',
   deleteInterview: 'Delete Interview',
   confirmDeleteInterview: 'Are you sure you want to delete the interview for {position} at {company}? This action cannot be undone.',
+  interviewDeleted: 'Interview deleted',
+  interviewDeleteFailed: 'Failed to delete interview',
 
   // Analytics Page
   overview: 'Overview',
@@ -247,6 +244,7 @@ const en = {
   connected: 'Connected',
   scanGmail: 'Scan Gmail',
   scanning: 'Scanning...',
+  gmailScanFailed: 'Failed to scan Gmail. Please try again.',
   connectGoogleAccount: 'Connect Google Account',
   connecting: 'Connecting...',
   googleLinked: 'Google account linked successfully!',
@@ -280,7 +278,9 @@ const en = {
   addNewCompany: '+ Add "{name}" as new company',
   locationPlaceholder: 'e.g. San Francisco, CA',
   salary: 'Salary',
-  salaryPlaceholder: 'e.g. $120,000',
+  salaryCurrency: 'Salary currency',
+  salaryPlaceholderUsd: 'e.g. 120,000/yr',
+  salaryPlaceholderCny: 'e.g. 25k×16',
   appliedDate: 'Applied Date',
   notesPlaceholder: 'Any additional notes...',
   createApplication: 'Create Application',
@@ -288,16 +288,6 @@ const en = {
   applicationCreated: 'Application created',
   applicationSaveFailed: 'Failed to save application',
 
-  // Company Form
-  companyName: 'Company Name',
-  companyNamePlaceholder: 'e.g. Google',
-  companyNameRequired: 'Company name is required',
-  companyLocationPlaceholder: 'e.g. Mountain View, CA',
-  website: 'Website',
-  websitePlaceholder: 'e.g. https://google.com',
-  logoUrl: 'Logo URL',
-  logoUrlPlaceholder: 'e.g. https://example.com/logo.png',
-  addCompany: 'Add Company',
   saveFailed: 'Failed to save. Please try again.',
 
   // Interview Form
@@ -306,6 +296,11 @@ const en = {
   selectJobApplicationRequired: 'Please select a job application',
   interviewDate: 'Interview Date',
   interviewDateRequired: 'Interview date is required',
+  interviewTimeZone: 'Time zone',
+  interviewTimeZoneHint: 'Booking with a company in another zone? Enter the time they gave you and pick their zone.',
+  myTimeZone: 'My time zone',
+  allTimeZones: 'All time zones',
+  bookedTimeHint: 'The time as booked, on their clock',
   interviewType: 'Interview Type',
   interviewNotesPlaceholder: 'Any notes about this interview...',
   enableReminder: 'Enable email reminder',
@@ -364,7 +359,7 @@ const en = {
   demoTourDragDoneTitle: "Nice, that's all it takes",
   demoTourDragDoneBody: 'See the counts change? Your stats, follow-ups and analytics all update the moment a card moves.',
   demoTourFinishTitle: "You're all set",
-  demoTourFinishBody: 'Jobs, Interviews, Companies and Analytics are all in the sidebar. Everything resets when you refresh, so sign up for free to keep your own applications.',
+  demoTourFinishBody: 'Jobs, Interviews and Analytics are all in the sidebar. Everything resets when you refresh, so sign up for free to keep your own applications.',
   demoTourSignUp: 'Sign up free',
   demoTourKeepExploring: 'Keep exploring',
   demoBannerTour: 'Take the tour',

@@ -1,14 +1,17 @@
 package com.jobflow.service;
 
+import com.jobflow.model.Interview;
 import com.jobflow.model.User;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
 import java.time.DateTimeException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import com.jobflow.exception.ApiException;
 import java.util.Map;
 
@@ -51,6 +54,27 @@ public class UserClock {
 
     public LocalDateTime now(User user) {
         return LocalDateTime.now(clock.withZone(zoneOf(user)));
+    }
+
+    public Instant instant() {
+        return clock.instant();
+    }
+
+    // When an interview actually starts: its wall-clock time on its own zone's clock
+    public ZonedDateTime startOf(Interview interview) {
+        return interview.getInterviewDate().atZone(zoneOfInterview(interview));
+    }
+
+    public ZoneId zoneOfInterview(Interview interview) {
+        String id = interview.getTimeZone();
+        if (id != null && !id.isBlank()) {
+            try {
+                return ZoneId.of(id);
+            } catch (DateTimeException e) {
+                // fall through to the user's zone
+            }
+        }
+        return zoneOf(interview.getJobApplication().getUser());
     }
 
     // For server-side windows that must not depend on the server's or DB's zone

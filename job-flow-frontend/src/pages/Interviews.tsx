@@ -9,7 +9,7 @@ import { useToast } from '../context/ToastContext'
 import { getErrorMessage } from '../api/client'
 import { useLanguage } from '../context/LanguageContext'
 import { companyColor } from '../utils/companyColor'
-import { formatDateOf, formatTimeOf } from '../utils/date'
+import { bookedTimeIfDifferent, formatDateOf, formatTimeOf, interviewStart } from '../utils/date'
 
 // ===== Helpers =====
 const TYPE_CONFIG: Record<InterviewType, { color: string; icon: typeof Phone }> = {
@@ -118,10 +118,10 @@ export default function Interviews() {
     setDeleteLoading(true)
     try {
       await deleteInterview(deleteTarget.id)
-      showToast('Interview deleted', 'success')
+      showToast(t.interviewDeleted, 'success')
       fetchData()
     } catch (err) {
-      showToast(getErrorMessage(err, 'Failed to delete interview'), 'error')
+      showToast(getErrorMessage(err, t.interviewDeleteFailed), 'error')
     } finally {
       setDeleteTarget(null)
       setDeleteLoading(false)
@@ -142,24 +142,24 @@ export default function Interviews() {
   // Sort: upcoming first (by date asc), then past (by date desc)
   const sortedInterviews = useMemo(() => {
     return [...filteredInterviews].sort((a, b) => {
-      const aUp = isUpcoming(a.interviewDate)
-      const bUp = isUpcoming(b.interviewDate)
+      const aUp = isUpcoming(interviewStart(a))
+      const bUp = isUpcoming(interviewStart(b))
       if (aUp && !bUp) return -1
       if (!aUp && bUp) return 1
-      if (aUp && bUp) return new Date(a.interviewDate).getTime() - new Date(b.interviewDate).getTime()
-      return new Date(b.interviewDate).getTime() - new Date(a.interviewDate).getTime()
+      const diff = new Date(interviewStart(a)).getTime() - new Date(interviewStart(b)).getTime()
+      return aUp ? diff : -diff
     })
   }, [filteredInterviews])
 
-  const upcomingRows = sortedInterviews.filter((iv) => isUpcoming(iv.interviewDate))
-  const pastRows = sortedInterviews.filter((iv) => !isUpcoming(iv.interviewDate))
+  const upcomingRows = sortedInterviews.filter((iv) => isUpcoming(interviewStart(iv)))
+  const pastRows = sortedInterviews.filter((iv) => !isUpcoming(interviewStart(iv)))
   const hasActiveFilters = Boolean(search || typeFilter)
   // Past interviews stay folded away unless there's nothing upcoming or the
   // user is searching (a match could be hiding in there)
   const showPast = pastOpen ?? (upcomingRows.length === 0 || hasActiveFilters)
 
   const totalCount = interviews.length
-  const upcomingCount = interviews.filter((iv) => isUpcoming(iv.interviewDate)).length
+  const upcomingCount = interviews.filter((iv) => isUpcoming(interviewStart(iv))).length
   const completedCount = totalCount - upcomingCount
 
   const statCards = [
@@ -175,7 +175,9 @@ export default function Interviews() {
 
   const renderRow = (iv: InterviewDTO) => {
     const typeCfg = TYPE_CONFIG[iv.interviewType]
-    const upcoming = isUpcoming(iv.interviewDate)
+    const start = interviewStart(iv)
+    const upcoming = isUpcoming(start)
+    const booked = bookedTimeIfDifferent(iv, lang)
     const TypeIcon = typeCfg.icon
     return (
       <tr key={iv.id} className={upcoming ? '' : 'interviews-row--past'}>
@@ -193,8 +195,11 @@ export default function Interviews() {
             {iv.companyName}
           </div>
         </td>
-        <td>{formatDateOf(iv.interviewDate, lang)}</td>
-        <td>{formatTimeOf(iv.interviewDate, lang)}</td>
+        <td>{formatDateOf(start, lang)}</td>
+        <td>
+          {formatTimeOf(start, lang)}
+          {booked && <span className="interview-booked-time" title={t.bookedTimeHint}>{booked}</span>}
+        </td>
         <td>
           <span className="interviews-type-badge" style={{ background: typeCfg.color }}>
             <TypeIcon size={12} />

@@ -28,6 +28,9 @@ public class UpdateJobApplicationRequest {
     @Size(max = 255, message = "Salary must be at most 255 characters")
     private String salary;
 
+    // null = keep, blank = clear; checked in the service
+    private String salaryCurrency;
+
     private ApplicationStatus status;
     private LocalDate appliedDate;
 

@@ -12,6 +12,8 @@ import java.time.LocalDateTime;
 public class CreateInterviewRequest {
     private Long jobApplicationId;
     private LocalDateTime interviewDate;
+    // Zone interviewDate is in; leave out for the user's own zone
+    private String timeZone;
     private InterviewType interviewType;
 
     @Size(max = 5000, message = "Notes must be at most 5000 characters")

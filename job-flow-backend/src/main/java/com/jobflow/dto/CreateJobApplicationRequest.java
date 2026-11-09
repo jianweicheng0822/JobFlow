@@ -24,6 +24,9 @@ public class CreateJobApplicationRequest {
     @Size(max = 255, message = "Salary must be at most 255 characters")
     private String salary;
 
+    // Blank or a 3-letter ISO code ("USD", "CNY"); checked in the service
+    private String salaryCurrency;
+
     private ApplicationStatus status;
     private LocalDate appliedDate;
 

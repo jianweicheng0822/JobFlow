@@ -280,6 +280,21 @@
   border-bottom: none;
 }
 
+/* "★ Starred (4)" / "Other applications" between the pinned rows and the rest */
+.jobs-table tbody tr.jobs-group-row td {
+  padding: 10px 12px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: none;
+}
+
+.jobs-table tbody tr.jobs-group-row:hover {
+  background: none;
+}
+
 .jobs-table tbody tr:hover {
   background: var(--content-bg);
 }
@@ -429,16 +444,46 @@
   margin-bottom: 14px;
 }
 
+/* Items are buttons with their own padding, so pull the list out to keep the
+   logos lined up with the title */
 .jobs-employers-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 2px;
+  margin: 0 -8px;
 }
 
 .jobs-employer-item {
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 100%;
+  padding: 5px 8px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.jobs-employer-item:hover {
+  background: color-mix(in srgb, var(--sidebar-accent) 8%, transparent);
+}
+
+.jobs-employer-item--active,
+.jobs-employer-item--active:hover {
+  background: color-mix(in srgb, var(--sidebar-accent) 14%, transparent);
+}
+
+.jobs-employer-item--active .jobs-employer-name {
+  color: var(--sidebar-accent);
+}
+
+.jobs-employer-item:focus-visible {
+  outline: 2px solid var(--sidebar-accent);
+  outline-offset: 1px;
 }
 
 .jobs-employer-logo {
@@ -748,6 +793,13 @@
   .jobs-table tbody td.jobs-table-empty {
     flex: 1 1 100%;
     padding: 24px 0;
+  }
+  .jobs-table tbody tr.jobs-group-row {
+    padding: 12px 0 0;
+  }
+  .jobs-table tbody tr.jobs-group-row td {
+    flex: 1 1 100%;
+    padding: 0;
   }
 }
 

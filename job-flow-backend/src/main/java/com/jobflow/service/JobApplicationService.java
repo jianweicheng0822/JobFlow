@@ -19,8 +19,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
@@ -140,6 +142,7 @@ public class JobApplicationService {
             .company(company)
             .location(blankToNull(request.getLocation()))
             .salary(blankToNull(request.getSalary()))
+            .salaryCurrency(currencyOrNull(request.getSalaryCurrency()))
             .status(request.getStatus() != null ? request.getStatus() : ApplicationStatus.APPLIED)
             // Default to the user's today, not the server's
             .appliedDate(request.getAppliedDate() != null ? request.getAppliedDate() : userClock.today(user))
@@ -170,6 +173,7 @@ public class JobApplicationService {
     public JobApplicationDTO update(Long userId, Long id, UpdateJobApplicationRequest request) {
         JobApplication app = jobApplicationRepository.findByIdAndUserId(id, userId)
             .orElseThrow(() -> NotFoundException.application(id));
+        Long previousCompanyId = app.getCompany().getId();
 
         if (request.getCompanyId() != null) {
             Company company = companyRepository.findByIdAndUserId(request.getCompanyId(), userId)
@@ -189,6 +193,7 @@ public class JobApplicationService {
         }
         if (request.getLocation() != null) app.setLocation(blankToNull(request.getLocation()));
         if (request.getSalary() != null) app.setSalary(blankToNull(request.getSalary()));
+        if (request.getSalaryCurrency() != null) app.setSalaryCurrency(currencyOrNull(request.getSalaryCurrency()));
         if (request.getStatus() != null) changeStatus(app, request.getStatus());
         if (request.getAppliedDate() != null) app.setAppliedDate(request.getAppliedDate());
         // Runs after changeStatus on purpose, so an explicit lastAction wins over the auto one
@@ -196,7 +201,16 @@ public class JobApplicationService {
         if (lastAction != null) app.setLastAction(lastAction);
         if (request.getNotes() != null) app.setNotes(blankToNull(request.getNotes()));
 
-        return toDTO(jobApplicationRepository.save(app));
+        JobApplicationDTO saved = toDTO(jobApplicationRepository.save(app));
+        if (!previousCompanyId.equals(app.getCompany().getId())) deleteCompanyIfUnused(previousCompanyId);
+        return saved;
+    }
+
+    // There's no page to manage companies on; a company lives as long as it has
+    // applications, so it doesn't linger in the form's suggestions afterwards
+    private void deleteCompanyIfUnused(Long companyId) {
+        jobApplicationRepository.flush();
+        companyRepository.deleteIfUnused(companyId);
     }
 
     // Atomic so it can't be undone by a star toggle (or another status change) racing it
@@ -233,9 +247,11 @@ public class JobApplicationService {
     public void delete(Long userId, Long id) {
         JobApplication app = jobApplicationRepository.findByIdAndUserId(id, userId)
             .orElseThrow(() -> NotFoundException.application(id));
+        Long companyId = app.getCompany().getId();
         interviewRepository.deleteByJobApplicationId(id);
         emailImportLogRepository.deleteByJobApplicationId(id);
         jobApplicationRepository.delete(app);
+        deleteCompanyIfUnused(companyId);
     }
 
     @Transactional
@@ -311,7 +327,7 @@ public class JobApplicationService {
             sb.append(escapeCsv(app.getCompany() != null ? app.getCompany().getName() : "")).append(',');
             sb.append(app.getStatus()).append(',');
             sb.append(escapeCsv(app.getLocation())).append(',');
-            sb.append(escapeCsv(app.getSalary())).append(',');
+            sb.append(escapeCsv(salaryWithCurrency(app))).append(',');
             sb.append(app.getAppliedDate()).append(',');
             sb.append(escapeCsv(app.getLastAction())).append(',');
             sb.append(escapeCsv(app.getNotes())).append('\n');
@@ -340,13 +356,38 @@ public class JobApplicationService {
             .company(companyService.toDTO(app.getCompany()))
             .location(app.getLocation())
             .salary(app.getSalary())
+            .salaryCurrency(app.getSalaryCurrency())
             .status(app.getStatus())
             .appliedDate(app.getAppliedDate())
             .lastAction(app.getLastAction())
             .notes(app.getNotes())
             .starred(app.isStarred())
-            .createdAt(app.getCreatedAt())
-            .updatedAt(app.getUpdatedAt())
+            .createdAt(serverTimeToInstant(app.getCreatedAt()))
+            .updatedAt(serverTimeToInstant(app.getUpdatedAt()))
             .build();
+    }
+
+    // Blank clears it; anything else has to look like an ISO 4217 code
+    private static String currencyOrNull(String currency) {
+        String code = blankToNull(currency);
+        if (code == null) return null;
+        if (!code.matches("[A-Z]{3}")) {
+            throw ApiException.badRequest("INVALID_SALARY_CURRENCY",
+                "Salary currency must be a 3-letter code like USD", Map.of("currency", code));
+        }
+        return code;
+    }
+
+    // "CNY 30k×15" in the export, so a spreadsheet of mixed markets stays readable
+    private static String salaryWithCurrency(JobApplication app) {
+        String salary = app.getSalary();
+        if (salary == null || app.getSalaryCurrency() == null) return salary;
+        if (salary.startsWith(app.getSalaryCurrency())) return salary;
+        return app.getSalaryCurrency() + " " + salary;
+    }
+
+    // createdAt/updatedAt are stamped with LocalDateTime.now(), i.e. the server's clock
+    private static Instant serverTimeToInstant(LocalDateTime serverTime) {
+        return serverTime == null ? null : serverTime.atZone(ZoneId.systemDefault()).toInstant();
     }
 }

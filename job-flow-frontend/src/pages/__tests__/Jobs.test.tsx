@@ -416,6 +416,42 @@ describe('Jobs page size and top employers', () => {
     expect(employers()).toBe(5);
   });
 
+  it('labels the pinned starred rows and where the rest start', async () => {
+    vi.mocked(getApplications).mockResolvedValue({
+      data: [makeApp(1, 'Plain One'), makeApp(2, 'Starred One', true), makeApp(3, 'Plain Two')],
+    } as never);
+    render(<Jobs />, { wrapper: Wrapper });
+    await findTitle('Starred One');
+
+    const labels = [...document.querySelectorAll('.jobs-group-row')].map((r) => r.textContent);
+    expect(labels).toEqual(['★ Starred (1)', 'Other applications']);
+    // Not rows to assistive tech, so row counts stay the jobs themselves
+    expect(rowTitles()).toEqual(['Starred One', 'Plain One', 'Plain Two']);
+  });
+
+  it('leaves out the labels when nothing is starred', async () => {
+    vi.mocked(getApplications).mockResolvedValue({ data: many(3) } as never);
+    render(<Jobs />, { wrapper: Wrapper });
+    await findTitle('Job 1');
+
+    expect(document.querySelectorAll('.jobs-group-row')).toHaveLength(0);
+  });
+
+  it('clicking a top employer lists only its jobs, clicking again clears it', async () => {
+    vi.mocked(getApplications).mockResolvedValue({ data: many(3) } as never);
+    render(<Jobs />, { wrapper: Wrapper });
+    await findTitle('Job 1');
+
+    const employer = screen.getByRole('button', { name: /Company 2/ });
+    fireEvent.click(employer);
+    expect(rowTitles()).toEqual(['Job 2']);
+    expect(employer).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(employer);
+    expect(rowTitles()).toHaveLength(3);
+    expect(employer).toHaveAttribute('aria-pressed', 'false');
+  });
+
   it('highlights a new application and opens the page it landed on', async () => {
     const scrollIntoView = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoView;

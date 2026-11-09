@@ -2,12 +2,15 @@ import { useState, useEffect, useCallback } from 'react'
 import type { ReactNode } from 'react'
 import * as authApi from '../api/auth'
 import { resetMockData, isDemoMode } from '../api/mockData'
-import { browserTimeZone } from '../utils/date'
+import { browserTimeZone, setAppTimeZone } from '../utils/date'
 import type { AuthResponse, LoginRequest, RegisterRequest } from '../api/auth'
 import { AuthContext, type AuthUser } from './AuthContext'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
+  // Done during render, not in an effect, so the pages below already see the
+  // saved zone the first time they draw
+  setAppTimeZone(user?.timeZone)
   const [loading, setLoading] = useState(true)
 
   // Show the user right away, then fill in their time zone in the background if

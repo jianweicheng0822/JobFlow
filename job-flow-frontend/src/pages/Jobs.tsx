@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
+import { Fragment, useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Plus, Pencil, Trash2, Star } from 'lucide-react'
 import './Jobs.css'
@@ -239,10 +239,10 @@ export default function Jobs() {
     setDeleteLoading(true)
     try {
       await deleteApplication(deleteTarget.id)
-      showToast('Application deleted', 'success')
+      showToast(t.applicationDeleted, 'success')
       fetchData()
     } catch (err) {
-      showToast(getErrorMessage(err, 'Failed to delete application'), 'error')
+      showToast(getErrorMessage(err, t.applicationDeleteFailed), 'error')
     } finally {
       setDeleteTarget(null)
       setDeleteLoading(false)
@@ -334,6 +334,10 @@ export default function Jobs() {
     revealPending.current = null
     setCurrentPage(Math.floor(index / pageSize))
   }, [filteredJobs, pageSize])
+
+  // Group labels only help when the list mixes starred and unstarred jobs
+  const starredInList = filteredJobs.filter((a) => a.starred).length
+  const showStarGroups = starredInList > 0 && starredInList < filteredJobs.length
 
   const totalPages = Math.max(1, Math.ceil(filteredJobs.length / pageSize))
   const pagedJobs = filteredJobs.slice(currentPage * pageSize, (currentPage + 1) * pageSize)
@@ -508,12 +512,24 @@ export default function Jobs() {
                       </td>
                     </tr>
                   ) : (
-                    pagedJobs.map((app) => {
+                    pagedJobs.map((app, i) => {
                       const statusColor = STATUS_COLORS[app.status]
                       const companyColor = getCompanyColor(app.company.name)
+                      // Label the pinned starred rows and where the rest pick up, so a
+                      // September star above June doesn't look like a sorting bug
+                      const groupLabel = !showStarGroups ? null
+                        : app.starred && i === 0 ? `★ ${t.starred} (${starredInList})`
+                        : !app.starred && i > 0 && pagedJobs[i - 1].starred ? t.otherApplications
+                        : null
                       return (
+                        <Fragment key={app.id}>
+                        {groupLabel && (
+                          // Presentational: the star on each row already says it's starred
+                          <tr className="jobs-group-row" role="presentation">
+                            <td colSpan={5}>{groupLabel}</td>
+                          </tr>
+                        )}
                         <tr
-                          key={app.id}
                           className={app.id === newAppId ? 'jobs-row--new' : undefined}
                           ref={app.id === newAppId ? revealRow : undefined}
                         >
@@ -569,6 +585,7 @@ export default function Jobs() {
                             </div>
                           </td>
                         </tr>
+                        </Fragment>
                       )
                     })
                   )}
@@ -647,7 +664,15 @@ export default function Jobs() {
             <h3 className="jobs-sidebar-title">{t.topEmployers}</h3>
             <div className="jobs-employers-list">
               {(showAllEmployers ? topEmployers : topEmployers.slice(0, EMPLOYER_PREVIEW)).map((employer) => (
-                <div className="jobs-employer-item" key={employer.company}>
+                // Click to list just that company's jobs; click again to clear
+                <button
+                  type="button"
+                  className={`jobs-employer-item${companyFilter === employer.company ? ' jobs-employer-item--active' : ''}`}
+                  key={employer.company}
+                  aria-pressed={companyFilter === employer.company}
+                  title={t.showCompanyJobs.replace('{company}', employer.company)}
+                  onClick={() => setCompanyFilter((c) => (c === employer.company ? '' : employer.company))}
+                >
                   <span
                     className="jobs-employer-logo"
                     style={{ background: employer.color }}
@@ -658,7 +683,7 @@ export default function Jobs() {
                     <div className="jobs-employer-name">{employer.company}</div>
                     <div className="jobs-employer-count">{employer.jobsApplied} {t.jobsApplied}</div>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
             {topEmployers.length > EMPLOYER_PREVIEW && (
@@ -680,6 +705,7 @@ export default function Jobs() {
         <Modal title={editingApp ? t.editApplication : t.newApplication} onClose={closeModal}>
           <ApplicationForm
             application={editingApp}
+            history={applications}
             onSuccess={handleFormSuccess}
             onCancel={closeModal}
           />

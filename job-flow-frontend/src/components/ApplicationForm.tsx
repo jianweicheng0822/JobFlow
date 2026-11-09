@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import type { FormEvent } from 'react';
 import { getCompanies } from '../api/companies';
 import { createApplication, updateApplication } from '../api/applications';
@@ -14,8 +14,10 @@ import { useToast } from '../context/ToastContext';
 import { getErrorMessage } from '../api/client';
 import { useLanguage } from '../context/LanguageContext';
 import AutocompleteInput from './AutocompleteInput';
-import LOCATIONS from '../data/locations';
-import JOB_TITLES from '../data/jobTitles';
+import LOCATIONS, { CN_LOCATIONS, LOCATION_ALIASES } from '../data/locations';
+import JOB_TITLES, { CN_JOB_TITLES, JOB_TITLE_ALIASES } from '../data/jobTitles';
+import { mergeSuggestions } from '../utils/suggestions';
+import { SALARY_CURRENCIES, defaultCurrency } from '../utils/salary';
 import './ApplicationForm.css';
 
 const STATUS_LABEL_KEYS: Record<ApplicationStatus, string> = {
@@ -27,18 +29,36 @@ const STATUS_LABEL_KEYS: Record<ApplicationStatus, string> = {
   REJECTED: 'statusRejected',
 };
 
+const NO_HISTORY: JobApplicationDTO[] = [];
+
 const STATUS_VALUES: ApplicationStatus[] = ['APPLIED', 'IN_REVIEW', 'PHONE_SCREEN', 'INTERVIEW', 'OFFER', 'REJECTED'];
 
 interface ApplicationFormProps {
   application?: JobApplicationDTO; // if provided, we're in edit mode
+  // The user's other applications; their titles and places are suggested first
+  history?: JobApplicationDTO[];
   onSuccess: (saved: JobApplicationDTO) => void;
   onCancel: () => void;
 }
 
-export default function ApplicationForm({ application, onSuccess, onCancel }: ApplicationFormProps) {
+export default function ApplicationForm({ application, history = NO_HISTORY, onSuccess, onCancel }: ApplicationFormProps) {
   const isEdit = !!application;
   const { showToast } = useToast();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+
+  // Most recently touched first, so this week's search shows up before last spring's
+  const recent = useMemo(
+    () => [...history].sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? '')),
+    [history],
+  );
+  const titleSuggestions = useMemo(
+    () => mergeSuggestions(recent.map((a) => a.positionTitle), lang, { en: JOB_TITLES, zh: CN_JOB_TITLES }),
+    [recent, lang],
+  );
+  const locationSuggestions = useMemo(
+    () => mergeSuggestions(recent.map((a) => a.location), lang, { en: LOCATIONS, zh: CN_LOCATIONS }),
+    [recent, lang],
+  );
 
   const [companies, setCompanies] = useState<CompanyDTO[]>([]);
   const [loading, setLoading] = useState(false);
@@ -52,6 +72,9 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [location, setLocation] = useState(application?.location ?? '');
   const [salary, setSalary] = useState(application?.salary ?? '');
+  const [salaryCurrency, setSalaryCurrency] = useState(
+    () => defaultCurrency(application?.salary, application?.salaryCurrency, lang),
+  );
   const [status, setStatus] = useState<ApplicationStatus>(application?.status ?? 'APPLIED');
   const [appliedDate, setAppliedDate] = useState(application?.appliedDate ?? todayLocal());
   const [notes, setNotes] = useState(application?.notes ?? '');
@@ -104,6 +127,8 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
         positionTitle: positionTitle.trim(),
         location: location.trim(),
         salary: salary.trim(),
+        // No salary, no currency; "" clears an old one on edit
+        salaryCurrency: salary.trim() ? salaryCurrency : '',
         status,
         appliedDate: appliedDate || undefined,
         notes: notes.trim(),
@@ -142,7 +167,8 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
             setPositionTitle(value);
             clearError('positionTitle');
           }}
-          suggestions={JOB_TITLES}
+          suggestions={titleSuggestions}
+          aliases={JOB_TITLE_ALIASES}
           placeholder={t.positionPlaceholder}
         />
         {errors.positionTitle && <span className="app-form-error">{errors.positionTitle}</span>}
@@ -211,19 +237,33 @@ export default function ApplicationForm({ application, onSuccess, onCancel }: Ap
           <AutocompleteInput
             value={location}
             onChange={setLocation}
-            suggestions={LOCATIONS}
+            suggestions={locationSuggestions}
+            aliases={LOCATION_ALIASES}
             placeholder={t.locationPlaceholder}
           />
         </div>
         <div className="app-form-field">
-          <label className="app-form-label">{t.salary}</label>
-          <input
-            className="app-form-input"
-            type="text"
-            value={salary}
-            onChange={(e) => setSalary(e.target.value)}
-            placeholder={t.salaryPlaceholder}
-          />
+          <label className="app-form-label" htmlFor="app-form-salary">{t.salary}</label>
+          <div className="app-form-salary">
+            <select
+              className="app-form-select app-form-currency"
+              aria-label={t.salaryCurrency}
+              value={salaryCurrency}
+              onChange={(e) => setSalaryCurrency(e.target.value)}
+            >
+              {SALARY_CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>
+              ))}
+            </select>
+            <input
+              id="app-form-salary"
+              className="app-form-input"
+              type="text"
+              value={salary}
+              onChange={(e) => setSalary(e.target.value)}
+              placeholder={salaryCurrency === 'CNY' ? t.salaryPlaceholderCny : t.salaryPlaceholderUsd}
+            />
+          </div>
         </div>
       </div>
 

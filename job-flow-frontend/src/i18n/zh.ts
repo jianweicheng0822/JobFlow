@@ -71,6 +71,7 @@ const zh = {
   // Jobs Page
   activeApplications: '进行中',
   starred: '星标',
+  otherApplications: '其他申请',
   closed: '已结束',
 
   // Stat card visuals
@@ -106,15 +107,9 @@ const zh = {
   changeStatus: '修改状态',
   statusUpdateFailed: '状态更新失败',
   confirmDeleteApp: '确定要删除 {company} 的 {position} 职位吗？此操作无法撤销。',
-
-  // Companies Page
-  newCompany: '新建公司',
-  searchCompanies: '搜索公司...',
-  noCompaniesFound: '没有找到公司。',
-  editCompany: '编辑公司',
-  deleteCompany: '删除公司',
-  confirmDeleteCompany: '确定要删除 {name} 吗？',
-  deleteCompanyWarning: '这将同时删除 {count} 个关联的申请及其面试记录。',
+  applicationDeleted: '申请已删除',
+  applicationDeleteFailed: '删除申请失败',
+  showCompanyJobs: '只看 {company} 的职位',
 
   // Interviews Page
   totalInterviews: '面试总数',
@@ -134,6 +129,8 @@ const zh = {
   scheduleInterview: '安排面试',
   deleteInterview: '删除面试',
   confirmDeleteInterview: '确定要删除 {company} 的 {position} 面试吗？此操作无法撤销。',
+  interviewDeleted: '面试已删除',
+  interviewDeleteFailed: '删除面试失败',
 
   // Analytics Page
   overview: '概览',
@@ -247,6 +244,7 @@ const zh = {
   connected: '已连接',
   scanGmail: '扫描 Gmail',
   scanning: '扫描中...',
+  gmailScanFailed: '扫描 Gmail 失败，请重试。',
   connectGoogleAccount: '连接 Google 账号',
   connecting: '连接中...',
   googleLinked: 'Google 账号关联成功！',
@@ -280,7 +278,9 @@ const zh = {
   addNewCompany: '+ 添加「{name}」为新公司',
   locationPlaceholder: '例如：北京市海淀区',
   salary: '薪资',
-  salaryPlaceholder: '例如：25k-35k',
+  salaryCurrency: '薪资币种',
+  salaryPlaceholderUsd: '例如：120,000/yr',
+  salaryPlaceholderCny: '例如：25k×16 或 30万/年',
   appliedDate: '投递日期',
   notesPlaceholder: '添加备注...',
   createApplication: '创建申请',
@@ -288,16 +288,6 @@ const zh = {
   applicationCreated: '申请已创建',
   applicationSaveFailed: '保存申请失败',
 
-  // Company Form
-  companyName: '公司名称',
-  companyNamePlaceholder: '例如：Google',
-  companyNameRequired: '请填写公司名称',
-  companyLocationPlaceholder: '例如：北京市',
-  website: '网站',
-  websitePlaceholder: '例如：https://google.com',
-  logoUrl: 'Logo 链接',
-  logoUrlPlaceholder: '例如：https://example.com/logo.png',
-  addCompany: '添加公司',
   saveFailed: '保存失败，请重试。',
 
   // Interview Form
@@ -306,6 +296,11 @@ const zh = {
   selectJobApplicationRequired: '请选择一个求职申请',
   interviewDate: '面试日期',
   interviewDateRequired: '请选择面试日期',
+  interviewTimeZone: '时区',
+  interviewTimeZoneHint: '和别的时区的公司约面试？按对方给的时间填，再选对方的时区。',
+  myTimeZone: '我的时区',
+  allTimeZones: '全部时区',
+  bookedTimeHint: '约定时的时间（对方时区）',
   interviewType: '面试类型',
   interviewNotesPlaceholder: '添加面试备注...',
   enableReminder: '启用邮件提醒',
@@ -364,7 +359,7 @@ const zh = {
   demoTourDragDoneTitle: '很好，就这么简单',
   demoTourDragDoneBody: '看到数字变了吗？卡片一移动，统计、跟进提醒和数据分析都会立刻更新。',
   demoTourFinishTitle: '准备好了',
-  demoTourFinishBody: 'Jobs、Interviews、Companies 和 Analytics 都在左侧导航里。刷新页面后所有改动都会重置，注册一个免费账号就能保存你自己的申请。',
+  demoTourFinishBody: 'Jobs、Interviews 和 Analytics 都在左侧导航里。刷新页面后所有改动都会重置，注册一个免费账号就能保存你自己的申请。',
   demoTourSignUp: '免费注册',
   demoTourKeepExploring: '继续看看',
   demoBannerTour: '查看引导',

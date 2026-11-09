@@ -26,8 +26,13 @@ public class Interview {
     @JoinColumn(name = "job_application_id", nullable = false)
     private JobApplication jobApplication;
 
+    // Wall-clock time on timeZone's clock (see UserClock.startOf)
     @Column(nullable = false)
     private LocalDateTime interviewDate;
+
+    // IANA id like "America/Los_Angeles"; null means the user's own zone
+    @Column(name = "time_zone", length = 64)
+    private String timeZone;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

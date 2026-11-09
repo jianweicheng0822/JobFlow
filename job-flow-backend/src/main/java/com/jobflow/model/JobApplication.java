@@ -45,6 +45,10 @@ public class JobApplication {
 
     private String salary;
 
+    // ISO 4217 code like "USD" or "CNY"; null when not picked
+    @Column(name = "salary_currency", length = 3)
+    private String salaryCurrency;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ApplicationStatus status;

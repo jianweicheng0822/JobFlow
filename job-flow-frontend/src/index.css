@@ -83,3 +83,12 @@ body {
 #root {
   min-height: 100vh;
 }
+
+/* An interview booked on another zone's clock: that time, under the user's own */
+.interview-booked-time {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+  white-space: nowrap;
+}

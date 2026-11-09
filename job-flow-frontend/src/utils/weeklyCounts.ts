@@ -1,5 +1,5 @@
 import type { JobApplicationDTO } from '../api/types'
-import { todayLocal } from './date'
+import { todayLocal, dateKey } from './date'
 
 // Whole days between two "YYYY-MM-DD" dates. Done in UTC so DST can't skew it.
 export function daysBetween(from: string, to: string): number {
@@ -39,8 +39,8 @@ export function weeklyWindows(weeks: number, today: string = todayLocal()): { st
   return Array.from({ length: weeks }, (_, i) => {
     const weeksAgo = weeks - 1 - i
     return {
-      start: todayLocal(new Date(y, m - 1, d - weeksAgo * 7 - 6)),
-      end: todayLocal(new Date(y, m - 1, d - weeksAgo * 7)),
+      start: dateKey(new Date(y, m - 1, d - weeksAgo * 7 - 6)),
+      end: dateKey(new Date(y, m - 1, d - weeksAgo * 7)),
     }
   })
 }

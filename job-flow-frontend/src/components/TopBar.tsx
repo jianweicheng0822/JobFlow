@@ -9,6 +9,7 @@ import type { JobApplicationDTO, CompanyDTO } from '../api/types'
 import { getStoredAvatar, storeAvatar } from '../utils/avatar'
 import { markDemoTask } from '../utils/demoChecklist'
 import './TopBar.css'
+import { currentTimeZone, wallClockIn } from '../utils/date'
 
 function getInitials(name: string): string {
   return name
@@ -20,17 +21,17 @@ function getInitials(name: string): string {
 }
 
 function getGreeting(t: { goodMorning: string; goodAfternoon: string; goodEvening: string }): string {
-  const hour = new Date().getHours()
+  // On the clock from Settings, so it matches the rest of the app
+  const hour = Number(wallClockIn(new Date(), currentTimeZone()).slice(11, 13))
   if (hour >= 5 && hour < 12) return t.goodMorning
   if (hour >= 12 && hour < 18) return t.goodAfternoon
   return t.goodEvening
 }
 
 // Pages that show their name in the top bar; anything else (the dashboard) gets the greeting
-const PAGE_TITLE_KEYS: Record<string, 'jobs' | 'interviews' | 'companies' | 'analytics' | 'settings'> = {
+const PAGE_TITLE_KEYS: Record<string, 'jobs' | 'interviews' | 'analytics' | 'settings'> = {
   '/jobs': 'jobs',
   '/interviews': 'interviews',
-  '/companies': 'companies',
   '/analytics': 'analytics',
   '/settings': 'settings',
 }

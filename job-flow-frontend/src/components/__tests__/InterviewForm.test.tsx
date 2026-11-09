@@ -148,6 +148,25 @@ describe('InterviewForm', () => {
     expect(updateInterview).toHaveBeenCalledWith(5, expect.objectContaining({ notes: '' }));
   });
 
+  it('keeps the zone an interview was booked in and sends a newly picked one', async () => {
+    render(
+      <InterviewForm interview={{ ...editInterview, timeZone: 'America/Los_Angeles' }} onSuccess={onSuccess} onCancel={onCancel} />,
+      { wrapper: Wrapper },
+    );
+
+    const zone = screen.getByLabelText('Time zone') as HTMLSelectElement;
+    expect(zone.value).toBe('America/Los_Angeles');
+
+    fireEvent.change(zone, { target: { value: 'Asia/Shanghai' } });
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+    expect(updateInterview).toHaveBeenCalledWith(5, expect.objectContaining({
+      interviewDate: '2030-06-15T10:00',
+      timeZone: 'Asia/Shanghai',
+    }));
+  });
+
   it("shows the backend's error message when saving fails", async () => {
     const response = { data: { message: 'Interview type is required' }, status: 400 } as AxiosResponse;
     vi.mocked(updateInterview).mockRejectedValueOnce(

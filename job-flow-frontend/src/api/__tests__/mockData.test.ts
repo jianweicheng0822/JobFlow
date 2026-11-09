@@ -116,6 +116,22 @@ describe('resolveMock DELETE endpoints', () => {
     expect(after).toBe(before - 1);
   });
 
+  it('reuses a company typed in another case and drops it with its last application', () => {
+    const companyNames = () => (resolveMock('/companies', 'get') as CompanyDTO[]).map(c => c.name);
+    const before = companyNames().length;
+
+    const first = resolveMock('/applications', 'post', { positionTitle: 'A', companyName: 'Solo Inc' }) as JobApplicationDTO;
+    const second = resolveMock('/applications', 'post', { positionTitle: 'B', companyName: ' solo inc ' }) as JobApplicationDTO;
+    expect(second.company.id).toBe(first.company.id);
+    expect(companyNames()).toHaveLength(before + 1);
+
+    resolveMock(`/applications/${first.id}`, 'delete');
+    expect(companyNames()).toContain('Solo Inc');
+    resolveMock(`/applications/${second.id}`, 'delete');
+    expect(companyNames()).not.toContain('Solo Inc');
+    expect(companyNames()).toHaveLength(before);
+  });
+
   it('DELETE /applications/:id removes and updates stats', () => {
     const apps = resolveMock('/applications', 'get') as JobApplicationDTO[];
     const targetId = apps[0].id;
@@ -154,11 +170,21 @@ describe('status changes update lastAction', () => {
 });
 
 describe('PUT partial update', () => {
-  // Seed app 1 has location 'Seattle, WA' and salary '$145,000'
+  // Seed app 1 has location 'Seattle, WA' and salary 145,000 in USD
   it('clears an optional field sent as a blank string', () => {
     const result = resolveMock('/applications/1', 'put', { location: '  ' }) as JobApplicationDTO;
     expect(result.location).toBeNull();
-    expect(result.salary).toBe('$145,000');
+    expect(result.salary).toBe('145,000');
+    expect(result.salaryCurrency).toBe('USD');
+  });
+
+  it('mixes US and Chinese jobs, each in its own currency', () => {
+    const apps = resolveMock('/applications', 'get') as JobApplicationDTO[];
+    const bytedance = apps.find((a) => a.company.name === '字节跳动')!;
+    expect(bytedance.location).toBe('上海');
+    expect(bytedance.salary).toBe('30k×15');
+    expect(bytedance.salaryCurrency).toBe('CNY');
+    expect(apps.filter((a) => a.salaryCurrency === 'USD')).toHaveLength(40);
   });
 
   it('keeps fields that are not sent', () => {
@@ -216,7 +242,7 @@ describe('demo data stays current', () => {
     const apps = resolveMock('/applications', 'get') as JobApplicationDTO[];
     const byId = Object.fromEntries(apps.map((a) => [a.id, a]));
 
-    expect(apps).toHaveLength(40);
+    expect(apps).toHaveLength(43);
     expect(apps.every((a) => (a.appliedDate ?? '') <= localToday())).toBe(true);
     // Seed 9 is the newest, within the last week and a half whatever today is
     expect(byId[9].appliedDate! >= daysAgo(10)).toBe(true);
@@ -240,14 +266,14 @@ describe('demo data stays current', () => {
 
   it('counts only INTERVIEW as interviews and computes the rates like the backend', () => {
     const stats = resolveMock('/applications/stats', 'get') as DashboardStatsDTO;
-    // Seed: 40 apps, 22 never heard back, two INTERVIEW, three PHONE_SCREEN and one OFFER
-    expect(stats.totalApplications).toBe(40);
-    expect(stats.interviews).toBe(2);
-    expect(stats.responded).toBe(18);
-    expect(stats.responseRate).toBe(45);
+    // Seed: 43 apps, 22 never heard back, three INTERVIEW, three PHONE_SCREEN and one OFFER
+    expect(stats.totalApplications).toBe(43);
+    expect(stats.interviews).toBe(3);
+    expect(stats.responded).toBe(21);
+    expect(stats.responseRate).toBe(48.8);
     // Interview + offer; phone screens don't count
-    expect(stats.interviewRate).toBe(7.5);
-    expect(stats.offerRate).toBe(2.5);
+    expect(stats.interviewRate).toBe(9.3);
+    expect(stats.offerRate).toBe(2.3);
   });
 
   it('builds the monthly activity from the seed applications', () => {
@@ -256,7 +282,7 @@ describe('demo data stays current', () => {
     expect(activity).toHaveLength(12);
     expect(activity[11].yearMonth).toBe(todayLocal().slice(0, 7));
     // Every seed app was applied within the last 12 months, across at least five of them
-    expect(activity.reduce((sum, m) => sum + m.count, 0)).toBe(40);
+    expect(activity.reduce((sum, m) => sum + m.count, 0)).toBe(43);
     expect(activity.filter((m) => m.count > 0).length).toBeGreaterThanOrEqual(5);
   });
 
@@ -277,8 +303,14 @@ describe('demo data stays current', () => {
   it('puts the seed interviews in the near future, soonest first', () => {
     const upcoming = resolveMock('/interviews/upcoming', 'get') as InterviewDTO[];
 
-    expect(upcoming.map((i) => i.daysUntil)).toEqual([1, 2, 5]);
-    expect(upcoming.every((i) => new Date(i.interviewDate) > new Date())).toBe(true);
+    // The ByteDance one is 10am Beijing time in 3 days, which can be day 2 or 3 here
+    const local = upcoming.filter((i) => i.companyName !== '字节跳动');
+    expect(local.map((i) => i.daysUntil)).toEqual([1, 2, 5]);
+    expect(upcoming).toHaveLength(4);
+    const starts = upcoming.map((i) => new Date(i.startsAt!).getTime());
+    expect(starts).toEqual([...starts].sort((a, b) => a - b));
+    expect(starts.every((s) => s > Date.now())).toBe(true);
+    expect(upcoming.find((i) => i.companyName === '字节跳动')!.timeZone).toBe('Asia/Shanghai');
     // Stored like the backend: local wall-clock time, no zone suffix
     expect(upcoming.every((i) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(i.interviewDate))).toBe(true);
   });

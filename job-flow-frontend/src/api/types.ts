@@ -24,6 +24,7 @@ export interface JobApplicationDTO {
   company: CompanyDTO;
   location: string | null;
   salary: string | null;
+  salaryCurrency?: string | null; // "USD", "CNY"; missing on older rows
   status: ApplicationStatus;
   appliedDate: string | null; // ISO date string
   lastAction: string | null;
@@ -38,7 +39,9 @@ export interface InterviewDTO {
   jobApplicationId: number;
   positionTitle: string;
   companyName: string;
-  interviewDate: string; // ISO datetime string
+  interviewDate: string; // wall-clock time as entered, on timeZone's clock
+  timeZone?: string; // IANA zone the time was booked in, e.g. "America/Los_Angeles"
+  startsAt?: string; // the same moment with its offset: "2026-11-10T10:00:00-08:00"
   interviewType: InterviewType;
   notes: string | null;
   reminderEnabled: boolean;
@@ -82,6 +85,7 @@ export interface CreateJobApplicationRequest {
   companyName?: string;
   location?: string;
   salary?: string;
+  salaryCurrency?: string;
   status?: ApplicationStatus;
   appliedDate?: string; // ISO date string (YYYY-MM-DD)
   lastAction?: string;
@@ -94,6 +98,7 @@ export interface UpdateJobApplicationRequest {
   companyName?: string; // used when no companyId: finds or creates the company
   location?: string;
   salary?: string;
+  salaryCurrency?: string;
   status?: ApplicationStatus;
   appliedDate?: string;
   lastAction?: string;
@@ -102,7 +107,8 @@ export interface UpdateJobApplicationRequest {
 
 export interface CreateInterviewRequest {
   jobApplicationId: number;
-  interviewDate: string; // ISO datetime string
+  interviewDate: string; // wall-clock time on timeZone's clock
+  timeZone?: string; // leave out for the user's own zone
   interviewType: InterviewType;
   notes?: string;
   reminderEnabled?: boolean;

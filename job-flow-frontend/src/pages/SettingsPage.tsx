@@ -136,7 +136,7 @@ export default function SettingsPage() {
       setGmailPreviews(res.data)
       setShowGmailModal(true)
     } catch (err) {
-      setScanError(getErrorMessage(err, 'Failed to scan Gmail. Please try again.'))
+      setScanError(getErrorMessage(err, t.gmailScanFailed))
     } finally {
       setGmailLoading(false)
     }

@@ -7,7 +7,8 @@ import type {
   ApplicationStatus,
   InterviewType,
 } from './types';
-import { todayLocal, browserTimeZone } from '../utils/date';
+import { todayLocal, dateKey, browserTimeZone, currentTimeZone, wallClockIn, wallClockToInstant } from '../utils/date';
+import { daysBetween } from '../utils/weeklyCounts';
 
 // ===== Dates relative to today =====
 // Seed jobs are placed "N days before this week's Friday", so the demo always
@@ -43,15 +44,20 @@ function timestampOn(day: Date, hour: number, minute: number): string {
 function localDateTimeIn(days: number, hour: number, minute = 0): string {
   const now = new Date();
   const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + days, hour, minute);
-  return `${todayLocal(d)}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+  return `${dateKey(d)}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
 }
 
 // Calendar days from the user's today to the interview's day, like the backend (today = 0)
-export function daysUntilLocal(interviewDate: string, now: Date = new Date()): number {
-  const target = new Date(interviewDate);
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startOfTarget = new Date(target.getFullYear(), target.getMonth(), target.getDate());
-  return Math.round((startOfTarget.getTime() - startOfToday.getTime()) / 86400000);
+export function daysUntilLocal(start: string, now: Date = new Date()): number {
+  return daysBetween(todayLocal(now), todayLocal(new Date(start)));
+}
+
+// Fills in what the backend works out from the time and its zone: the zone
+// itself (the user's unless given), the real start, and days until it
+function timed<T extends Pick<InterviewDTO, 'interviewDate'> & { timeZone?: string }>(iv: T, now: Date = new Date()) {
+  const timeZone = iv.timeZone ?? currentTimeZone();
+  const startsAt = wallClockToInstant(iv.interviewDate, timeZone).toISOString();
+  return { ...iv, timeZone, startsAt, daysUntil: daysUntilLocal(startsAt, now) };
 }
 
 // Factory functions that return fresh seed data every time
@@ -72,6 +78,10 @@ function createSeedCompanies(): CompanyDTO[] {
     { id: 13, name: 'Uber', logoUrl: null, location: 'San Francisco, CA', website: 'https://uber.com' },
     { id: 14, name: 'LinkedIn', logoUrl: null, location: 'Sunnyvale, CA', website: 'https://linkedin.com' },
     { id: 15, name: 'Salesforce', logoUrl: null, location: 'San Francisco, CA', website: 'https://salesforce.com' },
+    // A few in China, so the demo shows both markets side by side
+    { id: 16, name: '字节跳动', logoUrl: null, location: '上海', website: 'https://bytedance.com' },
+    { id: 17, name: '腾讯', logoUrl: null, location: '深圳', website: 'https://tencent.com' },
+    { id: 18, name: '阿里巴巴', logoUrl: null, location: '杭州', website: 'https://alibaba.com' },
   ];
 }
 
@@ -129,6 +139,10 @@ const SEED_ROWS: SeedRow[] = [
   [37, 'Software Engineer', 'Apple', '$150,000', 134, 'REJECTED', 120, 'Rejected'],
   [10, 'UX Researcher', 'Meta', '$130,000', 141, 'REJECTED', 128, 'Rejected'],
   [40, 'UX Engineer', 'Airbnb', '$145,000', 150, 'APPLIED'],
+  // China: monthly pay times the number of months, the way offers there read
+  [41, '后端开发工程师', '字节跳动', '30k×15', 20, 'INTERVIEW', 4, 'Video interview scheduled'],
+  [42, '前端开发工程师', '腾讯', '25k×16', 41, 'IN_REVIEW', 18, 'Resume reviewed'],
+  [43, '算法工程师', '阿里巴巴', '35k×16', 66, 'REJECTED', 49, 'Rejected'],
 ];
 
 function createSeedApplications(companies: CompanyDTO[]): JobApplicationDTO[] {
@@ -142,9 +156,12 @@ function createSeedApplications(companies: CompanyDTO[]): JobApplicationDTO[] {
       const updatedAt = heardDay && heardDay > appliedDay
         ? timestampOn(heardDay, 9 + ((id * 3) % 8), (id * 7) % 60)
         : createdAt;
+      // "$165,000" rows are in dollars, the rest in yuan; the symbol comes from the currency
+      const salaryCurrency = salary.startsWith('$') ? 'USD' : 'CNY';
       return {
-        id, positionTitle, company, location: company.location, salary, status,
-        appliedDate: todayLocal(appliedDay),
+        id, positionTitle, company, location: company.location,
+        salary: salary.replace(/^\$/, ''), salaryCurrency, status,
+        appliedDate: dateKey(appliedDay),
         lastAction: lastAction ?? 'Applied',
         notes: notes ?? null,
         createdAt, updatedAt,
@@ -156,7 +173,7 @@ function createSeedApplications(companies: CompanyDTO[]): JobApplicationDTO[] {
 
 // Local wall-clock date-time on a seed day, in the backend's format
 function localDateTimeOnSeedDay(daysBack: number, hour: number, minute = 0): string {
-  return `${todayLocal(seedDay(daysBack))}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+  return `${dateKey(seedDay(daysBack))}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
 }
 
 // Interviews that already happened, matching where each job stands: the Netflix
@@ -182,36 +199,43 @@ function createPastInterviews(apps: JobApplicationDTO[]): InterviewDTO[] {
   return PAST_INTERVIEW_ROWS.map(([id, appId, interviewType, daysBack, hour, notes]) => {
     const app = apps.find((a) => a.id === appId)!;
     const interviewDate = localDateTimeOnSeedDay(daysBack, hour);
-    return {
+    return timed({
       id, jobApplicationId: appId, positionTitle: app.positionTitle, companyName: app.company.name,
       interviewDate, interviewType, notes,
       reminderEnabled: false, reminderHoursBefore: 24, reminderSent: false,
-      daysUntil: daysUntilLocal(interviewDate),
-    };
+    });
   });
 }
 
 function createSeedInterviews(apps: JobApplicationDTO[]): InterviewDTO[] {
   return [
     ...createPastInterviews(apps),
-    {
+    timed({
       id: 1, jobApplicationId: 5, positionTitle: 'Senior Frontend Engineer',
       companyName: 'Apple', interviewDate: localDateTimeIn(2, 10),
       interviewType: 'ONSITE', notes: 'Bring portfolio',
-      reminderEnabled: true, reminderHoursBefore: 24, reminderSent: false, daysUntil: 2,
-    },
-    {
+      reminderEnabled: true, reminderHoursBefore: 24, reminderSent: false,
+    }),
+    timed({
       id: 2, jobApplicationId: 4, positionTitle: 'Software Engineer',
       companyName: 'Amazon', interviewDate: localDateTimeIn(1, 14),
       interviewType: 'PHONE', notes: 'Behavioral + coding',
-      reminderEnabled: true, reminderHoursBefore: 24, reminderSent: false, daysUntil: 1,
-    },
-    {
+      reminderEnabled: true, reminderHoursBefore: 24, reminderSent: false,
+    }),
+    timed({
       id: 3, jobApplicationId: 3, positionTitle: 'Product Manager',
       companyName: 'Meta', interviewDate: localDateTimeIn(5, 9),
       interviewType: 'VIDEO', notes: 'Case study round',
-      reminderEnabled: false, reminderHoursBefore: 24, reminderSent: false, daysUntil: 5,
-    },
+      reminderEnabled: false, reminderHoursBefore: 24, reminderSent: false,
+    }),
+    // Booked on Beijing time; anyone outside China also sees it on their own clock
+    timed({
+      id: 15, jobApplicationId: 41, positionTitle: '后端开发工程师',
+      companyName: '字节跳动', interviewDate: `${wallClockIn(new Date(Date.now() + 3 * 86_400_000), 'Asia/Shanghai').slice(0, 10)}T10:00:00`,
+      timeZone: 'Asia/Shanghai',
+      interviewType: 'VIDEO', notes: '二面：系统设计',
+      reminderEnabled: true, reminderHoursBefore: 24, reminderSent: false,
+    }),
   ];
 }
 
@@ -221,7 +245,7 @@ export function computeActivity(apps: JobApplicationDTO[], today: string = today
   const activity: ApplicationActivityDTO[] = [];
   for (let i = 11; i >= 0; i--) {
     const start = new Date(year, month - 1 - i, 1);
-    const yearMonth = todayLocal(start).slice(0, 7);
+    const yearMonth = dateKey(start).slice(0, 7);
     const count = apps.filter(a => a.appliedDate?.startsWith(yearMonth)).length;
     activity.push({ yearMonth, count });
   }
@@ -250,6 +274,14 @@ function computeStats(apps: JobApplicationDTO[]): DashboardStatsDTO {
 }
 
 // Mutable working copies that CRUD operations modify
+// Ids for things made during the demo. Time-based so they never clash with the
+// small seed ids, and bumped so two made in the same millisecond still differ.
+let lastId = 0;
+function nextId(): number {
+  lastId = Math.max(Date.now(), lastId + 1);
+  return lastId;
+}
+
 let companies: CompanyDTO[] = createSeedCompanies();
 let applications: JobApplicationDTO[] = createSeedApplications(companies);
 let interviews: InterviewDTO[] = createSeedInterviews(applications);
@@ -333,7 +365,7 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
     if (url === '/applications/export') {
       const csv = ['Position,Company,Location,Status,Applied Date,Salary']
         .concat(applications.map(a =>
-          `"${a.positionTitle}","${a.company.name}","${a.location || ''}","${a.status}","${a.appliedDate || ''}","${a.salary || ''}"`
+          `"${a.positionTitle}","${a.company.name}","${a.location || ''}","${a.status}","${a.appliedDate || ''}","${a.salary ? `${a.salaryCurrency ? `${a.salaryCurrency} ` : ''}${a.salary}` : ''}"`
         )).join('\n');
       return new Blob([csv], { type: 'text/csv' });
     }
@@ -351,9 +383,9 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
     if (url === '/interviews/upcoming') {
       const now = new Date();
       return interviews
-        .filter(i => new Date(i.interviewDate) > now)
-        .sort((a, b) => new Date(a.interviewDate).getTime() - new Date(b.interviewDate).getTime())
-        .map(i => ({ ...i, daysUntil: daysUntilLocal(i.interviewDate, now) }));
+        .map(i => timed(i, now))
+        .filter(i => new Date(i.startsAt) > now)
+        .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
     }
     if (url === '/auth/me') return demoUser();
     // Demo shows every feature; the backend decides for real accounts
@@ -363,21 +395,36 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
   }
 
   // ===== Application CRUD =====
+  // Same rules as the backend: company names match case-insensitively, and a
+  // company goes away with its last application
+  const companyNamed = (name: string): CompanyDTO => {
+    const trimmed = name.trim();
+    const found = companies.find(c => c.name.toLowerCase() === trimmed.toLowerCase());
+    if (found) return found;
+    const created: CompanyDTO = { id: nextId(), name: trimmed, logoUrl: null, location: null, website: null };
+    companies.push(created);
+    return created;
+  };
+  const dropUnusedCompanies = () => {
+    const used = new Set(applications.map(a => a.company.id));
+    companies = companies.filter(c => used.has(c.id));
+  };
+
   if (method === 'post' && url === '/applications') {
     const payload = (typeof body === 'string' ? JSON.parse(body) : body) as Record<string, unknown> | undefined;
     const companyId = payload?.companyId as number | undefined;
     const companyName = (payload?.companyName as string) || 'New Company';
     const matchedCompany = companyId ? companies.find(c => c.id === companyId) : undefined;
-    const company: CompanyDTO = matchedCompany ?? { id: Date.now(), name: companyName, logoUrl: null, location: null, website: null };
-    if (!matchedCompany) companies.push(company);
+    const company = matchedCompany ?? companyNamed(companyName);
 
     const now = new Date().toISOString();
     const newApp: JobApplicationDTO = {
-      id: Date.now(),
+      id: nextId(),
       positionTitle: (payload?.positionTitle as string) || 'Untitled',
       company,
       location: (payload?.location as string) || null,
       salary: (payload?.salary as string) || null,
+      salaryCurrency: (payload?.salaryCurrency as string) || null,
       status: (payload?.status as ApplicationStatus) || 'APPLIED',
       appliedDate: (payload?.appliedDate as string) || todayLocal(),
       lastAction: 'Applied',
@@ -396,9 +443,9 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
     if (idx === -1) return applications[0];
     const payload = (typeof body === 'string' ? JSON.parse(body) : body) as Record<string, unknown> | undefined;
     const companyId = payload?.companyId as number | undefined;
-    const companyName = (payload?.companyName as string) || applications[idx].company.name;
+    const companyName = (payload?.companyName as string | undefined)?.trim();
     const matchedCompany = companyId ? companies.find(c => c.id === companyId) : undefined;
-    const company: CompanyDTO = matchedCompany ?? { ...applications[idx].company, name: companyName };
+    const company = matchedCompany ?? (companyName ? companyNamed(companyName) : applications[idx].company);
     const newStatus = (payload?.status as ApplicationStatus) || applications[idx].status;
     const lastAction = (payload?.lastAction as string) ?? lastActionAfter(applications[idx], newStatus);
 
@@ -408,12 +455,14 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
       company,
       location: keepOrClear(payload?.location, applications[idx].location),
       salary: keepOrClear(payload?.salary, applications[idx].salary),
+      salaryCurrency: keepOrClear(payload?.salaryCurrency, applications[idx].salaryCurrency ?? null),
       status: newStatus,
       lastAction,
       appliedDate: (payload?.appliedDate as string) || applications[idx].appliedDate,
       notes: keepOrClear(payload?.notes, applications[idx].notes),
       updatedAt: new Date().toISOString(),
     };
+    dropUnusedCompanies();
     stats = computeStats(applications);
     return applications[idx];
   }
@@ -446,22 +495,22 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
     const payload = (typeof body === 'string' ? JSON.parse(body) : body) as Record<string, unknown> | undefined;
     const appId = payload?.jobApplicationId as number | undefined;
     const linkedApp = appId ? applications.find(a => a.id === appId) : undefined;
-    const interviewDate = (payload?.interviewDate as string) || new Date().toISOString();
-    const daysUntil = daysUntilLocal(interviewDate);
+    const timeZone = (payload?.timeZone as string | undefined) ?? currentTimeZone();
+    const interviewDate = (payload?.interviewDate as string) || wallClockIn(new Date(), timeZone);
 
-    const newInterview: InterviewDTO = {
-      id: Date.now(),
+    const newInterview: InterviewDTO = timed({
+      id: nextId(),
       jobApplicationId: appId || 1,
       positionTitle: linkedApp?.positionTitle || (payload?.positionTitle as string) || 'New Interview',
       companyName: linkedApp?.company.name || (payload?.companyName as string) || 'Company',
       interviewDate,
+      timeZone,
       interviewType: (payload?.interviewType as InterviewType | undefined) || 'VIDEO',
       notes: (payload?.notes as string) || null,
       reminderEnabled: (payload?.reminderEnabled as boolean) ?? false,
       reminderHoursBefore: (payload?.reminderHoursBefore as number) ?? 24,
       reminderSent: false,
-      daysUntil,
-    };
+    });
     interviews.unshift(newInterview);
     return newInterview;
   }
@@ -471,17 +520,17 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
     if (idx === -1) return interviews[0];
     const payload = (typeof body === 'string' ? JSON.parse(body) : body) as Record<string, unknown> | undefined;
     const interviewDate = (payload?.interviewDate as string) || interviews[idx].interviewDate;
-    const daysUntil = daysUntilLocal(interviewDate);
+    const timeZone = (payload?.timeZone as string | undefined) ?? interviews[idx].timeZone;
 
-    interviews[idx] = {
+    interviews[idx] = timed({
       ...interviews[idx],
       interviewDate,
+      timeZone,
       interviewType: (payload?.interviewType as InterviewType | undefined) || interviews[idx].interviewType,
       notes: keepOrClear(payload?.notes, interviews[idx].notes),
       reminderEnabled: (payload?.reminderEnabled as boolean) ?? interviews[idx].reminderEnabled,
       reminderHoursBefore: (payload?.reminderHoursBefore as number) ?? interviews[idx].reminderHoursBefore,
-      daysUntil,
-    };
+    });
     return interviews[idx];
   }
 
@@ -489,7 +538,7 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
   if (method === 'post' && url === '/companies') {
     const payload = (typeof body === 'string' ? JSON.parse(body) : body) as Record<string, unknown> | undefined;
     const newCompany: CompanyDTO = {
-      id: Date.now(),
+      id: nextId(),
       name: (payload?.name as string) || 'New Company',
       logoUrl: (payload?.logoUrl as string) || null,
       location: (payload?.location as string) || null,
@@ -538,6 +587,7 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
       const idSet = new Set(ids);
       cascadeDeleteInterviewsByAppIds(idSet);
       applications = applications.filter(a => !idSet.has(a.id));
+      dropUnusedCompanies();
       stats = computeStats(applications);
     }
     return {};
@@ -561,6 +611,7 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
       // Cascade: remove interviews linked to this application
       cascadeDeleteInterviewsByAppIds(new Set([id]));
       applications = applications.filter(a => a.id !== id);
+      dropUnusedCompanies();
       stats = computeStats(applications);
     }
     return {};

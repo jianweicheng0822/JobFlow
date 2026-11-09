@@ -1,9 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
+import { matchesSuggestion } from '../utils/suggestions';
 
 interface AutocompleteInputProps {
   value: string;
   onChange: (value: string) => void;
   suggestions: string[];
+  // Extra search terms per suggestion, e.g. { '北京': ['beijing'] }
+  aliases?: Record<string, string[]>;
   placeholder?: string;
   className?: string;
 }
@@ -14,6 +17,7 @@ export default function AutocompleteInput({
   value,
   onChange,
   suggestions,
+  aliases,
   placeholder,
   className = 'app-form-input',
 }: AutocompleteInputProps) {
@@ -31,11 +35,7 @@ export default function AutocompleteInput({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filtered = value.trim()
-    ? suggestions.filter((s) =>
-        s.toLowerCase().includes(value.toLowerCase())
-      )
-    : suggestions;
+  const filtered = suggestions.filter((s) => matchesSuggestion(s, value, aliases));
 
   const visible = filtered.slice(0, MAX_VISIBLE);
 

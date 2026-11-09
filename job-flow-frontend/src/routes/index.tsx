@@ -1,10 +1,9 @@
-import { createBrowserRouter, type RouteObject } from 'react-router-dom'
+import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom'
 import RootLayout from '../components/RootLayout'
 import Layout from '../components/Layout'
 import ProtectedRoute from '../components/ProtectedRoute'
 import Dashboard from '../pages/Dashboard'
 import Jobs from '../pages/Jobs'
-import Companies from '../pages/Companies'
 import Interviews from '../pages/Interviews'
 import Analytics from '../pages/Analytics'
 import SettingsPage from '../pages/SettingsPage'
@@ -41,7 +40,8 @@ export const routes: RouteObject[] = [
                   { path: '/', element: <Dashboard /> },
                   { path: '/jobs', element: <Jobs /> },
                   { path: '/interviews', element: <Interviews /> },
-                  { path: '/companies', element: <Companies /> },
+                  // Companies used to have their own page; keep old links working
+                  { path: '/companies', element: <Navigate to="/jobs" replace /> },
                   { path: '/analytics', element: <Analytics /> },
                   { path: '/settings', element: <SettingsPage /> },
                 ],

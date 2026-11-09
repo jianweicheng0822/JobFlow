@@ -201,6 +201,67 @@ class JobApplicationControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    void delete_lastApplication_removesItsCompany() throws Exception {
+        Long companyId = createCompany(aliceToken);
+        Long first = createApplication(aliceToken, companyId);
+        Long second = createApplication(aliceToken, companyId);
+
+        // Still used by the second application, so it stays
+        mockMvc.perform(delete("/api/applications/" + first)
+                        .header("Authorization", "Bearer " + aliceToken))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/companies/" + companyId)
+                        .header("Authorization", "Bearer " + aliceToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(delete("/api/applications/" + second)
+                        .header("Authorization", "Bearer " + aliceToken))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/companies/" + companyId)
+                        .header("Authorization", "Bearer " + aliceToken))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void update_movingToAnotherCompany_removesTheOldOneIfUnused() throws Exception {
+        Long oldCompanyId = createCompany(aliceToken);
+        Long appId = createApplication(aliceToken, oldCompanyId);
+
+        mockMvc.perform(put("/api/applications/" + appId)
+                        .header("Authorization", "Bearer " + aliceToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"companyName\": \"NewCorp\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.company.name").value("NewCorp"));
+
+        mockMvc.perform(get("/api/companies/" + oldCompanyId)
+                        .header("Authorization", "Bearer " + aliceToken))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void create_withSalaryCurrency_keepsIt() throws Exception {
+        mockMvc.perform(post("/api/applications")
+                        .header("Authorization", "Bearer " + aliceToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"positionTitle": "后端开发工程师", "companyName": "字节跳动", "location": "上海",
+                                 "salary": "30k×15", "salaryCurrency": "CNY"}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.company.name").value("字节跳动"))
+                .andExpect(jsonPath("$.salary").value("30k×15"))
+                .andExpect(jsonPath("$.salaryCurrency").value("CNY"));
+
+        mockMvc.perform(post("/api/applications")
+                        .header("Authorization", "Bearer " + aliceToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"positionTitle\": \"Engineer\", \"companyName\": \"Acme\", \"salaryCurrency\": \"dollars\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_SALARY_CURRENCY"));
+    }
+
+    @Test
     void stats_returnsOnlyOwnStats() throws Exception {
         Long aliceCompanyId = createCompany(aliceToken);
         Long bobCompanyId = createCompany(bobToken);

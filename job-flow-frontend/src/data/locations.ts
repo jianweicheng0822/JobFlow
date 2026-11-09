@@ -107,4 +107,33 @@ const LOCATIONS = [
   'District of Columbia',
 ];
 
+// Chinese cities, plus Hong Kong, Taipei and Singapore that Chinese-speaking
+// job seekers often look at too
+export const CN_LOCATIONS = [
+  '远程', '混合办公',
+  '北京', '上海', '深圳', '广州', '杭州', '成都', '南京', '武汉', '西安', '苏州',
+  '天津', '重庆', '长沙', '厦门', '合肥', '青岛', '大连', '郑州', '济南', '珠海',
+  '东莞', '宁波', '无锡', '福州',
+  '香港', '台北', '新加坡',
+];
+
+// Other ways people type a place: pinyin and English for Chinese cities,
+// Chinese names for the US ones. Typing "beijing" finds 北京, "西雅图" finds Seattle.
+export const LOCATION_ALIASES: Record<string, string[]> = {
+  '远程': ['remote'], '混合办公': ['hybrid'],
+  '北京': ['beijing', 'bj'], '上海': ['shanghai', 'sh'], '深圳': ['shenzhen', 'sz'],
+  '广州': ['guangzhou', 'gz'], '杭州': ['hangzhou', 'hz'], '成都': ['chengdu'],
+  '南京': ['nanjing'], '武汉': ['wuhan'], '西安': ['xian', "xi'an"], '苏州': ['suzhou'],
+  '天津': ['tianjin'], '重庆': ['chongqing'], '长沙': ['changsha'], '厦门': ['xiamen'],
+  '合肥': ['hefei'], '青岛': ['qingdao'], '大连': ['dalian'], '郑州': ['zhengzhou'],
+  '济南': ['jinan'], '珠海': ['zhuhai'], '东莞': ['dongguan'], '宁波': ['ningbo'],
+  '无锡': ['wuxi'], '福州': ['fuzhou'],
+  '香港': ['hong kong', 'hk'], '台北': ['taipei'], '新加坡': ['singapore'],
+  'Remote': ['远程'], 'Hybrid': ['混合'],
+  'New York, NY': ['纽约'], 'San Francisco, CA': ['旧金山'], 'Seattle, WA': ['西雅图'],
+  'Los Angeles, CA': ['洛杉矶'], 'San Jose, CA': ['圣何塞'], 'Boston, MA': ['波士顿'],
+  'Chicago, IL': ['芝加哥'], 'Austin, TX': ['奥斯汀'], 'San Diego, CA': ['圣地亚哥'],
+  'Washington': ['华盛顿'], 'California': ['加州'], 'Texas': ['德州'],
+};
+
 export default LOCATIONS;

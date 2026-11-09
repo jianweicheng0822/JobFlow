@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Data
 @NoArgsConstructor
@@ -19,11 +19,13 @@ public class JobApplicationDTO {
     private CompanyDTO company;
     private String location;
     private String salary;
+    private String salaryCurrency;
     private ApplicationStatus status;
     private LocalDate appliedDate;
     private String lastAction;
     private String notes;
     private boolean starred;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    // Real moments ("...Z"), so the browser can show them in the user's zone
+    private Instant createdAt;
+    private Instant updatedAt;
 }

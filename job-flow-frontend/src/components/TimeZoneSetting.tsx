@@ -7,15 +7,8 @@ import { useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import { browserTimeZone, localeFor } from '../utils/date'
 import AutocompleteInput from './AutocompleteInput'
-
-// Every IANA zone the browser knows; empty on very old browsers (then any typed id is sent)
-function allTimeZones(): string[] {
-  try {
-    return Intl.supportedValuesOf('timeZone')
-  } catch {
-    return []
-  }
-}
+// Empty on very old browsers; then any typed id is sent
+import { allTimeZones } from '../data/timeZones'
 
 // Current time in a zone, e.g. "8:45 PM", so people can sanity-check their pick
 function timeIn(zone: string, locale: string): string {

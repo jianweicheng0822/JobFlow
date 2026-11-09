@@ -1,5 +1,5 @@
 import type { JobApplicationDTO } from '../api/types'
-import { todayLocal } from './date'
+import { todayLocal, dateKey } from './date'
 import { applicationDay } from './weeklyCounts'
 
 export interface DayCell {
@@ -30,7 +30,7 @@ export function dailyGrid(
 
   return Array.from({ length: weeks }, (_, week) =>
     Array.from({ length: 7 }, (_, weekday) => {
-      const date = todayLocal(new Date(y, m - 1, firstMonday + week * 7 + weekday))
+      const date = dateKey(new Date(y, m - 1, firstMonday + week * 7 + weekday))
       return { date, count: counts.get(date) ?? 0, future: date > today }
     }),
   )

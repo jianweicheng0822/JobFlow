@@ -20,6 +20,7 @@ vi.mock('../../api/mockData', () => ({
 
 vi.mock('../../utils/date', () => ({
   browserTimeZone: () => 'America/Denver',
+  setAppTimeZone: vi.fn(),
 }));
 
 function me(timeZone: string | null): AuthResponse {

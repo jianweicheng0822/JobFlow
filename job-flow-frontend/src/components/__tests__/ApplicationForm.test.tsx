@@ -114,6 +114,28 @@ describe('ApplicationForm', () => {
     }));
   });
 
+  it('sends the picked salary currency, starting from the one the old text implies', async () => {
+    render(<ApplicationForm application={editApp} onSuccess={onSuccess} onCancel={onCancel} />, { wrapper: Wrapper });
+
+    const currency = screen.getByLabelText('Salary currency') as HTMLSelectElement;
+    expect(currency.value).toBe('USD'); // "$120k"
+
+    fireEvent.change(currency, { target: { value: 'CNY' } });
+    fireEvent.change(screen.getByDisplayValue('$120k'), { target: { value: '30k×15' } });
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+    expect(updateApplication).toHaveBeenCalledWith(1, expect.objectContaining({ salary: '30k×15', salaryCurrency: 'CNY' }));
+  });
+
+  it('suggests Chinese cities when typed in pinyin', () => {
+    render(<ApplicationForm onSuccess={onSuccess} onCancel={onCancel} />, { wrapper: Wrapper });
+
+    fireEvent.change(screen.getByPlaceholderText('e.g. San Francisco, CA'), { target: { value: 'shenzhen' } });
+
+    expect(screen.getByText('深圳')).toBeInTheDocument();
+  });
+
   it('sends companyName when a new company is typed on edit', async () => {
     render(<ApplicationForm application={editApp} onSuccess={onSuccess} onCancel={onCancel} />, { wrapper: Wrapper });
 

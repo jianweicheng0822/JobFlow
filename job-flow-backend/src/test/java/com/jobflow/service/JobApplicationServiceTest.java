@@ -418,6 +418,22 @@ class JobApplicationServiceTest {
         JobApplicationDTO result = jobApplicationService.update(1L, 100L, request);
 
         assertThat(result.getCompany().getName()).isEqualTo("OtherCorp");
+        // The old company goes if nothing else uses it
+        verify(companyRepository).deleteIfUnused(10L);
+    }
+
+    @Test
+    void update_sameCompany_leavesCompaniesAlone() {
+        UpdateJobApplicationRequest request = new UpdateJobApplicationRequest();
+        request.setCompanyId(10L);
+
+        when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
+        when(companyRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(testCompany));
+        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        jobApplicationService.update(1L, 100L, request);
+
+        verify(companyRepository, never()).deleteIfUnused(any());
     }
 
     @Test
@@ -495,6 +511,7 @@ class JobApplicationServiceTest {
         verify(interviewRepository).deleteByJobApplicationId(100L);
         verify(emailImportLogRepository).deleteByJobApplicationId(100L);
         verify(jobApplicationRepository).delete(testApp);
+        verify(companyRepository).deleteIfUnused(10L);
     }
 
     @Test
@@ -647,6 +664,33 @@ class JobApplicationServiceTest {
         assertThat(csv).contains("TestCorp");
         assertThat(csv).contains("APPLIED");
         assertThat(csv).contains("Remote");
+    }
+
+    @Test
+    void exportCsv_namesTheCurrencyWhenOneWasPicked() {
+        testApp.setSalary("30k×15");
+        testApp.setSalaryCurrency("CNY");
+        when(jobApplicationRepository.findByUserIdOrderByUpdatedAtDesc(1L)).thenReturn(List.of(testApp));
+
+        assertThat(jobApplicationService.exportCsv(1L)).contains(",CNY 30k×15,");
+    }
+
+    @Test
+    void update_salaryCurrency_setsClearsAndRejectsBadCodes() {
+        when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
+        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        UpdateJobApplicationRequest request = new UpdateJobApplicationRequest();
+        request.setSalaryCurrency("CNY");
+        assertThat(jobApplicationService.update(1L, 100L, request).getSalaryCurrency()).isEqualTo("CNY");
+
+        request.setSalaryCurrency("");
+        assertThat(jobApplicationService.update(1L, 100L, request).getSalaryCurrency()).isNull();
+
+        request.setSalaryCurrency("rmb");
+        assertThatThrownBy(() -> jobApplicationService.update(1L, 100L, request))
+                .isInstanceOf(ApiException.class)
+                .hasFieldOrPropertyWithValue("code", "INVALID_SALARY_CURRENCY");
     }
 
     @Test

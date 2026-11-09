@@ -11,7 +11,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 // Off under loadtest: seeded interviews would otherwise mail thousands of fake addresses
@@ -51,11 +54,13 @@ public class InterviewReminderScheduler {
                 JobApplication app = interview.getJobApplication();
                 String userEmail = app.getUser().getEmail();
 
+                ZonedDateTime start = userClock.startOf(interview);
                 emailService.sendInterviewReminder(
                     userEmail,
                     app.getCompany().getName(),
                     app.getPositionTitle(),
-                    interview.getInterviewDate(),
+                    start.withZoneSameInstant(userClock.zoneOf(app.getUser())),
+                    start,
                     interview.getInterviewType().name(),
                     interview.getNotes()
                 );
@@ -67,11 +72,10 @@ public class InterviewReminderScheduler {
         }
     }
 
-    // Due when the interview hasn't started yet on the user's clock and is within
-    // their chosen number of hours
+    // Due when the interview hasn't started yet and is within the chosen number of hours
     private boolean isDue(Interview interview) {
-        LocalDateTime usersNow = userClock.now(interview.getJobApplication().getUser());
-        LocalDateTime start = interview.getInterviewDate();
-        return start.isAfter(usersNow) && !start.isAfter(usersNow.plusHours(interview.getReminderHoursBefore()));
+        Instant now = userClock.instant();
+        Instant start = userClock.startOf(interview).toInstant();
+        return start.isAfter(now) && !start.isAfter(now.plus(Duration.ofHours(interview.getReminderHoursBefore())));
     }
 }
