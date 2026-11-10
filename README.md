@@ -8,17 +8,17 @@
 ![MySQL](https://img.shields.io/badge/MySQL-4479A1?logo=mysql&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
 
-A full-stack job application tracker with JWT + OAuth2 authentication, Kanban pipeline, interview management, and analytics dashboard.
+A full-stack job application tracker: a drag-and-drop pipeline, interview scheduling with reminders, and analytics on what's working. Spring Boot + React, with JWT and Google/GitHub sign-in.
 
-**Live:** https://jobflow.lumis.software (click "Try Demo" to look around without signing up)
+**Live:** https://jobflow.lumis.software (click "Try Demo" to look around, no sign-up needed)
 
 ## Screenshots
 
-<img src="docs/demo.gif" alt="JobFlow demo: try the demo, follow the short tour and drag a card across the pipeline, add a Google application and star it into the starred group, open analytics, then switch to dark mode and Chinese while the checklist ticks itself off">
+<img src="docs/demo.gif" alt="JobFlow demo: try the demo, drag a card across the pipeline in the short tour, add a Google application and star it into the starred group, open analytics, then switch to dark mode while the checklist ticks itself off">
 
 <table>
   <tr>
-    <td align="center"><strong>Login</strong><br><a href="docs/login.png"><img src="docs/login.png" alt="Login" width="400"></a></td>
+    <td align="center"><strong>Dashboard</strong><br><a href="docs/dashboard.png"><img src="docs/dashboard.png" alt="Dashboard" width="400"></a></td>
     <td align="center"><strong>Jobs</strong><br><a href="docs/jobs.png"><img src="docs/jobs.png" alt="Jobs" width="400"></a></td>
   </tr>
   <tr>
@@ -27,12 +27,15 @@ A full-stack job application tracker with JWT + OAuth2 authentication, Kanban pi
   </tr>
   <tr>
     <td align="center"><strong>Analytics</strong><br><a href="docs/analytics.png"><img src="docs/analytics.png" alt="Analytics" width="400"></a></td>
-    <td align="center"><strong>Settings</strong><br><a href="docs/settings.png"><img src="docs/settings.png" alt="Settings" width="400"></a></td>
-  </tr>
-  <tr>
-    <td align="center"><strong>Dashboard</strong><br><a href="docs/dashboard.png"><img src="docs/dashboard.png" alt="Dashboard" width="400"></a></td>
     <td align="center"><strong>Dark Mode</strong><br><a href="docs/dashboard-dark.png"><img src="docs/dashboard-dark.png" alt="Dashboard in dark mode" width="400"></a></td>
   </tr>
+</table>
+
+<details>
+<summary><strong>More screenshots</strong> (feedback, demo tour, phones, login, settings)</summary>
+<br>
+
+<table>
   <tr>
     <td align="center"><strong>Feedback</strong><br><a href="docs/feedback.png"><img src="docs/feedback.png" alt="Feedback form opened from the sidebar" width="400"></a></td>
     <td align="center"><strong>Feedback on Phones</strong><br><a href="docs/feedback-mobile.png"><img src="docs/feedback-mobile.png" alt="Feedback card at the bottom of Settings on a phone, and the form it opens" width="400"></a></td>
@@ -41,7 +44,13 @@ A full-stack job application tracker with JWT + OAuth2 authentication, Kanban pi
     <td align="center"><strong>Demo Tour</strong><br><a href="docs/tour.png"><img src="docs/tour.png" alt="Demo tour spotlighting the pipeline, with an animated hint showing how to drag a card to the next stage" width="400"></a></td>
     <td align="center"><strong>Tour &amp; Checklist on Phones</strong><br><a href="docs/onboarding-mobile.png"><img src="docs/onboarding-mobile.png" alt="The tour on a phone, and the things-to-try checklist with two items ticked off" width="400"></a></td>
   </tr>
+  <tr>
+    <td align="center"><strong>Login</strong><br><a href="docs/login.png"><img src="docs/login.png" alt="Login" width="400"></a></td>
+    <td align="center"><strong>Settings</strong><br><a href="docs/settings.png"><img src="docs/settings.png" alt="Settings profile with name and time zone" width="400"></a></td>
+  </tr>
 </table>
+
+</details>
 
 > *Click any screenshot to view full resolution.*
 
@@ -66,7 +75,7 @@ A full-stack job application tracker with JWT + OAuth2 authentication, Kanban pi
 - **Dashboard** — Stat cards, a drag-and-drop Kanban pipeline (3 cards per stage), the 5 latest applications (starred first), upcoming interviews and applications that need a follow-up, each with a link to the rest
 - **Jobs** — Searchable, paginated application table with a quick status dropdown. Starred jobs sit in their own "★ Starred" group above the rest, and clicking a top employer filters the list to that company. Pick 10, 20 or 50 rows per page (remembered per browser); a new application is highlighted on the page it lands on
 - **Interviews** — Schedule and manage interviews linked to applications, upcoming ones first and past ones folded away, with optional email reminders (shown only when the server has `MAIL_*` set). Each interview can have its own time zone: enter the time the company gave you and pick their zone, and the list and reminders show it in your time, with the booked time next to it when the zones differ
-- **China + US** — Salaries in USD or CNY, and title and location suggestions for both countries (type "shanghai" to find 上海, or "backend" to find 后端开发工程师)
+- **Currencies** — Salaries in USD or CNY
 - **Analytics** — Overview, status distribution, per-company breakdown
 - **Global search** — Search applications and companies from the top bar
 - **Settings** — Profile, password, theme (dark/light), language (English/中文), and time zone
