@@ -309,6 +309,9 @@ export default function SettingsPage() {
               </button>
             </div>
           </div>
+
+          {/* Remount when the zone changes (e.g. the first-sign-in sync lands) so the select follows */}
+          <TimeZoneSetting key={user?.timeZone ?? 'none'} />
         </div>
       )}
 
@@ -531,9 +534,6 @@ export default function SettingsPage() {
                 </div>
               </button>
             </div>
-
-            {/* Remount when the zone changes (e.g. the first-sign-in sync lands) so the input follows */}
-            <TimeZoneSetting key={user?.timeZone ?? 'none'} />
           </div>
         </div>
       )}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { getApplications } from '../api/applications';
 import { createInterview, updateInterview } from '../api/interviews';
@@ -11,8 +11,8 @@ import type {
 } from '../api/types';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuthProviders } from '../hooks/useAuthProviders';
-import { COMMON_TIME_ZONES, allTimeZones } from '../data/timeZones';
-import { currentTimeZone, zoneAbbreviation } from '../utils/date';
+import { currentTimeZone } from '../utils/date';
+import TimeZoneSelect from './TimeZoneSelect';
 import './ApplicationForm.css';
 
 const TYPE_VALUES: InterviewType[] = ['PHONE', 'VIDEO', 'ONSITE'];
@@ -30,7 +30,7 @@ interface InterviewFormProps {
 
 export default function InterviewForm({ interview, onSuccess, onCancel }: InterviewFormProps) {
   const isEdit = !!interview;
-  const { t, lang } = useLanguage();
+  const { t } = useLanguage();
   // Nothing would ever send the reminder on a server without mail settings
   const canRemind = useAuthProviders()?.emailReminders === true;
 
@@ -63,19 +63,6 @@ export default function InterviewForm({ interview, onSuccess, onCancel }: Interv
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }
-
-  const zoneLabel = (zone: string) => {
-    const common = COMMON_TIME_ZONES.find((z) => z.zone === zone);
-    const name = common ? common[lang] : zone.replace(/_/g, ' ');
-    return `${name} (${zoneAbbreviation(zone, lang)})`;
-  };
-  const commonZones = COMMON_TIME_ZONES.map((z) => z.zone).filter((z) => z !== myZone);
-  const otherZones = useMemo(() => {
-    const shown = new Set([myZone, ...COMMON_TIME_ZONES.map((z) => z.zone)]);
-    return allTimeZones().filter((z) => !shown.has(z));
-  }, [myZone]);
-  // An old interview could carry a zone this browser doesn't list; keep it selectable
-  const unlistedZone = timeZone !== myZone && !commonZones.includes(timeZone) && !otherZones.includes(timeZone);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -145,25 +132,13 @@ export default function InterviewForm({ interview, onSuccess, onCancel }: Interv
         </div>
         <div className="app-form-field">
           <label className="app-form-label" htmlFor="interview-time-zone">{t.interviewTimeZone}</label>
-          <select
+          <TimeZoneSelect
             id="interview-time-zone"
             className="app-form-select"
             value={timeZone}
-            onChange={(e) => setTimeZone(e.target.value)}
-          >
-            <option value={myZone}>{t.myTimeZone} · {zoneLabel(myZone)}</option>
-            {unlistedZone && <option value={timeZone}>{zoneLabel(timeZone)}</option>}
-            {commonZones.map((z) => (
-              <option key={z} value={z}>{zoneLabel(z)}</option>
-            ))}
-            {otherZones.length > 0 && (
-              <optgroup label={t.allTimeZones}>
-                {otherZones.map((z) => (
-                  <option key={z} value={z}>{z.replace(/_/g, ' ')}</option>
-                ))}
-              </optgroup>
-            )}
-          </select>
+            onChange={setTimeZone}
+            pinned={{ zone: myZone, prefix: t.myTimeZone }}
+          />
         </div>
       </div>
       <span className="app-form-hint">{t.interviewTimeZoneHint}</span>

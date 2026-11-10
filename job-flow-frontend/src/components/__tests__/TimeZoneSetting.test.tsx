@@ -41,8 +41,7 @@ function renderWith(timeZone: string | null) {
   return { updateUser };
 }
 
-const saveButton = () => screen.getByRole('button', { name: /save changes/i });
-const zoneInput = () => screen.getByPlaceholderText(/search, e\.g\./i);
+const zoneSelect = () => screen.getByLabelText('Time Zone') as HTMLSelectElement;
 
 describe('TimeZoneSetting', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -50,16 +49,22 @@ describe('TimeZoneSetting', () => {
   it('shows the saved zone with its current time, and no hint when it matches the device', () => {
     renderWith('America/Denver');
 
-    expect(screen.getByText('America/Denver')).toBeInTheDocument();
-    expect(screen.getByText(/\d{1,2}:\d{2}\s?(AM|PM)/)).toBeInTheDocument();
+    expect(zoneSelect().value).toBe('America/Denver');
+    expect(screen.getByText(/current time: \d{1,2}:\d{2}\s?(AM|PM)/i)).toBeInTheDocument();
     expect(screen.queryByText(/this device is in/i)).not.toBeInTheDocument();
-    // Nothing changed yet
-    expect(saveButton()).toBeDisabled();
+  });
+
+  it('lists common zones by readable name, China and US first', () => {
+    renderWith('America/Denver');
+
+    expect(screen.getByRole('option', { name: /^Beijing \/ Shanghai/ })).toHaveValue('Asia/Shanghai');
+    expect(screen.getByRole('option', { name: /^Los Angeles \/ Seattle/ })).toHaveValue('America/Los_Angeles');
   });
 
   it('says when no zone is set yet', () => {
     renderWith(null);
 
+    expect(zoneSelect().value).toBe('');
     expect(screen.getByText(/not set yet/i)).toBeInTheDocument();
   });
 
@@ -75,33 +80,26 @@ describe('TimeZoneSetting', () => {
     expect(await screen.findByText('Time zone updated')).toBeInTheDocument();
   });
 
-  it('saves a zone picked from the list', async () => {
-    vi.mocked(updateTimeZone).mockResolvedValue({ data: { timeZone: 'Europe/London' } } as never);
+  it('saves as soon as a zone is picked', async () => {
+    vi.mocked(updateTimeZone).mockResolvedValue({ data: { timeZone: 'Asia/Shanghai' } } as never);
     const { updateUser } = renderWith('America/Denver');
 
-    fireEvent.change(zoneInput(), { target: { value: 'Europe/London' } });
-    expect(saveButton()).toBeEnabled();
-    fireEvent.click(saveButton());
+    fireEvent.change(zoneSelect(), { target: { value: 'Asia/Shanghai' } });
 
-    await waitFor(() => expect(updateUser).toHaveBeenCalledWith(expect.objectContaining({ timeZone: 'Europe/London' })));
+    await waitFor(() => expect(updateUser).toHaveBeenCalledWith(expect.objectContaining({ timeZone: 'Asia/Shanghai' })));
+    expect(updateTimeZone).toHaveBeenCalledWith('Asia/Shanghai');
+    expect(await screen.findByText('Time zone updated')).toBeInTheDocument();
   });
 
-  it("won't save something that isn't a real zone", () => {
-    renderWith('America/Denver');
-
-    fireEvent.change(zoneInput(), { target: { value: 'Mars/Olympus_Mons' } });
-    expect(saveButton()).toBeDisabled();
-  });
-
-  it("shows the backend's reason when saving fails", async () => {
+  it("shows the backend's reason when saving fails and goes back to the saved zone", async () => {
     const response = { data: { message: 'Unknown time zone: Europe/London' }, status: 400 } as AxiosResponse;
     vi.mocked(updateTimeZone).mockRejectedValue(new AxiosError('Bad', 'ERR_BAD_REQUEST', undefined, undefined, response));
     const { updateUser } = renderWith('America/Denver');
 
-    fireEvent.change(zoneInput(), { target: { value: 'Europe/London' } });
-    fireEvent.click(saveButton());
+    fireEvent.change(zoneSelect(), { target: { value: 'Europe/London' } });
 
     expect(await screen.findByText('Unknown time zone: Europe/London')).toBeInTheDocument();
     expect(updateUser).not.toHaveBeenCalled();
+    expect(zoneSelect().value).toBe('America/Denver');
   });
 });
