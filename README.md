@@ -14,7 +14,7 @@ A full-stack job application tracker with JWT + OAuth2 authentication, Kanban pi
 
 ## Screenshots
 
-<img src="docs/demo.gif" alt="JobFlow demo: try the demo, follow the short tour and drag a card across the pipeline, then search and star jobs, open analytics and switch to dark mode and Chinese while the checklist ticks itself off">
+<img src="docs/demo.gif" alt="JobFlow demo: try the demo, follow the short tour and drag a card across the pipeline, add a Google application and star it into the starred group, open analytics, then switch to dark mode and Chinese while the checklist ticks itself off">
 
 <table>
   <tr>
@@ -23,7 +23,7 @@ A full-stack job application tracker with JWT + OAuth2 authentication, Kanban pi
   </tr>
   <tr>
     <td align="center"><strong>Interviews</strong><br><a href="docs/interviews.png"><img src="docs/interviews.png" alt="Interviews" width="400"></a></td>
-    <td align="center"><strong>Companies</strong><br><a href="docs/companies.png"><img src="docs/companies.png" alt="Companies" width="400"></a></td>
+    <td align="center"><strong>Interview Time Zones</strong><br><a href="docs/interview-timezone.png"><img src="docs/interview-timezone.png" alt="Editing an interview with a Shanghai company, booked on Beijing / Shanghai time" width="400"></a></td>
   </tr>
   <tr>
     <td align="center"><strong>Analytics</strong><br><a href="docs/analytics.png"><img src="docs/analytics.png" alt="Analytics" width="400"></a></td>
@@ -64,9 +64,9 @@ A full-stack job application tracker with JWT + OAuth2 authentication, Kanban pi
 
 - **Auth** — Register/login with JWT, Google & GitHub OAuth2, demo mode. Tokens carry the user id and a token version, so changing your password signs out every other device and a deleted account's tokens stop working right away
 - **Dashboard** — Stat cards, a drag-and-drop Kanban pipeline (3 cards per stage), the 5 latest applications (starred first), upcoming interviews and applications that need a follow-up, each with a link to the rest
-- **Jobs** — Searchable, paginated application table with a quick status dropdown, starred (saved) jobs, and top employers. Pick 10, 20 or 50 rows per page (remembered per browser); a new application is highlighted on the page it lands on
-- **Interviews** — Schedule and manage interviews linked to applications, upcoming ones first and past ones folded away, with optional email reminders (shown only when the server has `MAIL_*` set)
-- **Companies** — Company directory with search and per-company application count
+- **Jobs** — Searchable, paginated application table with a quick status dropdown. Starred jobs sit in their own "★ Starred" group above the rest, and clicking a top employer filters the list to that company. Pick 10, 20 or 50 rows per page (remembered per browser); a new application is highlighted on the page it lands on
+- **Interviews** — Schedule and manage interviews linked to applications, upcoming ones first and past ones folded away, with optional email reminders (shown only when the server has `MAIL_*` set). Each interview can have its own time zone: enter the time the company gave you and pick their zone, and the list and reminders show it in your time, with the booked time next to it when the zones differ
+- **China + US** — Salaries in USD or CNY, and title and location suggestions for both countries (type "shanghai" to find 上海, or "backend" to find 后端开发工程师)
 - **Analytics** — Overview, status distribution, per-company breakdown
 - **Global search** — Search applications and companies from the top bar
 - **Settings** — Profile, password, theme (dark/light), language (English/中文), and time zone
@@ -175,7 +175,7 @@ Base paths: `/api/auth`, `/api/applications`, `/api/interviews`, `/api/companies
 
 ## Testing
 
-**687 tests**: 426 backend (integration and unit) and 261 frontend (component and API).
+**713 tests**: 439 backend (integration and unit) and 274 frontend (component and API).
 
 ```bash
 # Backend (needs Docker running: integration tests start MySQL with Testcontainers)
