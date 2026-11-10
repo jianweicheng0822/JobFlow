@@ -9,7 +9,7 @@ interface TimeZoneSelectProps {
   value: string
   onChange: (zone: string) => void
   disabled?: boolean
-  // Shown first with a prefix, e.g. "My time zone · Denver (MST)"
+  // Shown first with a prefix, e.g. "My time zone: Denver · MST"
   pinned?: { zone: string; prefix: string }
   // Shown when value is empty, e.g. before the first sign-in saved a zone
   placeholder?: string
@@ -26,7 +26,7 @@ export default function TimeZoneSelect({ id, className, value, onChange, disable
   const label = (zone: string) => {
     const common = COMMON_TIME_ZONES.find((z) => z.zone === zone)
     const name = common ? common[lang] : zone.replace(/_/g, ' ')
-    return `${name} (${zoneAbbreviation(zone, lang)})`
+    return `${name} · ${zoneAbbreviation(zone, lang)}`
   }
 
   const pinnedZone = pinned?.zone
@@ -41,7 +41,7 @@ export default function TimeZoneSelect({ id, className, value, onChange, disable
   return (
     <select id={id} className={className} value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
       {value === '' && placeholder && <option value="" disabled>{placeholder}</option>}
-      {pinned && <option value={pinned.zone}>{pinned.prefix} · {label(pinned.zone)}</option>}
+      {pinned && <option value={pinned.zone}>{pinned.prefix}{lang === 'zh' ? '：' : ': '}{label(pinned.zone)}</option>}
       {unlisted && <option value={value}>{label(value)}</option>}
       {commonZones.map((z) => (
         <option key={z} value={z}>{label(z)}</option>
