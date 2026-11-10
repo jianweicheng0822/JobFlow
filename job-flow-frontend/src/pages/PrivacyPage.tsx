@@ -3,10 +3,9 @@ import { useLanguage, type Language } from '../context/LanguageContext'
 import './LoginPage.css'
 import './PrivacyPage.css'
 
-const CONTACT_EMAIL = 'a1206084539@gmail.com'
 const GOOGLE_PERMISSIONS_URL = 'https://myaccount.google.com/permissions'
 const GOOGLE_POLICY_URL = 'https://developers.google.com/terms/api-services-user-data-policy'
-const LAST_UPDATED = '2026-10-22'
+const LAST_UPDATED = '2026-11-10'
 
 interface Section {
   title: string
@@ -54,7 +53,7 @@ const content: Record<Language, { title: string; updated: string; back: string; 
         title: 'Deleting your data',
         body: [
           'You can delete your account at any time under Settings > Account. That removes your account and everything in it right away, and revokes Gmail access if you linked it.',
-          `For any question about your data, email ${CONTACT_EMAIL} from the address you signed up with.`,
+          'For any question about your data, send a message with the Feedback button in the app (in the sidebar, or at the bottom of Settings on phones). It works in the demo too, no account needed.',
         ],
       },
     ],
@@ -98,7 +97,7 @@ const content: Record<Language, { title: string; updated: string; back: string; 
         title: '删除数据',
         body: [
           '你可以随时在「设置 > 账号」中注销账号。账号及其中的所有数据会立即删除；如果关联过 Gmail，授权也会一并撤销。',
-          `对数据有任何疑问，请用注册时的邮箱发邮件到 ${CONTACT_EMAIL}。`,
+          '对数据有任何疑问，请在应用里点「反馈」发消息（在侧边栏，手机上在设置页底部）。不用注册，在 Demo 里也能发。',
         ],
       },
     ],
@@ -131,8 +130,6 @@ export default function PrivacyPage() {
           <a href={GOOGLE_PERMISSIONS_URL} target="_blank" rel="noreferrer">Google account permissions</a>
           {' · '}
           <a href={GOOGLE_POLICY_URL} target="_blank" rel="noreferrer">Google API Services User Data Policy</a>
-          {' · '}
-          <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
         </p>
 
         <p className="auth-footer">

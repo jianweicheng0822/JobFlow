@@ -26,8 +26,10 @@ describe('PrivacyPage', () => {
     expect(screen.getByText(/adheres to the Google API Services User Data Policy, including the Limited Use requirements/)).toBeInTheDocument();
     // Gmail import reads headers only, and the page should say so
     expect(screen.getByText(/never the message body/)).toBeInTheDocument();
-    // Somewhere to ask for deletion
-    expect(screen.getByRole('link', { name: 'a1206084539@gmail.com' })).toHaveAttribute('href', 'mailto:a1206084539@gmail.com');
+    // Somewhere to ask about your data, without publishing a personal email address
+    expect(screen.getByText(/send a message with the Feedback button/)).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/@/);
+    expect(document.querySelector('a[href^="mailto:"]')).toBeNull();
   });
 
   it('follows the chosen language', () => {
