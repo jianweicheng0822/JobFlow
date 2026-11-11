@@ -102,6 +102,7 @@ and a local backend both read it (environment variables override it):
 | `SEED_DEMO_DATA` | No | `true` creates a sample account `demo@jobflow.com` / `demo123` on startup. Default `false`; keep it off anywhere public |
 | `SHOW_SQL` | No | `true` logs every SQL query Hibernate runs, for local debugging. Default `false` |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | No | Google sign-in. Set both or neither |
+| `TOKEN_ENCRYPTION_KEY` | With Google | Encrypts the Google tokens stored for Gmail import (AES-256-GCM). 32 random bytes in base64: `openssl rand -base64 32`. Required when Google is set; keep it safe, losing it means users have to reconnect Gmail |
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | No | GitHub sign-in. Set both or neither |
 | `FRONTEND_URL` | No | Where the app is opened; sign-in returns here. Default `http://localhost:5173` (`http://localhost` in Docker) |
 | `GMAIL_REDIRECT_URI` | No | Gmail import callback (in progress, see [Roadmap](#roadmap)), must be registered in your Google OAuth client. Default `http://localhost:8080/api/gmail/callback` (`http://localhost/api/gmail/callback` in Docker) |

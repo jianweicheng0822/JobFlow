@@ -1,5 +1,6 @@
 package com.jobflow.model;
 
+import com.jobflow.security.EncryptedStringConverter;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -41,10 +42,13 @@ public class User {
 
     private String providerId;
 
+    // Encrypted at rest; the fields themselves hold the plain token
     @Column(columnDefinition = "TEXT")
+    @Convert(converter = EncryptedStringConverter.class)
     private String googleAccessToken;
 
     @Column(columnDefinition = "TEXT")
+    @Convert(converter = EncryptedStringConverter.class)
     private String googleRefreshToken;
 
     @Column(nullable = false)

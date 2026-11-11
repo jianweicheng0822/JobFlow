@@ -36,6 +36,8 @@ app:
     github:
       client-id: ""
       client-secret: ""
+  # Fixed fake key, so tests that turn Google on can start
+  token-encryption-key: dGVzdC10b2tlbi1lbmNyeXB0aW9uLWtleS0zMmJ5dGU=
   jwt:
     secret: testSecretKeyThatIsAtLeast256BitsLongForHS256AlgorithmInTests
     expiration-ms: 3600000

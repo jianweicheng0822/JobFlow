@@ -79,6 +79,9 @@ app:
   gmail:
     # Must match a redirect URI registered for the Google OAuth client
     redirect-uri: ${GMAIL_REDIRECT_URI:http://localhost:8080/api/gmail/callback}
+  # Encrypts the Google tokens kept for Gmail import (32 random bytes, base64).
+  # Required when Google sign-in is on. Generate with: openssl rand -base64 32
+  token-encryption-key: ${TOKEN_ENCRYPTION_KEY:}
   jwt:
     secret: ${JWT_SECRET}
     expiration-ms: 86400000
