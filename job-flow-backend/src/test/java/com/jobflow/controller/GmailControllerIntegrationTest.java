@@ -1,6 +1,6 @@
 package com.jobflow.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.jobflow.dto.GmailImportConfirmRequest;
 import com.jobflow.dto.GmailImportPreviewDTO;
 import com.jobflow.dto.GmailImportResultDTO;
@@ -84,7 +84,7 @@ class GmailControllerIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        return objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asText();
+        return objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asString();
     }
 
     // --- GET /api/gmail/status ---

@@ -1,6 +1,6 @@
 package com.jobflow.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.jobflow.dto.RegisterRequest;
 import com.jobflow.security.OAuth2LoginSuccessHandler;
 import org.junit.jupiter.api.Test;
@@ -67,7 +67,7 @@ class SecurityIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        String token = objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asText();
+        String token = objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asString();
 
         mockMvc.perform(get("/api/applications")
                         .header("Authorization", "Bearer " + token))

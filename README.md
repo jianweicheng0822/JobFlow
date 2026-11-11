@@ -65,7 +65,7 @@ A full-stack job application tracker: a drag-and-drop pipeline, interview schedu
 
 | Frontend | Backend | Database |
 |----------|---------|----------|
-| React 19, TypeScript, Vite | Java 21, Spring Boot 3, Spring Security | MySQL 8, Flyway migrations |
+| React 19, TypeScript, Vite | Java 21, Spring Boot 4, Spring Security | MySQL 8, Flyway migrations |
 | Axios, Recharts, React Router | JWT (HMAC-signed), Google/GitHub OAuth2 | Hibernate, Spring Data JPA |
 | Vitest, React Testing Library | JUnit 5, MockMvc, Mockito, Testcontainers | |
 

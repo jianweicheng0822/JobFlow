@@ -5,7 +5,7 @@ import com.jobflow.security.TokenVersions;
 import com.jobflow.service.FeedbackRateLimiter;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -14,7 +14,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.mysql.MySQLContainer;
 
 import java.sql.Statement;
 import java.util.List;
@@ -40,7 +40,7 @@ public abstract class BaseIntegrationTest {
 
     // Started once per test JVM; Testcontainers removes it when the JVM exits
     @ServiceConnection
-    static final MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
+    static final MySQLContainer mysql = new MySQLContainer("mysql:8.0")
             .withDatabaseName("jobflow_test");
 
     static {

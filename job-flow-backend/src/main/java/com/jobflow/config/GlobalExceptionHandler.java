@@ -1,7 +1,5 @@
 package com.jobflow.config;
 
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.jobflow.exception.ApiException;
 import com.jobflow.exception.ExternalServiceException;
 import com.jobflow.exception.NotFoundException;
@@ -21,6 +19,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import tools.jackson.databind.DatabindException;
+import tools.jackson.databind.exc.InvalidFormatException;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -86,7 +86,7 @@ public class GlobalExceptionHandler {
                     "Invalid value '" + ife.getValue() + "' for '" + field + "'",
                     "INVALID_VALUE", params("field", field, "value", String.valueOf(ife.getValue())), null);
         }
-        if (ex.getCause() instanceof JsonMappingException jme && !jme.getPath().isEmpty()) {
+        if (ex.getCause() instanceof DatabindException jme && !jme.getPath().isEmpty()) {
             String field = fieldPath(jme);
             return body(HttpStatus.BAD_REQUEST, "Bad Request", "Invalid value for '" + field + "'",
                     "INVALID_VALUE", params("field", field), null);
@@ -223,9 +223,9 @@ public class GlobalExceptionHandler {
     }
 
     // "interviews[0].status" style path from the Jackson error
-    private static String fieldPath(JsonMappingException ex) {
+    private static String fieldPath(DatabindException ex) {
         return ex.getPath().stream()
-                .map(ref -> ref.getFieldName() != null ? ref.getFieldName() : "[" + ref.getIndex() + "]")
+                .map(ref -> ref.getPropertyName() != null ? ref.getPropertyName() : "[" + ref.getIndex() + "]")
                 .collect(Collectors.joining("."))
                 .replace(".[", "[");
     }

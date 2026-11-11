@@ -1,6 +1,6 @@
 package com.jobflow.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.jobflow.controller.BaseIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,7 +66,7 @@ class OAuthUnconfiguredIntegrationTest extends BaseIntegrationTest {
                         .content("{\"email\":\"alice@test.com\",\"password\":\"password123\"}"))
                 .andExpect(status().isOk())
                 .andReturn();
-        String token = objectMapper.readTree(login.getResponse().getContentAsString()).get("token").asText();
+        String token = objectMapper.readTree(login.getResponse().getContentAsString()).get("token").asString();
 
         mockMvc.perform(get("/api/gmail/link").header("Authorization", "Bearer " + token))
                 .andExpect(status().isNotFound())

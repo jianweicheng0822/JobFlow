@@ -45,7 +45,6 @@ spring:
     properties:
       hibernate:
         format_sql: ${SHOW_SQL:false}
-    database-platform: org.hibernate.dialect.MySQLDialect
 
   mail:
     host: smtp.gmail.com

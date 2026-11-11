@@ -1,6 +1,6 @@
 package com.jobflow.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.jobflow.dto.LoginRequest;
 import com.jobflow.dto.RegisterRequest;
 import com.jobflow.model.OneTimeCodePurpose;
@@ -57,7 +57,7 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        return objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asText();
+        return objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asString();
     }
 
     @Test
@@ -185,7 +185,7 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.token").isString())
                 .andReturn();
 
-        String token = objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asText();
+        String token = objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asString();
         mockMvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value("alice@test.com"));

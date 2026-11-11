@@ -15,8 +15,8 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.mock.http.MockHttpInputMessage;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import tools.jackson.core.exc.StreamReadException;
+import tools.jackson.databind.exc.InvalidFormatException;
 import com.jobflow.model.ApplicationStatus;
 
 import java.sql.SQLException;
@@ -177,7 +177,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleUnreadableBody_malformedJson_returnsGenericBadRequest() {
         HttpMessageNotReadableException ex = new HttpMessageNotReadableException(
-                "JSON parse error", new JsonParseException(null, "Unexpected character"), new MockHttpInputMessage(new byte[0]));
+                "JSON parse error", new StreamReadException(null, "Unexpected character"), new MockHttpInputMessage(new byte[0]));
 
         ResponseEntity<Map<String, Object>> response = handler.handleUnreadableBody(ex);
 

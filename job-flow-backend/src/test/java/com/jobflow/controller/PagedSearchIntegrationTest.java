@@ -1,6 +1,6 @@
 package com.jobflow.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.jobflow.security.OAuth2LoginSuccessHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,7 +38,7 @@ class PagedSearchIntegrationTest extends BaseIntegrationTest {
                         .content("{\"name\":\"Alice\",\"email\":\"alice@test.com\",\"password\":\"password123\"}"))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
-        token = objectMapper.readTree(body).get("token").asText();
+        token = objectMapper.readTree(body).get("token").asString();
 
         create("Backend Engineer", "Acme");
         create("100% Remote Developer", "Globex");

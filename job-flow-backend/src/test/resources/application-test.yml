@@ -24,7 +24,7 @@ spring:
 
   autoconfigure:
     exclude:
-      - org.springframework.boot.autoconfigure.mail.MailSenderAutoConfiguration
+      - org.springframework.boot.mail.autoconfigure.MailSenderAutoConfiguration
 
 app:
   # application.yml also reads the developer's .env; never let real OAuth credentials

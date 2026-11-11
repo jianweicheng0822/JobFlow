@@ -1,6 +1,6 @@
 package com.jobflow.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.jobflow.dto.RegisterRequest;
 import com.jobflow.security.OAuth2LoginSuccessHandler;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,7 +45,7 @@ class CompanyControllerIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        return objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asText();
+        return objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asString();
     }
 
     private Long createCompany(String token, String name, String location, String website) throws Exception {

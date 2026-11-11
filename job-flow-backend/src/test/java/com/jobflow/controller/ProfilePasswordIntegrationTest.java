@@ -1,6 +1,6 @@
 package com.jobflow.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.jobflow.dto.RegisterRequest;
 import com.jobflow.model.AuthProvider;
 import com.jobflow.model.User;
@@ -63,7 +63,7 @@ class ProfilePasswordIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        return objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asText();
+        return objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asString();
     }
 
     // --- Profile update tests ---
@@ -162,7 +162,7 @@ class ProfilePasswordIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").isNotEmpty())
                 .andReturn();
-        return objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asText();
+        return objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asString();
     }
 
     @Test
@@ -188,7 +188,7 @@ class ProfilePasswordIntegrationTest extends BaseIntegrationTest {
         String otherDeviceToken = objectMapper.readTree(mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\": \"alice@test.com\", \"password\": \"password123\"}"))
-                .andReturn().getResponse().getContentAsString()).get("token").asText();
+                .andReturn().getResponse().getContentAsString()).get("token").asString();
 
         String freshToken = changePassword(aliceToken, """
                 {"currentPassword": "password123", "newPassword": "newpass456"}

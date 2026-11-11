@@ -21,7 +21,7 @@ import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequ
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.cors.CorsConfiguration;
@@ -105,7 +105,7 @@ public class SecurityConfig {
 
         // The default resolver throws (and Spring answers 500) for a provider that isn't
         // registered. Pass those through instead so OAuthFallbackController can 404.
-        AntPathRequestMatcher matcher = new AntPathRequestMatcher(AUTHORIZATION_BASE_URI + "/{registrationId}");
+        PathPatternRequestMatcher matcher = PathPatternRequestMatcher.withDefaults().matcher(AUTHORIZATION_BASE_URI + "/{registrationId}");
         return new OAuth2AuthorizationRequestResolver() {
             @Override
             public OAuth2AuthorizationRequest resolve(HttpServletRequest request) {
