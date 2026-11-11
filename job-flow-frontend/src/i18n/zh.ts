@@ -98,6 +98,7 @@ const zh = {
   showAllCount: '显示全部 {count} 个',
   showLess: '收起',
   rowsPerPage: '每页行数',
+  jobApplied: '个职位已投递',
   jobsApplied: '个职位已投递',
   editApplication: '编辑申请',
   deleteApplication: '删除申请',

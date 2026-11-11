@@ -98,6 +98,7 @@ const en = {
   showAllCount: 'Show all {count}',
   showLess: 'Show less',
   rowsPerPage: 'Rows per page',
+  jobApplied: 'job applied',
   jobsApplied: 'jobs applied',
   editApplication: 'Edit Application',
   deleteApplication: 'Delete Application',

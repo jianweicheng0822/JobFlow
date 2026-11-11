@@ -681,7 +681,7 @@ export default function Jobs() {
                   </span>
                   <div className="jobs-employer-info">
                     <div className="jobs-employer-name">{employer.company}</div>
-                    <div className="jobs-employer-count">{employer.jobsApplied} {t.jobsApplied}</div>
+                    <div className="jobs-employer-count">{employer.jobsApplied} {employer.jobsApplied === 1 ? t.jobApplied : t.jobsApplied}</div>
                   </div>
                 </button>
               ))}

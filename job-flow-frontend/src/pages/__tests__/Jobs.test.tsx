@@ -416,6 +416,17 @@ describe('Jobs page size and top employers', () => {
     expect(employers()).toBe(5);
   });
 
+  it('says "1 job applied" but "2 jobs applied"', async () => {
+    const second = makeApp(2, 'Job 2');
+    second.company = makeApp(1, 'Job 1').company;
+    vi.mocked(getApplications).mockResolvedValue({ data: [makeApp(1, 'Job 1'), second, makeApp(3, 'Job 3')] } as never);
+    render(<Jobs />, { wrapper: Wrapper });
+    await findTitle('Job 1');
+
+    const counts = [...document.querySelectorAll('.jobs-employer-count')].map((el) => el.textContent);
+    expect(counts).toEqual(['2 jobs applied', '1 job applied']);
+  });
+
   it('labels the pinned starred rows and where the rest start', async () => {
     vi.mocked(getApplications).mockResolvedValue({
       data: [makeApp(1, 'Plain One'), makeApp(2, 'Starred One', true), makeApp(3, 'Plain Two')],
