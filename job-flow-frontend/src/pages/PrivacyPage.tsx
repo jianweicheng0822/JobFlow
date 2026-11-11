@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useLanguage, type Language } from '../context/LanguageContext'
 import './LoginPage.css'
 import './PrivacyPage.css'
+import BrandMark from '../components/BrandMark'
 
 const GOOGLE_PERMISSIONS_URL = 'https://myaccount.google.com/permissions'
 const GOOGLE_POLICY_URL = 'https://developers.google.com/terms/api-services-user-data-policy'
@@ -112,7 +113,7 @@ export default function PrivacyPage() {
     <div className="auth-page">
       <div className="auth-card privacy-card">
         <div className="auth-logo">
-          <div className="auth-logo-icon">JF</div>
+          <div className="auth-logo-icon"><BrandMark size={20} /></div>
           <span className="auth-logo-text">JobFlow</span>
         </div>
 

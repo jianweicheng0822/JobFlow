@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useLanguage } from '../context/LanguageContext'
 import './LoginPage.css'
 import './StatusPage.css'
+import BrandMark from '../components/BrandMark'
 
 // Shown for any URL that doesn't match a route. "/" sends signed-in users to the
 // dashboard and everyone else on to the login page.
@@ -13,7 +14,7 @@ export default function NotFoundPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <div className="auth-logo-icon">JF</div>
+          <div className="auth-logo-icon"><BrandMark size={20} /></div>
           <span className="auth-logo-text">{t.appName}</span>
         </div>
 

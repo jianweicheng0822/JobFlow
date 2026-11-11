@@ -6,6 +6,7 @@ import OAuthButtons from '../components/OAuthButtons'
 import { useLeaveDemo } from '../hooks/useLeaveDemo'
 import './LoginPage.css'
 import { getErrorMessage } from '../api/client'
+import BrandMark from '../components/BrandMark'
 
 export default function LoginPage() {
   useLeaveDemo()
@@ -49,7 +50,7 @@ export default function LoginPage() {
           to the demo without reading a sign-in form first */}
       <section className="auth-pitch">
         <div className="auth-logo auth-logo--light">
-          <div className="auth-logo-icon">JF</div>
+          <div className="auth-logo-icon"><BrandMark size={20} /></div>
           <span className="auth-logo-text">{t.appName}</span>
         </div>
         <h2 className="auth-pitch-title">{t.pitchTitle}</h2>

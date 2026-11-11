@@ -3,6 +3,7 @@ import { useRouteError } from 'react-router-dom'
 import { useLanguage } from '../context/LanguageContext'
 import './LoginPage.css'
 import './StatusPage.css'
+import BrandMark from '../components/BrandMark'
 
 // Catches anything a page throws while rendering. The details only go to the
 // console; users get a plain message and a way out.
@@ -18,7 +19,7 @@ export default function ErrorPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <div className="auth-logo-icon">JF</div>
+          <div className="auth-logo-icon"><BrandMark size={20} /></div>
           <span className="auth-logo-text">{t.appName}</span>
         </div>
 

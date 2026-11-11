@@ -7,10 +7,10 @@ import {
   BarChart3,
   Settings,
   MessageSquare,
-  Zap,
 } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
 import FeedbackForm from './FeedbackForm'
+import BrandMark from './BrandMark'
 import './Sidebar.css'
 
 const navItems = [
@@ -29,7 +29,7 @@ export default function Sidebar() {
     <aside className="sidebar">
       <div className="sidebar-logo">
         <div className="sidebar-logo-icon">
-          <Zap size={18} />
+          <BrandMark size={18} />
         </div>
         <span className="sidebar-logo-text">{t.appName}</span>
       </div>

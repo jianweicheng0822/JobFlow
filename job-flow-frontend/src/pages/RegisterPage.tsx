@@ -6,6 +6,7 @@ import OAuthButtons from '../components/OAuthButtons'
 import { useLeaveDemo } from '../hooks/useLeaveDemo'
 import './LoginPage.css'
 import { getErrorMessage } from '../api/client'
+import BrandMark from '../components/BrandMark'
 
 export default function RegisterPage() {
   useLeaveDemo()
@@ -44,7 +45,7 @@ export default function RegisterPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <div className="auth-logo-icon">JF</div>
+          <div className="auth-logo-icon"><BrandMark size={20} /></div>
           <span className="auth-logo-text">{t.appName}</span>
         </div>
 
