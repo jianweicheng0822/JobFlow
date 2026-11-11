@@ -5,4 +5,4 @@ try {
   if (localStorage.getItem('jobflow-theme') === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark')
   }
-} catch (e) {}
+} catch {}
