@@ -1,6 +1,6 @@
 export type Theme = 'light' | 'dark'
 
-// index.html reads the same key before the app loads, so keep them in sync
+// public/theme-init.js reads the same key before the app loads, so keep them in sync
 const THEME_STORAGE_KEY = 'jobflow-theme'
 
 // Storage can be blocked (some private modes), so fall back to light

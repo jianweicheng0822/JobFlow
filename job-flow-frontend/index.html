@@ -18,15 +18,7 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="JobFlow dashboard with application stats and a drag-and-drop pipeline" />
     <meta name="twitter:card" content="summary_large_image" />
-    <script>
-      // Apply the saved theme before the first paint so dark mode doesn't flash
-      // white on reload. Same key as src/utils/theme.ts.
-      try {
-        if (localStorage.getItem('jobflow-theme') === 'dark') {
-          document.documentElement.setAttribute('data-theme', 'dark')
-        }
-      } catch (e) {}
-    </script>
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>
