@@ -14,7 +14,7 @@ A full-stack job application tracker: a drag-and-drop pipeline, interview schedu
 
 ## Screenshots
 
-<img src="docs/demo.gif" alt="JobFlow demo: try the demo, drag a card across the pipeline in the short tour, add a Google application and star it into the starred group, open analytics, then switch to dark mode while the checklist ticks itself off">
+<img src="docs/demo.gif" alt="JobFlow demo: open the demo, drag a card across the pipeline, add a Google application, look at interviews and analytics, then switch to dark mode and land back on the dashboard">
 
 <table>
   <tr>
