@@ -100,6 +100,7 @@ and a local backend both read it (environment variables override it):
 | `FEEDBACK_NOTIFY_EMAIL` | No | Where feedback from the in-app form is emailed. Empty means it is only saved |
 | `FEEDBACK_PER_IP_HOURLY_LIMIT`, `FEEDBACK_DAILY_LIMIT` | No | Feedback spam limits, default 5 per IP per hour and 200 per UTC day |
 | `SEED_DEMO_DATA` | No | `true` creates a sample account `demo@jobflow.com` / `demo123` on startup. Default `false`; keep it off anywhere public |
+| `SHOW_SQL` | No | `true` logs every SQL query Hibernate runs, for local debugging. Default `false` |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | No | Google sign-in. Set both or neither |
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | No | GitHub sign-in. Set both or neither |
 | `FRONTEND_URL` | No | Where the app is opened; sign-in returns here. Default `http://localhost:5173` (`http://localhost` in Docker) |

@@ -40,10 +40,11 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
-    show-sql: true
+    # SQL logging is noisy; set SHOW_SQL=true when debugging queries locally
+    show-sql: ${SHOW_SQL:false}
     properties:
       hibernate:
-        format_sql: true
+        format_sql: ${SHOW_SQL:false}
     database-platform: org.hibernate.dialect.MySQLDialect
 
   mail:
