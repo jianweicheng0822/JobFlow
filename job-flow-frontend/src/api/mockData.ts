@@ -78,10 +78,10 @@ function createSeedCompanies(): CompanyDTO[] {
     { id: 13, name: 'Uber', logoUrl: null, location: 'San Francisco, CA', website: 'https://uber.com' },
     { id: 14, name: 'LinkedIn', logoUrl: null, location: 'Sunnyvale, CA', website: 'https://linkedin.com' },
     { id: 15, name: 'Salesforce', logoUrl: null, location: 'San Francisco, CA', website: 'https://salesforce.com' },
-    // A few in China, so the demo shows both markets side by side
-    { id: 16, name: '字节跳动', logoUrl: null, location: '上海', website: 'https://bytedance.com' },
-    { id: 17, name: '腾讯', logoUrl: null, location: '深圳', website: 'https://tencent.com' },
-    { id: 18, name: '阿里巴巴', logoUrl: null, location: '杭州', website: 'https://alibaba.com' },
+    // A few outside the US, so the demo shows other currencies and time zones
+    { id: 16, name: 'Monzo', logoUrl: null, location: 'London, UK', website: 'https://monzo.com' },
+    { id: 17, name: 'Wise', logoUrl: null, location: 'London, UK', website: 'https://wise.com' },
+    { id: 18, name: 'Wealthsimple', logoUrl: null, location: 'Toronto, ON', website: 'https://wealthsimple.com' },
   ];
 }
 
@@ -139,11 +139,14 @@ const SEED_ROWS: SeedRow[] = [
   [37, 'Software Engineer', 'Apple', '$150,000', 134, 'REJECTED', 120, 'Rejected'],
   [10, 'UX Researcher', 'Meta', '$130,000', 141, 'REJECTED', 128, 'Rejected'],
   [40, 'UX Engineer', 'Airbnb', '$145,000', 150, 'APPLIED'],
-  // China: monthly pay times the number of months, the way offers there read
-  [41, '后端开发工程师', '字节跳动', '30k×15', 20, 'INTERVIEW', 4, 'Video interview scheduled'],
-  [42, '前端开发工程师', '腾讯', '25k×16', 41, 'IN_REVIEW', 18, 'Resume reviewed'],
-  [43, '算法工程师', '阿里巴巴', '35k×16', 66, 'REJECTED', 49, 'Rejected'],
+  // Abroad, each in its own currency
+  [41, 'Backend Engineer', 'Monzo', '£95,000', 20, 'INTERVIEW', 4, 'Video interview scheduled'],
+  [42, 'Frontend Engineer', 'Wise', '£85,000', 41, 'IN_REVIEW', 18, 'Resume reviewed'],
+  [43, 'Machine Learning Engineer', 'Wealthsimple', 'CA$150,000', 66, 'REJECTED', 49, 'Rejected'],
 ];
+
+// "CA$" before "$" so Canadian dollars aren't read as US ones
+const SEED_CURRENCIES: [string, string][] = [['CA$', 'CAD'], ['$', 'USD'], ['£', 'GBP']];
 
 function createSeedApplications(companies: CompanyDTO[]): JobApplicationDTO[] {
   return SEED_ROWS
@@ -156,11 +159,11 @@ function createSeedApplications(companies: CompanyDTO[]): JobApplicationDTO[] {
       const updatedAt = heardDay && heardDay > appliedDay
         ? timestampOn(heardDay, 9 + ((id * 3) % 8), (id * 7) % 60)
         : createdAt;
-      // "$165,000" rows are in dollars, the rest in yuan; the symbol comes from the currency
-      const salaryCurrency = salary.startsWith('$') ? 'USD' : 'CNY';
+      // The seed writes "£95,000"; stored like the app does, as the number plus a currency code
+      const [prefix, salaryCurrency] = SEED_CURRENCIES.find(([p]) => salary.startsWith(p))!;
       return {
         id, positionTitle, company, location: company.location,
-        salary: salary.replace(/^\$/, ''), salaryCurrency, status,
+        salary: salary.slice(prefix.length), salaryCurrency, status,
         appliedDate: dateKey(appliedDay),
         lastAction: lastAction ?? 'Applied',
         notes: notes ?? null,
@@ -228,12 +231,12 @@ function createSeedInterviews(apps: JobApplicationDTO[]): InterviewDTO[] {
       interviewType: 'VIDEO', notes: 'Case study round',
       reminderEnabled: false, reminderHoursBefore: 24, reminderSent: false,
     }),
-    // Booked on Beijing time; anyone outside China also sees it on their own clock
+    // Booked on London time; everyone else also sees it on their own clock
     timed({
-      id: 15, jobApplicationId: 41, positionTitle: '后端开发工程师',
-      companyName: '字节跳动', interviewDate: `${wallClockIn(new Date(Date.now() + 3 * 86_400_000), 'Asia/Shanghai').slice(0, 10)}T10:00:00`,
-      timeZone: 'Asia/Shanghai',
-      interviewType: 'VIDEO', notes: '二面：系统设计',
+      id: 15, jobApplicationId: 41, positionTitle: 'Backend Engineer',
+      companyName: 'Monzo', interviewDate: `${wallClockIn(new Date(Date.now() + 3 * 86_400_000), 'Europe/London').slice(0, 10)}T10:00:00`,
+      timeZone: 'Europe/London',
+      interviewType: 'VIDEO', notes: 'Round 2: system design',
       reminderEnabled: true, reminderHoursBefore: 24, reminderSent: false,
     }),
   ];

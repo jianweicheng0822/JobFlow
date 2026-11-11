@@ -178,12 +178,15 @@ describe('PUT partial update', () => {
     expect(result.salaryCurrency).toBe('USD');
   });
 
-  it('mixes US and Chinese jobs, each in its own currency', () => {
+  it('mixes US and overseas jobs, each in its own currency', () => {
     const apps = resolveMock('/applications', 'get') as JobApplicationDTO[];
-    const bytedance = apps.find((a) => a.company.name === '字节跳动')!;
-    expect(bytedance.location).toBe('上海');
-    expect(bytedance.salary).toBe('30k×15');
-    expect(bytedance.salaryCurrency).toBe('CNY');
+    const monzo = apps.find((a) => a.company.name === 'Monzo')!;
+    expect(monzo.location).toBe('London, UK');
+    expect(monzo.salary).toBe('95,000');
+    expect(monzo.salaryCurrency).toBe('GBP');
+    const wealthsimple = apps.find((a) => a.company.name === 'Wealthsimple')!;
+    expect(wealthsimple.salary).toBe('150,000');
+    expect(wealthsimple.salaryCurrency).toBe('CAD');
     expect(apps.filter((a) => a.salaryCurrency === 'USD')).toHaveLength(40);
   });
 
@@ -303,14 +306,14 @@ describe('demo data stays current', () => {
   it('puts the seed interviews in the near future, soonest first', () => {
     const upcoming = resolveMock('/interviews/upcoming', 'get') as InterviewDTO[];
 
-    // The ByteDance one is 10am Beijing time in 3 days, which can be day 2 or 3 here
-    const local = upcoming.filter((i) => i.companyName !== '字节跳动');
+    // The Monzo one is 10am London time in 3 days, which can be day 2 or 3 here
+    const local = upcoming.filter((i) => i.companyName !== 'Monzo');
     expect(local.map((i) => i.daysUntil)).toEqual([1, 2, 5]);
     expect(upcoming).toHaveLength(4);
     const starts = upcoming.map((i) => new Date(i.startsAt!).getTime());
     expect(starts).toEqual([...starts].sort((a, b) => a - b));
     expect(starts.every((s) => s > Date.now())).toBe(true);
-    expect(upcoming.find((i) => i.companyName === '字节跳动')!.timeZone).toBe('Asia/Shanghai');
+    expect(upcoming.find((i) => i.companyName === 'Monzo')!.timeZone).toBe('Europe/London');
     // Stored like the backend: local wall-clock time, no zone suffix
     expect(upcoming.every((i) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(i.interviewDate))).toBe(true);
   });

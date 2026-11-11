@@ -23,7 +23,7 @@ A full-stack job application tracker: a drag-and-drop pipeline, interview schedu
   </tr>
   <tr>
     <td align="center"><strong>Interviews</strong><br><a href="docs/interviews.png"><img src="docs/interviews.png" alt="Interviews" width="400"></a></td>
-    <td align="center"><strong>Interview Time Zones</strong><br><a href="docs/interview-timezone.png"><img src="docs/interview-timezone.png" alt="Editing an interview with a Shanghai company, booked on Beijing / Shanghai time" width="400"></a></td>
+    <td align="center"><strong>Interview Time Zones</strong><br><a href="docs/interview-timezone.png"><img src="docs/interview-timezone.png" alt="Editing an interview with a London company, booked on London time" width="400"></a></td>
   </tr>
   <tr>
     <td align="center"><strong>Analytics</strong><br><a href="docs/analytics.png"><img src="docs/analytics.png" alt="Analytics" width="400"></a></td>
@@ -75,7 +75,7 @@ A full-stack job application tracker: a drag-and-drop pipeline, interview schedu
 - **Dashboard** — Stat cards, a drag-and-drop Kanban pipeline (3 cards per stage), the 5 latest applications (starred first), upcoming interviews and applications that need a follow-up, each with a link to the rest
 - **Jobs** — Searchable, paginated application table with a quick status dropdown. Starred jobs sit in their own "★ Starred" group above the rest, and clicking a top employer filters the list to that company. Pick 10, 20 or 50 rows per page (remembered per browser); a new application is highlighted on the page it lands on
 - **Interviews** — Schedule and manage interviews linked to applications, upcoming ones first and past ones folded away, with optional email reminders (shown only when the server has `MAIL_*` set). Each interview can have its own time zone: enter the time the company gave you and pick their zone, and the list and reminders show it in your time, with the booked time next to it when the zones differ
-- **Currencies** — Salaries in USD or CNY
+- **Currencies** — Salaries in USD, GBP, EUR, CAD or CNY
 - **Analytics** — Overview, status distribution, per-company breakdown
 - **Global search** — Search applications and companies from the top bar
 - **Settings** — Profile, password, theme (dark/light), language (English/中文), and time zone

@@ -5,14 +5,19 @@ import type { Language } from '../context/LanguageContext'
 export const SALARY_CURRENCIES = [
   { code: 'CNY', symbol: '¥' },
   { code: 'USD', symbol: '$' },
+  { code: 'GBP', symbol: '£' },
+  { code: 'EUR', symbol: '€' },
+  { code: 'CAD', symbol: 'CA$' },
 ] as const
 
-const SYMBOLS: Record<string, string> = { USD: '$', CNY: '¥' }
+const SYMBOLS: Record<string, string> = Object.fromEntries(SALARY_CURRENCIES.map((c) => [c.code, c.symbol]))
 
 // A guess for salaries saved before the currency could be picked: "$150,000" is USD
 export function currencyFromText(salary: string | null | undefined): string | null {
   const text = salary?.trim() ?? ''
   if (text.startsWith('$')) return 'USD'
+  if (text.startsWith('£')) return 'GBP'
+  if (text.startsWith('€')) return 'EUR'
   if (/^[¥￥]/.test(text) || /^(RMB|CNY)/i.test(text) || /[元万]/.test(text)) return 'CNY'
   return null
 }
