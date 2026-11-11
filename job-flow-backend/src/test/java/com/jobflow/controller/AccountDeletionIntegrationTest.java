@@ -9,7 +9,7 @@ import com.jobflow.service.OneTimeCodeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -44,11 +44,11 @@ class AccountDeletionIntegrationTest extends BaseIntegrationTest {
     @Autowired private EmailImportLogRepository emailImportLogRepository;
     @Autowired private FeedbackRepository feedbackRepository;
 
-    @MockBean
+    @MockitoBean
     private OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
     // Never call Google from tests
-    @MockBean
+    @MockitoBean
     private GoogleTokenRevoker googleTokenRevoker;
 
     private User alice;

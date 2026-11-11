@@ -16,7 +16,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 // A fresh install with no OAuth credentials at all: the app runs, password login works,
-// and every OAuth entry point answers cleanly. There's deliberately no @MockBean for the
+// and every OAuth entry point answers cleanly. There's deliberately no @MockitoBean for the
 // OAuth success handler here, so the real one has to start without OAuth too.
 class OAuthUnconfiguredIntegrationTest extends BaseIntegrationTest {
 

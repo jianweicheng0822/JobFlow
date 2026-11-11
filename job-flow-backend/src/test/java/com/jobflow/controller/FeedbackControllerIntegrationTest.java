@@ -7,7 +7,7 @@ import com.jobflow.security.JwtService;
 import com.jobflow.security.OAuth2LoginSuccessHandler;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
@@ -34,7 +34,7 @@ class FeedbackControllerIntegrationTest extends BaseIntegrationTest {
     @Autowired private JwtService jwtService;
 
     // Same mocks as most controller tests, so this runs in their shared context
-    @MockBean
+    @MockitoBean
     @SuppressWarnings("unused")
     private OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 

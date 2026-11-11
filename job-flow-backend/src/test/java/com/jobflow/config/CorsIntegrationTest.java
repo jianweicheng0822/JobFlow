@@ -4,7 +4,7 @@ import com.jobflow.controller.BaseIntegrationTest;
 import com.jobflow.security.OAuth2LoginSuccessHandler;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
@@ -22,7 +22,7 @@ class CorsIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     @SuppressWarnings("unused")
     private OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 

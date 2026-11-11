@@ -7,7 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -29,7 +29,7 @@ import java.util.Map;
  * - every table is emptied (and its ids restart at 1), schema and Flyway history stay
  * - the rate limiter forgets earlier requests, since all tests call from 127.0.0.1
  * - the token version cache is emptied, since user ids start over at 1
- * Mocks from @MockBean are reset by Spring after each test. TestIsolationIntegrationTest
+ * Mocks from @MockitoBean are reset by Spring after each test. TestIsolationIntegrationTest
  * fails if any of this stops holding.
  */
 @SpringBootTest
@@ -47,7 +47,7 @@ public abstract class BaseIntegrationTest {
         mysql.start();
     }
 
-    @MockBean
+    @MockitoBean
     @SuppressWarnings("unused")
     private JavaMailSender javaMailSender;
 
