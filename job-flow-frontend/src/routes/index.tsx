@@ -2,17 +2,13 @@ import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-do
 import RootLayout from '../components/RootLayout'
 import Layout from '../components/Layout'
 import ProtectedRoute from '../components/ProtectedRoute'
-import Dashboard from '../pages/Dashboard'
-import Jobs from '../pages/Jobs'
-import Interviews from '../pages/Interviews'
-import Analytics from '../pages/Analytics'
-import SettingsPage from '../pages/SettingsPage'
 import LoginPage from '../pages/LoginPage'
 import RegisterPage from '../pages/RegisterPage'
 import OAuthCallback from '../pages/OAuthCallback'
 import PrivacyPage from '../pages/PrivacyPage'
 import NotFoundPage from '../pages/NotFoundPage'
 import ErrorPage from '../pages/ErrorPage'
+import { Dashboard, Jobs, Interviews, Analytics, SettingsPage } from './lazyPages'
 
 // Exported on its own so tests can mount the same tree in a memory router
 export const routes: RouteObject[] = [
