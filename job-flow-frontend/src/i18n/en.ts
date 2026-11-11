@@ -177,7 +177,7 @@ const en = {
   pitchPoint1: 'Pipeline board: drag jobs from Applied to Offer',
   pitchPoint2: 'Interview schedule and follow-up nudges',
   pitchPoint3: 'Response and interview rate analytics',
-  pitchPoint4: 'Gmail import, English and Chinese, dark mode',
+  pitchPoint4: 'Works on your phone, in English or Chinese, light or dark',
   pitchDemoNote: 'No sign-up needed. Explore five months of sample data.',
   privacyPolicy: 'Privacy Policy',
   loginFailed: 'Login failed. Please try again.',

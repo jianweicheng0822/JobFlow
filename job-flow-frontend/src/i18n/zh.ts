@@ -177,7 +177,7 @@ const zh = {
   pitchPoint1: '看板：把职位从已投递拖到录用',
   pitchPoint2: '面试日程和跟进提醒',
   pitchPoint3: '回复率和面试率分析',
-  pitchPoint4: 'Gmail 导入、中英文切换、暗色模式',
+  pitchPoint4: '手机也能用，支持中英文和暗色模式',
   pitchDemoNote: '无需注册，直接查看五个月的示例数据。',
   privacyPolicy: '隐私政策',
   loginFailed: '登录失败，请重试。',
