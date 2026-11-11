@@ -231,3 +231,5 @@ previous version if it doesn't. A final check hits the live site.
 ## Roadmap
 
 - **Gmail import**: connect Gmail, find application emails, and turn them into applications. The Gmail linking and a first scan/import API are in the backend, but the feature isn't finished yet.
+- **One-click setup from what you already have**: point JobFlow at the places you've been tracking your search, like your Gmail inbox, a Google Doc or Sheet, or an Excel/CSV file, and it reads them, fills in companies, roles, stages and dates, and builds your pipeline and dashboard in one go. Nothing to retype when you switch over.
+- **Export and share**: take your data back out as an Excel sheet or a Google Doc, or get a one-page PDF summary of your search (how many applications, response and interview rates, where things stand) that's easy to send to a mentor or career coach. The backend can already export CSV (`GET /api/applications/export`); the app doesn't offer it yet.
