@@ -14,7 +14,7 @@ A full-stack job application tracker: a drag-and-drop pipeline, interview schedu
 
 ## Screenshots
 
-<img src="docs/demo.gif" alt="JobFlow demo: open the demo, drag a card across the pipeline, add a Google application, look at interviews and analytics, then switch to dark mode and land back on the dashboard">
+<img src="docs/demo.gif" alt="JobFlow demo: open the demo, drag a card across the pipeline, add a Google application with its posting link, look at interviews and analytics, then switch to dark mode and land back on the dashboard">
 
 <table>
   <tr>
@@ -56,18 +56,18 @@ A full-stack job application tracker: a drag-and-drop pipeline, interview schedu
 
 ## Engineering highlights
 
-- **Every query is scoped to the signed-in user.** Integration tests sign in as two users and check that one can't read, edit, delete or link to the other's applications, interviews and companies.
-- **Tokens can be revoked right away.** Each JWT carries a token version, so changing your password signs out every other device and a deleted account's tokens stop working. OAuth sign-in hands the frontend a short-lived single-use code instead of putting the token in the redirect URL.
+- **Every query is scoped to the signed-in user.** Integration tests sign in as two users and check that one can't read, edit, delete or link to the other's applications, interviews and companies. They're part of 750+ automated tests that run on every push.
+- **Tokens can be revoked right away.** Each JWT carries a token version, so changing your password signs out every other device and a deleted account's tokens stop working. OAuth sign-in hands the frontend a single-use code that expires in 60 seconds, instead of putting the token in the redirect URL.
 - **Load tested with k6** on 17,000 seeded applications. Thread dumps traced a latency spike to the database connection pool running dry; after the fix p95 went from 1,903 ms to 102 ms. Details in [Load Testing](#load-testing).
 - **Keyless deploys.** GitHub Actions signs in to AWS with OIDC (no stored access keys) and deploys through SSM: back up MySQL, start the new images, roll back if the health check fails.
 
 ## Tech Stack
 
-| Frontend | Backend | Database |
-|----------|---------|----------|
-| React 19, TypeScript, Vite | Java 21, Spring Boot 4, Spring Security | MySQL 8, Flyway migrations |
-| Axios, Recharts, React Router | JWT (HMAC-signed), Google/GitHub OAuth2 | Hibernate, Spring Data JPA |
-| Vitest, React Testing Library | JUnit 5, MockMvc, Mockito, Testcontainers | |
+| Frontend | Backend | Database | Infra & Tools |
+|----------|---------|----------|---------------|
+| React 19, TypeScript, Vite | Java 21, Spring Boot 4, Spring Security | MySQL 8, Flyway migrations | Docker, Docker Compose, Nginx |
+| Axios, Recharts, React Router | JWT (HMAC-signed), Google/GitHub OAuth2 | Hibernate, Spring Data JPA | AWS (EC2, SSM), GitHub Actions with OIDC, GHCR |
+| Vitest, React Testing Library | JUnit 5, MockMvc, Mockito, Testcontainers | | k6 load testing |
 
 ## Features
 
@@ -186,7 +186,7 @@ Base paths: `/api/auth`, `/api/applications`, `/api/interviews`, `/api/companies
 
 ## Testing
 
-**713 tests**: 439 backend (integration and unit) and 274 frontend (component and API).
+**759 tests**: 461 backend (integration and unit) and 298 frontend (component and API).
 
 ```bash
 # Backend (needs Docker running: integration tests start MySQL with Testcontainers)
