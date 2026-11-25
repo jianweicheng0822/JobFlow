@@ -49,6 +49,10 @@ public class JobApplication {
     @Column(name = "salary_currency", length = 3)
     private String salaryCurrency;
 
+    // Link to the posting; only http(s), checked in the service
+    @Column(name = "job_url", length = 2048)
+    private String jobUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ApplicationStatus status;

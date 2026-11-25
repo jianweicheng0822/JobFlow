@@ -262,6 +262,26 @@ class JobApplicationControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    void create_withJobUrl_keepsItAndRejectsScriptLinks() throws Exception {
+        mockMvc.perform(post("/api/applications")
+                        .header("Authorization", "Bearer " + aliceToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"positionTitle": "Engineer", "companyName": "Acme",
+                                 "jobUrl": "https://jobs.lever.co/acme/1234-abcd"}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.jobUrl").value("https://jobs.lever.co/acme/1234-abcd"));
+
+        mockMvc.perform(post("/api/applications")
+                        .header("Authorization", "Bearer " + aliceToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"positionTitle\": \"Engineer\", \"companyName\": \"Acme\", \"jobUrl\": \"javascript:alert(1)\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_JOB_URL"));
+    }
+
+    @Test
     void stats_returnsOnlyOwnStats() throws Exception {
         Long aliceCompanyId = createCompany(aliceToken);
         Long bobCompanyId = createCompany(bobToken);

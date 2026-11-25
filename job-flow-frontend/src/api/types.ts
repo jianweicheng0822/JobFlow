@@ -25,6 +25,7 @@ export interface JobApplicationDTO {
   location: string | null;
   salary: string | null;
   salaryCurrency?: string | null; // "USD", "CNY"; missing on older rows
+  jobUrl?: string | null; // link to the posting; missing on older rows
   status: ApplicationStatus;
   appliedDate: string | null; // ISO date string
   lastAction: string | null;
@@ -86,6 +87,7 @@ export interface CreateJobApplicationRequest {
   location?: string;
   salary?: string;
   salaryCurrency?: string;
+  jobUrl?: string;
   status?: ApplicationStatus;
   appliedDate?: string; // ISO date string (YYYY-MM-DD)
   lastAction?: string;
@@ -99,6 +101,7 @@ export interface UpdateJobApplicationRequest {
   location?: string;
   salary?: string;
   salaryCurrency?: string;
+  jobUrl?: string;
   status?: ApplicationStatus;
   appliedDate?: string;
   lastAction?: string;

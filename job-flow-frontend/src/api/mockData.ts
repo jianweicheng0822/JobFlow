@@ -145,6 +145,34 @@ const SEED_ROWS: SeedRow[] = [
   [43, 'Machine Learning Engineer', 'Wealthsimple', 'CA$150,000', 66, 'REJECTED', 49, 'Rejected'],
 ];
 
+// Each company's real careers page stands in for a posting link: specific postings
+// come down within weeks, these don't. Checked by hand (final URL after redirects).
+const CAREERS_PAGES: Record<string, string> = {
+  Google: 'https://www.google.com/about/careers/applications/',
+  Spotify: 'https://www.lifeatspotify.com/jobs',
+  Meta: 'https://www.metacareers.com/jobsearch/',
+  Amazon: 'https://www.amazon.jobs/en/',
+  Apple: 'https://jobs.apple.com/en-us/search',
+  Netflix: 'https://jobs.netflix.com/',
+  Microsoft: 'https://careers.microsoft.com/',
+  Stripe: 'https://stripe.com/careers',
+  Airbnb: 'https://careers.airbnb.com/',
+  Shopify: 'https://www.shopify.com/careers',
+  Datadog: 'https://careers.datadoghq.com/',
+  Figma: 'https://www.figma.com/careers/',
+  Uber: 'https://jobs.uber.com/en/',
+  LinkedIn: 'https://careers.linkedin.com/',
+  Salesforce: 'https://www.salesforce.com/company/careers/',
+  Monzo: 'https://monzo.com/careers',
+  Wise: 'https://wise.jobs/',
+  Wealthsimple: 'https://www.wealthsimple.com/en-ca/careers',
+};
+
+// Not everyone saves the link, so about a third of the seed jobs go without one
+function seedJobUrl(id: number, companyName: string): string | null {
+  return id % 3 === 0 ? null : CAREERS_PAGES[companyName] ?? null;
+}
+
 // "CA$" before "$" so Canadian dollars aren't read as US ones
 const SEED_CURRENCIES: [string, string][] = [['CA$', 'CAD'], ['$', 'USD'], ['£', 'GBP']];
 
@@ -164,6 +192,7 @@ function createSeedApplications(companies: CompanyDTO[]): JobApplicationDTO[] {
       return {
         id, positionTitle, company, location: company.location,
         salary: salary.slice(prefix.length), salaryCurrency, status,
+        jobUrl: seedJobUrl(id, companyName),
         appliedDate: dateKey(appliedDay),
         lastAction: lastAction ?? 'Applied',
         notes: notes ?? null,
@@ -428,6 +457,7 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
       location: (payload?.location as string) || null,
       salary: (payload?.salary as string) || null,
       salaryCurrency: (payload?.salaryCurrency as string) || null,
+      jobUrl: (payload?.jobUrl as string) || null,
       status: (payload?.status as ApplicationStatus) || 'APPLIED',
       appliedDate: (payload?.appliedDate as string) || todayLocal(),
       lastAction: 'Applied',
@@ -459,6 +489,7 @@ export function resolveMock(url: string, method: string, body?: unknown, params?
       location: keepOrClear(payload?.location, applications[idx].location),
       salary: keepOrClear(payload?.salary, applications[idx].salary),
       salaryCurrency: keepOrClear(payload?.salaryCurrency, applications[idx].salaryCurrency ?? null),
+      jobUrl: keepOrClear(payload?.jobUrl, applications[idx].jobUrl ?? null),
       status: newStatus,
       lastAction,
       appliedDate: (payload?.appliedDate as string) || applications[idx].appliedDate,

@@ -19,6 +19,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -143,6 +145,7 @@ public class JobApplicationService {
             .location(blankToNull(request.getLocation()))
             .salary(blankToNull(request.getSalary()))
             .salaryCurrency(currencyOrNull(request.getSalaryCurrency()))
+            .jobUrl(jobUrlOrNull(request.getJobUrl()))
             .status(request.getStatus() != null ? request.getStatus() : ApplicationStatus.APPLIED)
             // Default to the user's today, not the server's
             .appliedDate(request.getAppliedDate() != null ? request.getAppliedDate() : userClock.today(user))
@@ -194,6 +197,7 @@ public class JobApplicationService {
         if (request.getLocation() != null) app.setLocation(blankToNull(request.getLocation()));
         if (request.getSalary() != null) app.setSalary(blankToNull(request.getSalary()));
         if (request.getSalaryCurrency() != null) app.setSalaryCurrency(currencyOrNull(request.getSalaryCurrency()));
+        if (request.getJobUrl() != null) app.setJobUrl(jobUrlOrNull(request.getJobUrl()));
         if (request.getStatus() != null) changeStatus(app, request.getStatus());
         if (request.getAppliedDate() != null) app.setAppliedDate(request.getAppliedDate());
         // Runs after changeStatus on purpose, so an explicit lastAction wins over the auto one
@@ -321,7 +325,7 @@ public class JobApplicationService {
     public String exportCsv(Long userId) {
         List<JobApplication> apps = jobApplicationRepository.findByUserIdOrderByUpdatedAtDesc(userId);
         StringBuilder sb = new StringBuilder();
-        sb.append("Position,Company,Status,Location,Salary,Applied Date,Last Action,Notes\n");
+        sb.append("Position,Company,Status,Location,Salary,Applied Date,Last Action,Notes,Job URL\n");
         for (JobApplication app : apps) {
             sb.append(escapeCsv(app.getPositionTitle())).append(',');
             sb.append(escapeCsv(app.getCompany() != null ? app.getCompany().getName() : "")).append(',');
@@ -330,7 +334,8 @@ public class JobApplicationService {
             sb.append(escapeCsv(salaryWithCurrency(app))).append(',');
             sb.append(app.getAppliedDate()).append(',');
             sb.append(escapeCsv(app.getLastAction())).append(',');
-            sb.append(escapeCsv(app.getNotes())).append('\n');
+            sb.append(escapeCsv(app.getNotes())).append(',');
+            sb.append(escapeCsv(app.getJobUrl())).append('\n');
         }
         return sb.toString();
     }
@@ -357,6 +362,7 @@ public class JobApplicationService {
             .location(app.getLocation())
             .salary(app.getSalary())
             .salaryCurrency(app.getSalaryCurrency())
+            .jobUrl(app.getJobUrl())
             .status(app.getStatus())
             .appliedDate(app.getAppliedDate())
             .lastAction(app.getLastAction())
@@ -376,6 +382,23 @@ public class JobApplicationService {
                 "Salary currency must be a 3-letter code like USD", Map.of("currency", code));
         }
         return code;
+    }
+
+    // The frontend renders this as a clickable link, so only http(s) gets in:
+    // a "javascript:" link would run script for whoever clicks it
+    private static String jobUrlOrNull(String jobUrl) {
+        String url = blankToNull(jobUrl);
+        if (url == null) return null;
+        try {
+            URI uri = new URI(url);
+            String scheme = uri.getScheme();
+            boolean web = "http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme);
+            if (web && uri.getHost() != null) return url;
+        } catch (URISyntaxException ignored) {
+            // Not a parseable link; rejected below
+        }
+        throw ApiException.badRequest("INVALID_JOB_URL",
+            "Job link must be a web address starting with http:// or https://");
     }
 
     // "CNY 30k×15" in the export, so a spreadsheet of mixed markets stays readable

@@ -20,6 +20,7 @@ public class JobApplicationDTO {
     private String location;
     private String salary;
     private String salaryCurrency;
+    private String jobUrl;
     private ApplicationStatus status;
     private LocalDate appliedDate;
     private String lastAction;

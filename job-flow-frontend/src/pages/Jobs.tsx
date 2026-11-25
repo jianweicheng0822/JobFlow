@@ -1,6 +1,6 @@
 import { Fragment, useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Plus, Pencil, Trash2, Star } from 'lucide-react'
+import { Plus, Pencil, Trash2, Star, ExternalLink } from 'lucide-react'
 import './Jobs.css'
 import { getApplications, deleteApplication, toggleStar, updateStatus } from '../api/applications'
 import type { JobApplicationDTO, ApplicationStatus } from '../api/types'
@@ -15,6 +15,7 @@ import { sortByAppliedDate, type SortDirection } from '../utils/sortByAppliedDat
 import { formatDateOnly } from '../utils/date'
 import { companyColor as getCompanyColor } from '../utils/companyColor'
 import { markDemoTask } from '../utils/demoChecklist'
+import { isWebUrl } from '../utils/jobUrl'
 
 // How long a just-created row stays highlighted (matches the fade in Jobs.css)
 const NEW_ROW_HIGHLIGHT_MS = 2500
@@ -543,6 +544,18 @@ export default function Jobs() {
                               </span>
                               <div className="jobs-title-cell">
                                 <span className="jobs-title-name">{app.positionTitle}</span>
+                                {isWebUrl(app.jobUrl) && (
+                                  <a
+                                    className="jobs-title-link"
+                                    href={app.jobUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title={t.openJobPosting}
+                                    aria-label={`${t.openJobPosting}: ${app.positionTitle}`}
+                                  >
+                                    <ExternalLink size={13} />
+                                  </a>
+                                )}
                                 <span className="jobs-title-company">{app.company.name}</span>
                               </div>
                             </div>

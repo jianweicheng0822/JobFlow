@@ -18,6 +18,7 @@ import LOCATIONS, { CN_LOCATIONS, LOCATION_ALIASES } from '../data/locations';
 import JOB_TITLES, { CN_JOB_TITLES, JOB_TITLE_ALIASES } from '../data/jobTitles';
 import { mergeSuggestions } from '../utils/suggestions';
 import { SALARY_CURRENCIES, defaultCurrency } from '../utils/salary';
+import { normalizeJobUrl, isWebUrl } from '../utils/jobUrl';
 import './ApplicationForm.css';
 
 const STATUS_LABEL_KEYS: Record<ApplicationStatus, string> = {
@@ -77,6 +78,7 @@ export default function ApplicationForm({ application, history = NO_HISTORY, onS
   );
   const [status, setStatus] = useState<ApplicationStatus>(application?.status ?? 'APPLIED');
   const [appliedDate, setAppliedDate] = useState(application?.appliedDate ?? todayLocal());
+  const [jobUrl, setJobUrl] = useState(application?.jobUrl ?? '');
   const [notes, setNotes] = useState(application?.notes ?? '');
 
   useEffect(() => {
@@ -111,6 +113,8 @@ export default function ApplicationForm({ application, history = NO_HISTORY, onS
     const newErrors: Record<string, string> = {};
     if (!positionTitle.trim()) newErrors.positionTitle = t.positionRequired;
     if (!companyInput.trim()) newErrors.company = t.companyRequired;
+    const url = normalizeJobUrl(jobUrl);
+    if (url && !isWebUrl(url)) newErrors.jobUrl = t.jobUrlInvalid;
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }
@@ -131,6 +135,7 @@ export default function ApplicationForm({ application, history = NO_HISTORY, onS
         salaryCurrency: salary.trim() ? salaryCurrency : '',
         status,
         appliedDate: appliedDate || undefined,
+        jobUrl: normalizeJobUrl(jobUrl),
         notes: notes.trim(),
       };
 
@@ -289,6 +294,28 @@ export default function ApplicationForm({ application, history = NO_HISTORY, onS
             onChange={(e) => setAppliedDate(e.target.value)}
           />
         </div>
+      </div>
+
+      <div className="app-form-field">
+        <label className="app-form-label" htmlFor="app-form-job-url">{t.jobUrl}</label>
+        {/* Plain text, not type="url": the browser's own check would reject a bare
+            "linkedin.com/..." that normalizeJobUrl happily fixes */}
+        <input
+          id="app-form-job-url"
+          className="app-form-input"
+          type="text"
+          inputMode="url"
+          autoComplete="off"
+          value={jobUrl}
+          onChange={(e) => {
+            setJobUrl(e.target.value);
+            clearError('jobUrl');
+          }}
+          placeholder={t.jobUrlPlaceholder}
+        />
+        {errors.jobUrl
+          ? <span className="app-form-error">{errors.jobUrl}</span>
+          : <span className="app-form-hint">{t.jobUrlHint}</span>}
       </div>
 
       <div className="app-form-field">

@@ -128,6 +128,30 @@ describe('ApplicationForm', () => {
     expect(updateApplication).toHaveBeenCalledWith(1, expect.objectContaining({ salary: '30k×15', salaryCurrency: 'CNY' }));
   });
 
+  it('sends the job link with https:// added, and "" when it is cleared', async () => {
+    render(<ApplicationForm application={{ ...editApp, jobUrl: 'https://old.example/job' }} onSuccess={onSuccess} onCancel={onCancel} />, { wrapper: Wrapper });
+
+    fireEvent.change(screen.getByLabelText('Job Link'), { target: { value: 'linkedin.com/jobs/view/123' } });
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+    expect(updateApplication).toHaveBeenCalledWith(1, expect.objectContaining({ jobUrl: 'https://linkedin.com/jobs/view/123' }));
+
+    fireEvent.change(screen.getByLabelText('Job Link'), { target: { value: ' ' } });
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+    await waitFor(() => expect(updateApplication).toHaveBeenCalledTimes(2));
+    expect(updateApplication).toHaveBeenLastCalledWith(1, expect.objectContaining({ jobUrl: '' }));
+  });
+
+  it('blocks a link that is not a web address', () => {
+    render(<ApplicationForm application={editApp} onSuccess={onSuccess} onCancel={onCancel} />, { wrapper: Wrapper });
+
+    fireEvent.change(screen.getByLabelText('Job Link'), { target: { value: 'javascript:alert(1)' } });
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+    expect(screen.getByText('Enter a web link, like https://...')).toBeInTheDocument();
+    expect(updateApplication).not.toHaveBeenCalled();
+  });
+
   it('suggests Chinese cities when typed in pinyin', () => {
     render(<ApplicationForm onSuccess={onSuccess} onCancel={onCancel} />, { wrapper: Wrapper });
 

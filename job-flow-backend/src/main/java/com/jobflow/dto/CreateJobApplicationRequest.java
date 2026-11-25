@@ -27,6 +27,10 @@ public class CreateJobApplicationRequest {
     // Blank or a 3-letter ISO code ("USD", "CNY"); checked in the service
     private String salaryCurrency;
 
+    // Blank or an http(s) link; checked in the service
+    @Size(max = 2048, message = "Job link must be at most 2048 characters")
+    private String jobUrl;
+
     private ApplicationStatus status;
     private LocalDate appliedDate;
 

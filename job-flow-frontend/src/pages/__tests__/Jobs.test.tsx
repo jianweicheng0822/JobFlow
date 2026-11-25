@@ -346,6 +346,23 @@ describe('Jobs search and links', () => {
     } as never);
   });
 
+  it('links to the posting in a new tab, only for web links', async () => {
+    vi.mocked(getApplications).mockResolvedValue({
+      data: [
+        { ...makeApp(1, 'Alpha'), jobUrl: 'https://jobs.lever.co/acme/1' },
+        { ...makeApp(2, 'Bravo'), jobUrl: 'javascript:alert(1)' },
+        makeApp(3, 'Charlie'),
+      ],
+    } as never);
+    render(<Jobs />, { wrapper: Wrapper });
+
+    const link = await screen.findByRole('link', { name: 'Open job posting: Alpha' });
+    expect(link).toHaveAttribute('href', 'https://jobs.lever.co/acme/1');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(screen.queryByRole('link', { name: /Bravo|Charlie/ })).not.toBeInTheDocument();
+  });
+
   it('finds jobs by location too', async () => {
     render(<Jobs />, { wrapper: Wrapper });
     await findTitle('Alpha');

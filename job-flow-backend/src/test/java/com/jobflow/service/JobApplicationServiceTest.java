@@ -10,6 +10,8 @@ import com.jobflow.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -659,7 +661,7 @@ class JobApplicationServiceTest {
 
         String csv = jobApplicationService.exportCsv(1L);
 
-        assertThat(csv).startsWith("Position,Company,Status,Location,Salary,Applied Date,Last Action,Notes\n");
+        assertThat(csv).startsWith("Position,Company,Status,Location,Salary,Applied Date,Last Action,Notes,Job URL\n");
         assertThat(csv).contains("Software Engineer");
         assertThat(csv).contains("TestCorp");
         assertThat(csv).contains("APPLIED");
@@ -673,6 +675,47 @@ class JobApplicationServiceTest {
         when(jobApplicationRepository.findByUserIdOrderByUpdatedAtDesc(1L)).thenReturn(List.of(testApp));
 
         assertThat(jobApplicationService.exportCsv(1L)).contains(",CNY 30k×15,");
+    }
+
+    @Test
+    void exportCsv_endsEachRowWithTheJobUrl() {
+        testApp.setJobUrl("https://boards.greenhouse.io/acme/jobs/123");
+        when(jobApplicationRepository.findByUserIdOrderByUpdatedAtDesc(1L)).thenReturn(List.of(testApp));
+
+        assertThat(jobApplicationService.exportCsv(1L)).endsWith(",https://boards.greenhouse.io/acme/jobs/123\n");
+    }
+
+    @Test
+    void update_jobUrl_setsKeepsAndClears() {
+        when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
+        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        UpdateJobApplicationRequest request = new UpdateJobApplicationRequest();
+        request.setJobUrl("  https://www.linkedin.com/jobs/view/4012345678  ");
+        assertThat(jobApplicationService.update(1L, 100L, request).getJobUrl())
+                .isEqualTo("https://www.linkedin.com/jobs/view/4012345678");
+
+        // Not sent: left alone
+        assertThat(jobApplicationService.update(1L, 100L, new UpdateJobApplicationRequest()).getJobUrl())
+                .isEqualTo("https://www.linkedin.com/jobs/view/4012345678");
+
+        request.setJobUrl("");
+        assertThat(jobApplicationService.update(1L, 100L, request).getJobUrl()).isNull();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "javascript:alert(1)", "JavaScript:alert(1)", "data:text/html,<b>hi</b>",
+        "ftp://example.com/job", "www.example.com/jobs/1", "https://", "https://exa mple.com/job"
+    })
+    void update_jobUrl_rejectsAnythingButWebLinks(String bad) {
+        when(jobApplicationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testApp));
+
+        UpdateJobApplicationRequest request = new UpdateJobApplicationRequest();
+        request.setJobUrl(bad);
+        assertThatThrownBy(() -> jobApplicationService.update(1L, 100L, request))
+                .isInstanceOf(ApiException.class)
+                .hasFieldOrPropertyWithValue("code", "INVALID_JOB_URL");
     }
 
     @Test
@@ -723,7 +766,8 @@ class JobApplicationServiceTest {
         // Leading ' keeps spreadsheets from evaluating them; quoting still applies on top
         assertThat(row).startsWith("\"'=HYPERLINK(\"\"http://evil.example\"\",\"\"click\"\")\",");
         assertThat(row).contains(",'+1 Remote,'-100k,");
-        assertThat(row).endsWith(",'@SUM(A1:A2)");
+        // Notes, then an empty Job URL cell
+        assertThat(row).endsWith(",'@SUM(A1:A2),");
     }
 
     @Test
@@ -759,7 +803,7 @@ class JobApplicationServiceTest {
         String csv = jobApplicationService.exportCsv(1L);
 
         // Should only have header
-        assertThat(csv).isEqualTo("Position,Company,Status,Location,Salary,Applied Date,Last Action,Notes\n");
+        assertThat(csv).isEqualTo("Position,Company,Status,Location,Salary,Applied Date,Last Action,Notes,Job URL\n");
     }
 
     // --- input validation ---

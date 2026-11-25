@@ -31,6 +31,10 @@ public class UpdateJobApplicationRequest {
     // null = keep, blank = clear; checked in the service
     private String salaryCurrency;
 
+    // null = keep, blank = clear; otherwise an http(s) link, checked in the service
+    @Size(max = 2048, message = "Job link must be at most 2048 characters")
+    private String jobUrl;
+
     private ApplicationStatus status;
     private LocalDate appliedDate;
 

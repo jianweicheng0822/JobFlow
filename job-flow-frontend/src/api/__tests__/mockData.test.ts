@@ -190,6 +190,23 @@ describe('PUT partial update', () => {
     expect(apps.filter((a) => a.salaryCurrency === 'USD')).toHaveLength(40);
   });
 
+  it('gives most seed jobs a careers-page link and leaves some without', () => {
+    const apps = resolveMock('/applications', 'get') as JobApplicationDTO[];
+    const withLink = apps.filter((a) => a.jobUrl);
+    expect(withLink.length).toBeGreaterThan(apps.length / 2);
+    expect(withLink.length).toBeLessThan(apps.length);
+    for (const app of withLink) expect(app.jobUrl).toMatch(/^https:\/\//);
+  });
+
+  it('sets, keeps and clears the job link on update', () => {
+    let result = resolveMock('/applications/1', 'put', { jobUrl: 'https://example.com/job' }) as JobApplicationDTO;
+    expect(result.jobUrl).toBe('https://example.com/job');
+    result = resolveMock('/applications/1', 'put', { notes: 'hi' }) as JobApplicationDTO;
+    expect(result.jobUrl).toBe('https://example.com/job');
+    result = resolveMock('/applications/1', 'put', { jobUrl: '' }) as JobApplicationDTO;
+    expect(result.jobUrl).toBeNull();
+  });
+
   it('keeps fields that are not sent', () => {
     const result = resolveMock('/applications/1', 'put', { notes: 'hello' }) as JobApplicationDTO;
     expect(result.location).toBe('Seattle, WA');
